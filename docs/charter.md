@@ -21,6 +21,7 @@ Determine and field the highest-EV deck in the SC format, continuously, across s
 | Effect encoding | Adopt the engine's existing compositional DSL; LLM-author the gaps with generated tests |
 | Persistence & compute | This repo; heavy self-play on user hardware |
 | Objective function | Field-weighted expected match win rate vs the real SC field, split by play/draw |
+| Role of that objective | **Diagnostic, not selective** (2026-08-17). It forecasts the field and arms a tripwire; it does not choose the archetype. Tripwire is qualitative: structural deficiency is decisional, a points gap is not. See `CLAUDE.md`. |
 | Validation | Per-card assertion tests → Comprehensive Rules conformance → meta calibration |
 | Deck constraints | No preference constraints; budget cap on acquisition (ceiling TBD) |
 
@@ -30,15 +31,29 @@ Determine and field the highest-EV deck in the SC format, continuously, across s
 Blocks: 1 = OP01–04, 2 = OP05–08, 3 = OP09–12.
 
 Banned: Gecko Moria (OP06-086), Jinbe (OP07-045), Kingdom Come (EB01-059), Ice Age (OP02-117).
-*SC-specific confirmation pending.*
+**SC confirmed identical to other regions on banlist and rotation — Ping, 2026-08-17.**
 
 **EN OP16 field (Limitless):** B/Y Nami 23.5% · G/B Luffy 22.9% · P Enel 22.7% · then a cliff to
 P/Y Rosinante 9.9%. Top three ≈ 69% of the field.
 
+## What the simulator is for — Ping, 2026-08-17
+
+**Find weak points in the meta and raise this deck's win rate against them.** The archetype is
+fixed; the flex slots are the decision variable, and they move as the meta moves. Worked example:
+1–2 `OP17-016` Rakuyo against an aggro field.
+
+Consequence: the unit of analysis is a **card slot**, not a deck. A leader-vs-leader matchup matrix
+cannot answer it — two lists differing by two cards are one row in that matrix. Card-granular
+simulation is required, so encoding OP15/16/17 into the engine is the critical path.
+
 ## Known blockers
 
-- `onepiece-cardgame.cn` (official SC) is robots-blocked to automated fetch. SC-official banlist,
-  card DB and schedule must come from mirrors, community sources, or Ping directly.
+- ~~`onepiece-cardgame.cn` is robots-blocked~~ — **wrong, corrected 2026-08-17.** It serves no
+  robots.txt and returns 200. It is a JavaScript SPA, so a plain fetch gets an empty shell; it
+  needs a rendering browser or its underlying JSON API.
+- Egress blocks are **environment-specific**. On Ping's Mac, Limitless, `en.onepiece-cardgame.com`
+  and `onepiece-cardgame.cn` are all reachable; only `optcgapi.com` times out. Limitless permits
+  automated fetch (`robots.txt` is `Disallow:` with an empty value).
 - Limitless `/decks/matchups` returned HTTP 500 on first attempt; retry needed for calibration data.
 
 ## Resolved
@@ -51,13 +66,29 @@ P/Y Rosinante 9.9%. Top three ≈ 69% of the field.
   official Bandai list. See `tools/import_cards.py` and the README. OP17 is not yet published
   by Bandai, so it is pending a date, not pending a method.
 
+## Legal-pool parity with EN/JP — confirmed 2026-08-17
+
+Ping: **SC matches the other regions on banlist and rotation.** So the four bans and Block 2+ apply
+unchanged, and EN/JP card-legality data transfers to SC directly.
+
+**This does not make the metagames identical, and the distinction is load-bearing.** An identical
+legal pool constrains what *can* be played; it does not determine what *is* played. Release timing,
+player base and local preference all move field composition. Both of our data sources are still EN —
+shares from Limitless, the matchup matrix from an EN ladder — so the "corrected by SC-native
+sources" half of the ground-truth decision is **still outstanding**, and the covered-field and
+share-weighted EV numbers remain EN proxies. Parity closes the legality question, not the field one.
+
 ## Open inputs needed
 
-1. Acquisition budget ceiling (RMB)
-2. Does SC Standard currently run the same Block 2+ rotation?
-3. Is the SC banlist identical to the four cards above?
-4. Is SC OP17 the same list as JP/EN OP17, or does it carry SC-exclusive content?
-5. Target event and date (店赛 / 标准对战会 / 旗舰赛), and whether it is Bo1 or Bo3
+1. **Target event and date** (店赛 / 标准对战会 / 旗舰赛), and whether it is Bo1 or Bo3 — *now the
+   binding unknown; it decides whether the engine track is relevant this cycle at all*
+2. Acquisition budget ceiling (RMB)
+3. Is SC OP17 the same list as JP/EN OP17, or does it carry SC-exclusive content? *(the 08-17
+   confirmation was scoped to banlist and rotation, so this is still open)*
+4. SC-native field data — anything on what people actually play locally
+
+~~Does SC Standard run the same Block 2+ rotation?~~ — **yes**, 2026-08-17.
+~~Is the SC banlist identical?~~ — **yes**, 2026-08-17.
 
 ## References
 

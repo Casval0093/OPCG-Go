@@ -81,21 +81,87 @@ Red and Green respectively: **two separate builds, no shared package.**
 
 Provisional — only ~135 OP17 cards revealed. Set releases EN 2026-08-28, SC ~2026-08-23.
 
-**Ace — one real gain:**
+> **Re-verified card-by-card against Limitless, 2026-08-17.** The table below previously came
+> from `opdeckguide.com` and `spellmana.com` — both aggregators. **Every row had an error**, one
+> of them a wrong card ID. Limitless `robots.txt` is `Disallow:` (empty — everything permitted),
+> and the site is reachable, so there is no reason to use an aggregator for OP17 again.
 
-| ID | Card | Relevance |
+| ID | Card | Verified text | Relevance |
+|---|---|---|---|
+| **OP17-005** | Edward.Newgate · 10c · **12000** · Special · Four Emperors/WB | "If your opponent has a Character with 10000 power or more, give this card in your hand −4 cost. [On Play] Your monocolored Leader's base power becomes 8000 until the end of your opponent's next End Phase." | Effectively 6-cost 12000, over Ace's 8000 threshold, granted [Rush]. **The thesis.** The [On Play] is **upside for Ace, not a cost** — see below. |
+| OP17-009 | **Haruta** · 4c · 5000 · +1000 · Slash · WB | "[Opponent's Turn] This Character gains +3000 power. [On Play] K.O. up to 1 of your opponent's Characters with 2000 base power or less." | **Not Rakuyo.** 8000 on defence + 1 K.O. |
+| OP17-010 | Fossa · 1c · 3000 · Slash · WB | "[Activate: Main] [Once Per Turn] If your opponent has a Character with 10000 power or more **and you have no other [Fossa]**, this Character gains [Blocker] and +2000 power until the end of your opponent's next End Phase." | Not a static Blocker — activated, once/turn, self-limited to 1 copy. Counter value unconfirmed. |
+| OP17-014 | Whitey Bay · 1c · 1000 · +1000 · Slash · **Whitebeard Pirates Allies** | "[On Play] K.O. up to 1 of your opponent's Characters with 2000 base power or less. [On Your Opponent's Attack] You may trash this Character: Your Leader gains +1000 power during this battle." | **Different trait string** to the rest of the package — see the trait-matching hazard in `CLAUDE.md`. |
+| **OP17-016** | **Rakuyo** · 3c · 2000 · +2000 · Strike · WB | "[On Play] K.O. up to 2 of your opponent's Characters with 2000 base power or less." | The card §5 previously filed under OP17-009. Best K.O. rate in the package. |
+| OP17-018 | "The Power to Destroy the World" · 1c Event · Four Emperors/WB | "[Main] You may rest 2 of your DON!! cards: K.O. up to 1 of your opponent's Stages. [Counter] If you have 2 or more Characters with 8000 **base** power or more, up to 1 of your Leader or Characters gains +4000 power during this battle." | Has a Main mode the old row omitted entirely. |
+
+### OP17-005's [On Play] — re-added by Ping, 2026-08-17. It is a buff.
+
+The 2026-08-16 decision rejected this clause as an aggregator fabrication. **Reversed.** Limitless —
+the source cited for the original rejection — shows it, on two independently-worded fetches, one
+phrased to invite "NO ON PLAY ABILITY" as the answer. Most likely Limitless firmed up its spoiler
+data between the 16th and the 17th.
+
+The rejection's reasoning was also wrong, and this is the part that matters for play. It called the
+clause "a real cost, since it would shrink your own Leader":
+
+| Leader | Base power | After the [On Play] |
 |---|---|---|
-| **OP17-005** | Edward Newgate — 10c, **12000 power**, cost −4 if opponent has a 10000+ power Character | Effectively a 6-cost 12000 body, over Ace's 8000 threshold. Ace grants it [Rush]. **This is the thesis.** |
+| `OP16-001` Ace (mono-Red) | 5000 | **8000 — +3000** |
+| `OP17-001` Newgate (mono-Red) | 5000 | **8000 — +3000** |
 
-> **OP17-005 challenged and upheld, 2026-08-16.** A web-search summary claimed an additional
-> On Play that sets your own single-colour Leader's base power to 8000 until the opponent's
-> next end phase — a real cost, since it would shrink your own Leader. Checked against
-> Limitless: **the aggregator is wrong and the row above stands.** This is the second time an
-> aggregator has returned garbled text for a card in this project. Do not re-add that clause.
-| OP17-009 | Rakuyo — 3c 2000, On Play K.O. up to 2 Characters with ≤2000 base power | Ungated |
-| OP17-010 | Fossa — 1c 3000, Blocker +2000 if opponent has a 10000+ Character | Ungated |
-| OP17-014 | Whitey Bay — 1c 1000, On Play K.O. ≤2000 base power | Ungated |
-| OP17-018 | "Has The Power To Destroy The World!!" — Counter +4000 if you control 2+ 8000-power Characters | Ungated |
+No Leader in the format has 8000 base power, so the clause cannot shrink anything. It **sets** base
+power rather than adding, so later +power modifiers stack on top of 8000, and it persists through
+the opponent's next End Phase — so it is a defensive buff on their swing-back turn as well.
+
+**The thesis is stronger than recorded, not weaker.** On the turn you land Newgate you get a
+12000 [Rush] body *and* a Leader that goes 5000 → 8000. The only way this clause is ever a cost is
+on a two-colour Leader, where it simply does nothing.
+
+**Provisional until Bandai publishes on 2026-08-28.** Bandai has not put OP17 on the official card
+list, so this — like every other OP17 row here — is spoiler-stage. Re-run
+`python3 tools/import_cards.py --set OP17 --refresh` after that date and diff against this table.
+
+> **Superseded — kept for the audit trail.** *"OP17-005 challenged and upheld, 2026-08-16. A
+> web-search summary claimed an additional On Play that sets your own single-colour Leader's base
+> power to 8000 until the opponent's next end phase — a real cost, since it would shrink your own
+> Leader. Checked against Limitless: the aggregator is wrong and the row above stands."* The
+> aggregator was right and the check was wrong. Worth remembering: the failure was not trusting a
+> bad source, it was a **spoiler-stage source changing under us** plus a reasoning error nobody
+> caught because the conclusion sounded conservative.
+
+### The package pulls in two directions — structural, 2026-08-17
+
+All four removal cards share **one** clause: K.O. a Character with **2000 base power or less**.
+That is the entire anti-aggro suite, and it is narrow. It answers *swarm* aggro that floods
+1000–2000 bodies. It does nothing to a *tempo* curve of 4000–5000s.
+
+Worse, the halves of the package want opposite fields:
+
+| | Opponent plays small bodies | Opponent plays 10000+ bodies |
+|---|---|---|
+| Rakuyo / Haruta / Whitey Bay | **live** | dead |
+| `OP17-005` discount, Fossa's buff | dead — Newgate costs **10** | **live** |
+
+You can rarely have both halves live in the same matchup. Ping's instinct to run 1–2 `OP17-016`
+is right — `+2000` Counter means it is never a blank draw — but the tech does not stack with the
+thesis, it substitutes for it. That is the first concrete question for the simulator.
+
+**And there is no sideboard.** Constructed OPTCG locks the deck for the entire event; only Sealed
+permits a side deck (official Tournament Rules Manual / Floor Rule). So a tech slot cannot be
+brought in against aggro and taken out against big-board decks. **It is a permanent tax paid in
+every matchup, including the ones where it is dead.**
+
+That fixes the objective function for tech slots. For a candidate card *c* replacing an incumbent:
+
+```
+ΔEV(c) = Σ_archetype  share(archetype) × [ WR(deck with c | archetype) − WR(deck without c | archetype) ]
+```
+
+The question is never "does Rakuyo beat aggro." It is whether its gain against the aggro *share*
+of the field outweighs its loss across the remaining ~90%. With OP16 shares, a card that is fully
+dead outside one 10%-share matchup has to swing that matchup by **>9 points** just to break even.
+That bar is the reason this needs card-granular simulation rather than judgement.
 
 **Locked out** — gated on *"if your Leader is [Edward Newgate]"* by NAME, not by the Whitebeard
 Pirates trait: OP17-013 Ace (his own card), OP17-003 Izo, OP17-007 Kouzuki Oden.
