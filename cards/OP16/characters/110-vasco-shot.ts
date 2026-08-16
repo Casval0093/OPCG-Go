@@ -1,0 +1,32 @@
+import type { CharacterCard } from "@tcg/op-types";
+import { op16VascoShot110I18n } from "./110-vasco-shot.i18n.ts";
+
+export const op16VascoShot110: CharacterCard = {
+  id: "OP16-110",
+  canonicalId: "OP16-110",
+  slug: "vasco-shot/op16-110",
+  name: "Vasco Shot",
+  printings: [
+    {
+      id: "OP16-110",
+      artId: "OP16-110",
+      setCode: "OP16",
+      collectorNumber: "110",
+      rarity: "R",
+      imageUrl: "https://en.onepiece-cardgame.com/images/cardlist/card/OP16-110.png",
+    },
+  ],
+  cardType: "character",
+  color: ["yellow"],
+  rarity: "R",
+  setId: "OP16",
+  cost: 1,
+  power: 2000,
+  counter: 1000,
+  trigger: "Activate this card's [On K.O.] effect.",
+  traits: ["Impel Down", "Blackbeard Pirates"],
+  attribute: "special",
+  effect:
+    "[On K.O.] Draw 1 card and rest up to 1 of your opponent's Characters with a cost of 6 or less.",
+  i18n: op16VascoShot110I18n,
+};

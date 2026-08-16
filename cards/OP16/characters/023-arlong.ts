@@ -1,0 +1,29 @@
+import type { CharacterCard } from "@tcg/op-types";
+import { op16Arlong023I18n } from "./023-arlong.i18n.ts";
+
+export const op16Arlong023: CharacterCard = {
+  id: "OP16-023",
+  canonicalId: "OP16-023",
+  slug: "arlong/op16-023",
+  name: "Arlong",
+  printings: [
+    {
+      id: "OP16-023",
+      artId: "OP16-023",
+      setCode: "OP16",
+      collectorNumber: "023",
+      rarity: "C",
+      imageUrl: "https://en.onepiece-cardgame.com/images/cardlist/card/OP16-023.png",
+    },
+  ],
+  cardType: "character",
+  color: ["green"],
+  rarity: "C",
+  setId: "OP16",
+  cost: 1,
+  power: 3000,
+  counter: 1000,
+  traits: ["Fish-Man", "Impel Down", "The Sun Pirates"],
+  attribute: "slash",
+  i18n: op16Arlong023I18n,
+};
