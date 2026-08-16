@@ -31,7 +31,7 @@ Determine and field the highest-EV deck in the SC format, continuously, across s
 Blocks: 1 = OP01–04, 2 = OP05–08, 3 = OP09–12.
 
 Banned: Gecko Moria (OP06-086), Jinbe (OP07-045), Kingdom Come (EB01-059), Ice Age (OP02-117).
-*SC-specific confirmation pending.*
+**SC confirmed identical to other regions on banlist and rotation — Ping, 2026-08-17.**
 
 **EN OP16 field (Limitless):** B/Y Nami 23.5% · G/B Luffy 22.9% · P Enel 22.7% · then a cliff to
 P/Y Rosinante 9.9%. Top three ≈ 69% of the field.
@@ -66,13 +66,29 @@ simulation is required, so encoding OP15/16/17 into the engine is the critical p
   official Bandai list. See `tools/import_cards.py` and the README. OP17 is not yet published
   by Bandai, so it is pending a date, not pending a method.
 
+## Legal-pool parity with EN/JP — confirmed 2026-08-17
+
+Ping: **SC matches the other regions on banlist and rotation.** So the four bans and Block 2+ apply
+unchanged, and EN/JP card-legality data transfers to SC directly.
+
+**This does not make the metagames identical, and the distinction is load-bearing.** An identical
+legal pool constrains what *can* be played; it does not determine what *is* played. Release timing,
+player base and local preference all move field composition. Both of our data sources are still EN —
+shares from Limitless, the matchup matrix from an EN ladder — so the "corrected by SC-native
+sources" half of the ground-truth decision is **still outstanding**, and the covered-field and
+share-weighted EV numbers remain EN proxies. Parity closes the legality question, not the field one.
+
 ## Open inputs needed
 
-1. Acquisition budget ceiling (RMB)
-2. Does SC Standard currently run the same Block 2+ rotation?
-3. Is the SC banlist identical to the four cards above?
-4. Is SC OP17 the same list as JP/EN OP17, or does it carry SC-exclusive content?
-5. Target event and date (店赛 / 标准对战会 / 旗舰赛), and whether it is Bo1 or Bo3
+1. **Target event and date** (店赛 / 标准对战会 / 旗舰赛), and whether it is Bo1 or Bo3 — *now the
+   binding unknown; it decides whether the engine track is relevant this cycle at all*
+2. Acquisition budget ceiling (RMB)
+3. Is SC OP17 the same list as JP/EN OP17, or does it carry SC-exclusive content? *(the 08-17
+   confirmation was scoped to banlist and rotation, so this is still open)*
+4. SC-native field data — anything on what people actually play locally
+
+~~Does SC Standard run the same Block 2+ rotation?~~ — **yes**, 2026-08-17.
+~~Is the SC banlist identical?~~ — **yes**, 2026-08-17.
 
 ## References
 

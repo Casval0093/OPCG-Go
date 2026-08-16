@@ -197,10 +197,20 @@ python3 tools/coverage_report.py --exclude-promos # encoding backlog
 
 ## Open questions only Ping can answer
 
-1. Does SC Standard currently run the same Block 2+ rotation?
-2. Is the SC banlist identical to the four cards above?
-3. Is SC OP17 the same list as JP/EN OP17, or does it carry SC-exclusive content?
-4. Target event and date (店赛 / 标准对战会 / 旗舰赛), and Bo1 or Bo3?
+1. **Target event and date** (店赛 / 标准对战会 / 旗舰赛), and Bo1 or Bo3? — **the binding unknown.**
+   The engine cannot contribute to any event inside ~6 weeks: SC OP17 lands ~2026-08-23, Bandai
+   publishes 2026-08-28, and encoding ~360 cards runs weeks past that. For a near event the
+   deliverable is a frozen list plus reps, and the engine is building for the *next* format.
+2. Acquisition budget ceiling (RMB)
+3. Is SC OP17 the same list as JP/EN OP17, or does it carry SC-exclusive content? (The 08-17
+   parity confirmation was scoped to banlist and rotation only — this is still open.)
+4. SC-native field data — what is actually played locally.
+
+**Answered 2026-08-17: SC matches other regions on banlist and rotation.** Both were open since
+day one. Note precisely what this does and does not buy: an identical *legal pool*, not an
+identical *metagame*. Shares (Limitless) and the matchup matrix (opdecks.xyz ladder) are both
+still EN, so every share-weighted number in `docs/research-findings.md` remains an EN proxy and
+the "corrected by SC-native sources" half of the ground-truth decision is unfinished.
 
 ## Working notes
 
