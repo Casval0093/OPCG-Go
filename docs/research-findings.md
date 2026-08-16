@@ -86,6 +86,12 @@ Provisional — only ~135 OP17 cards revealed. Set releases EN 2026-08-28, SC ~2
 | ID | Card | Relevance |
 |---|---|---|
 | **OP17-005** | Edward Newgate — 10c, **12000 power**, cost −4 if opponent has a 10000+ power Character | Effectively a 6-cost 12000 body, over Ace's 8000 threshold. Ace grants it [Rush]. **This is the thesis.** |
+
+> **OP17-005 challenged and upheld, 2026-08-16.** A web-search summary claimed an additional
+> On Play that sets your own single-colour Leader's base power to 8000 until the opponent's
+> next end phase — a real cost, since it would shrink your own Leader. Checked against
+> Limitless: **the aggregator is wrong and the row above stands.** This is the second time an
+> aggregator has returned garbled text for a card in this project. Do not re-add that clause.
 | OP17-009 | Rakuyo — 3c 2000, On Play K.O. up to 2 Characters with ≤2000 base power | Ungated |
 | OP17-010 | Fossa — 1c 3000, Blocker +2000 if opponent has a 10000+ Character | Ungated |
 | OP17-014 | Whitey Bay — 1c 1000, On Play K.O. ≤2000 base power | Ungated |

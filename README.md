@@ -62,11 +62,51 @@ were entirely a measurement artifact, and they reconcile exactly:
 
 309 + 22 = 331. The mainline figure reconciles the same way: 103 + 22 = 125.
 
-The real gap is unchanged and unaffected: sets **OP15, OP16 and OP17 are absent entirely**
-(~400 cards) — and those are the ones that decide the current SC meta.
+The real gap is unchanged and unaffected: sets **OP15, OP16 and OP17 are absent from the
+engine** — and those are the ones that decide the current SC meta. Card data for OP15 and
+OP16 is now imported (see below); OP17 is not yet published by Bandai.
 
 Raw data: [`data/card-coverage.json`](data/card-coverage.json). Audit the spread resolution
 with `python3 tools/coverage_report.py --show-inherited`.
+
+## Card data for OP15–OP17
+
+Every direct card source is blocked by the working environment's egress policy, which allows
+GitHub and package registries only — `optcgapi.com`, `onepiece.limitlesstcg.com`,
+`onepiece-cardgame.cn` and `en.onepiece-cardgame.com` all fail. The npm registry is reachable,
+and `one-piece-card-game-json` republishes the **official Bandai card list** (its `image_url`
+fields point at `en.onepiece-cardgame.com`), which makes it a mirror of the primary source
+rather than the aggregator summaries this project rules out.
+
+```bash
+python3 tools/import_cards.py --validate          # trust check against the engine
+python3 tools/import_cards.py --set OP15 --set OP16
+python3 tools/import_cards.py --list              # what upstream has
+```
+
+Trust is established, not assumed. `--validate` cross-checks every card the dataset shares
+with the engine's 2,282 hand-checked definitions:
+
+| Field | Agreement |
+|---|---|
+| power | 1503/1503 (100%) |
+| life | 97/97 (100%) |
+| cost | 1858/1859 (99.95%) |
+| counter | 1199/1204 (99.58%) |
+
+The six disagreements are listed by card ID in the tool's output; one side is wrong in each
+and they are worth checking by hand. As a further check, `OP16-001` Portgas.D.Ace imports with
+effect text matching [`docs/research-findings.md`](docs/research-findings.md) verbatim — and
+that was verified independently against Limitless.
+
+| Set | Cards | With printed effects | Status |
+|---|---|---|---|
+| OP15 | 119 | 113 | imported → `data/cards-OP15-en.json` |
+| OP16 | 119 | 110 | imported → `data/cards-OP16-en.json` |
+| OP17 | — | — | **not yet published by Bandai**; EN 2026-08-28, SC ~2026-08-23 |
+
+OP17 needs no code change — re-run `python3 tools/import_cards.py --set OP17 --refresh` once
+it is on the official list.
 
 ## Variant/base text integrity
 

@@ -104,6 +104,15 @@ These numbers use a **4-card test deck**. Real 51-card decks with live effects w
 **Tier 3 as specified is off by roughly two orders of magnitude on this engine.** The open decision
 is which lever to pull, not whether.
 
+> **Decision, 2026-08-16 — do not re-measure until the benchmark deck is fixed.** The table
+> above is derived from a 4-card test deck, and the note under it (real decks run 2–5x slower)
+> is not carried into the options below, so Option C's "runs today on 2 cores" is optimistic by
+> that factor. Re-running the benchmark as-is would only reproduce a number already known to be
+> unrepresentative. `bench/throughput.test.ts` must first be pointed at a real 50-card list —
+> the Teach reference deck in `docs/research-findings.md` §7 is the obvious candidate, since
+> every one of its cards is now in `data/cards-OP16-en.json`. Then measure once, and re-derive
+> the options table from that.
+
 ## Options to close the gap
 
 - **A. Rust port of the hot path.** Keep the TS card DSL as source of truth; compile state and

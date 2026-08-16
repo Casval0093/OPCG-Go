@@ -55,11 +55,24 @@ games. If you write something implying otherwise, you are wrong. The engine does
   `OP02-013_p3` misspells the trait `"Whitebeard Piratess"` — the exact trait Ace keys on.
   Play is correct today because the engine runs the base's encoding. **When authoring
   OP15–OP17 encodings from printed text, read the base printing.** `tools/variant_audit.py`.
-- **This container cannot reach card data.** Egress is restricted to GitHub and package
-  registries. `optcgapi.com`, `onepiece.limitlesstcg.com`, `onepiece-cardgame.cn` and
-  `en.onepiece-cardgame.com` are all blocked, so OP15–OP17 cannot be imported from here.
-  WebSearch works but returns aggregator summaries, which this file already rules out as a
-  source. Card data must be supplied by Ping or fetched somewhere with open egress.
+- **Card data is SOLVED for OP15/OP16 via npm — do not re-litigate the egress problem.**
+  Direct card sites (`optcgapi.com`, `onepiece.limitlesstcg.com`, `onepiece-cardgame.cn`,
+  `en.onepiece-cardgame.com`) are all blocked by egress policy. The npm registry is not.
+  `one-piece-card-game-json` publishes the **official Bandai** list (its `image_url`s point
+  at `en.onepiece-cardgame.com`), so it is a mirror of the primary source, not an aggregator
+  summary. `tools/import_cards.py` pulls it. Validated against the engine's 2,282 hand-checked
+  cards: power 100%, life 100%, cost 99.95%, counter 99.58%. `OP16-001` Ace comes back
+  matching `docs/research-findings.md` verbatim.
+- **OP17 is not published yet — it is not missing, it does not exist upstream.** Bandai has
+  not put it on the official card list. EN release 2026-08-28, SC ~2026-08-23. Re-run
+  `python3 tools/import_cards.py --set OP17 --refresh` after that date; no code change needed.
+- **`OP17-005`'s effect: `docs/research-findings.md` is correct, the aggregator was wrong.**
+  A WebSearch summary claimed an On Play that sets your own single-colour Leader's base power
+  to 8000. Ping checked Limitless and rejected it. Do not reintroduce that clause.
+- **Do not re-measure throughput until the benchmark deck is fixed** (Ping's call, 2026-08-16).
+  `bench/throughput.test.ts` uses a 4-card deck; a re-measure on that deck would just reproduce
+  a number we already know is unrepresentative. Fix the deck to a real 50-card list first, then
+  measure once.
 
 ## Repo map
 
@@ -72,6 +85,9 @@ docs/research-findings.md       all verified competitive data (matrix, leaders, 
 tools/ev_analysis.py            field-weighted EV + Nash + sensitivity   <- run this
 tools/coverage_report.py        card-effect encoding coverage against the vendored engine
 tools/variant_audit.py          alternate-art printings vs the base encoding they inherit
+tools/import_cards.py           card data for sets the engine lacks, via npm (in-policy)
+data/cards-OP15-en.json         imported OP15, 119 cards
+data/cards-OP16-en.json         imported OP16, 119 cards
 bench/throughput.test.ts        engine throughput benchmark
 data/op16-matchup-matrix.json   the matchup matrix, machine-readable
 data/card-coverage.json         all 2,282 cards classified encoded/gap/vanilla
@@ -97,12 +113,12 @@ python3 tools/coverage_report.py --exclude-promos # encoding backlog
 2. **Build the Ace OP17 list.** Skeleton is the OP16 Red Ace deck; first slot-in is `OP17-005`
    Edward Newgate (12000 power, cost −4 vs a 10000+ board, so effectively 6-cost — and Ace's leader
    grants it [Rush]). That is the whole thesis.
-3. **Get OP15–OP17 card data.** This is now the binding constraint on the whole engine track,
-   and it is an acquisition problem, not an encoding one — see the egress note above. Options:
-   ask Ping for a dump, run the import somewhere with open egress, or add the needed hosts to
-   the environment's egress allowlist. Once the data exists, encoding follows the vendored
-   engine's existing DSL. (The "fill the 125 mainline gaps" item that used to sit here has been
-   deleted — that backlog was a measurement bug and is 0.)
+3. **Generate engine card definitions from `data/cards-OP15-en.json` / `cards-OP16-en.json`.**
+   Acquisition is done (238 cards, 223 with printed effects). What remains is the real work:
+   emit `.ts` + `.i18n.ts` definitions in the vendored engine's shape, then encode effects in
+   its existing DSL with per-card tests. Author from these files, never from a variant printing.
+   (The "fill the 125 mainline gaps" item that used to sit here has been deleted — that backlog
+   was a measurement bug and is 0.)
 4. **Pick the Tier-3 lever** — recommendation is Tier 2.5 now, learned value net next, Rust port only
    if calibration proves heuristic play distorts matchups. Note the audit's throughput table is
    derived from a 4-card test deck; it self-notes real decks run 2–5x slower but does not carry

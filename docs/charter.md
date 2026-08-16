@@ -41,14 +41,23 @@ P/Y Rosinante 9.9%. Top three ≈ 69% of the field.
   card DB and schedule must come from mirrors, community sources, or Ping directly.
 - Limitless `/decks/matchups` returned HTTP 500 on first attempt; retry needed for calibration data.
 
+## Resolved
+
+- ~~Push access~~ — **resolved 2026-08-16.** The cause was not the credential proxy: the Claude
+  GitHub App was not installed on the account. OAuth authorization alone is not sufficient.
+  Installing it at `github.com/apps/claude/installations/new` fixed push and the API.
+- ~~OP15–OP17 card data~~ — **resolved for OP15/OP16, 2026-08-16.** Every direct card source is
+  egress-blocked, but the npm registry is not, and `one-piece-card-game-json` mirrors the
+  official Bandai list. See `tools/import_cards.py` and the README. OP17 is not yet published
+  by Bandai, so it is pending a date, not pending a method.
+
 ## Open inputs needed
 
-1. Authorize `Casval0093/OPCG-Go` in the session's git sources — cloning works, pushing is blocked by the credential proxy. No PAT needed.
-2. Acquisition budget ceiling (RMB)
-3. Does SC Standard currently run the same Block 2+ rotation?
-4. Is the SC banlist identical to the four cards above?
-5. Is SC OP17 the same list as JP/EN OP17, or does it carry SC-exclusive content?
-6. Target event and date (店赛 / 标准对战会 / 旗舰赛), and whether it is Bo1 or Bo3
+1. Acquisition budget ceiling (RMB)
+2. Does SC Standard currently run the same Block 2+ rotation?
+3. Is the SC banlist identical to the four cards above?
+4. Is SC OP17 the same list as JP/EN OP17, or does it carry SC-exclusive content?
+5. Target event and date (店赛 / 标准对战会 / 旗舰赛), and whether it is Bo1 or Bo3
 
 ## References
 
