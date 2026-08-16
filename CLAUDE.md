@@ -197,10 +197,11 @@ python3 tools/coverage_report.py --exclude-promos # encoding backlog
 
 ## Open questions only Ping can answer
 
-1. **Target event and date** (店赛 / 标准对战会 / 旗舰赛), and Bo1 or Bo3? — **the binding unknown.**
-   The engine cannot contribute to any event inside ~6 weeks: SC OP17 lands ~2026-08-23, Bandai
-   publishes 2026-08-28, and encoding ~360 cards runs weeks past that. For a near event the
-   deliverable is a frozen list plus reps, and the engine is building for the *next* format.
+1. **Target event and date** (店赛 / 标准对战会 / 旗舰赛)? — **the binding unknown.** (Format is
+   settled: **Bo3**, Ping 2026-08-17.) The engine cannot contribute to any event inside ~6 weeks:
+   SC OP17 lands ~2026-08-23, Bandai publishes 2026-08-28, and encoding runs weeks past that. For
+   a near event the deliverable is a frozen list plus reps, and the engine builds for the *next*
+   format.
 2. Acquisition budget ceiling (RMB)
 3. Is SC OP17 the same list as JP/EN OP17, or does it carry SC-exclusive content? (The 08-17
    parity confirmation was scoped to banlist and rotation only — this is still open.)

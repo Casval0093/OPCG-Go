@@ -20,6 +20,7 @@ Determine and field the highest-EV deck in the SC format, continuously, across s
 | Engine base | **Fork `TheCardGoat/tcg-engines` (MIT)** — audit complete. MOOgiwara rejected (AGPL, 30% MVP) |
 | Effect encoding | Adopt the engine's existing compositional DSL; LLM-author the gaps with generated tests |
 | Persistence & compute | This repo; heavy self-play on user hardware |
+| Match format | **Bo3** (Ping, 2026-08-17). No side deck — Constructed locks the deck all event |
 | Objective function | Field-weighted expected match win rate vs the real SC field, split by play/draw |
 | Role of that objective | **Diagnostic, not selective** (2026-08-17). It forecasts the field and arms a tripwire; it does not choose the archetype. Tripwire is qualitative: structural deficiency is decisional, a points gap is not. See `CLAUDE.md`. |
 | Validation | Per-card assertion tests → Comprehensive Rules conformance → meta calibration |
@@ -66,6 +67,23 @@ simulation is required, so encoding OP15/16/17 into the engine is the critical p
   official Bandai list. See `tools/import_cards.py` and the README. OP17 is not yet published
   by Bandai, so it is pending a date, not pending a method.
 
+## Bo3 — what it changes, and what it does not
+
+Confirmed 2026-08-17. Three consequences, one non-consequence.
+
+- **The play/draw split gets more valuable, not less.** It is already in the objective function. In
+  Bo1 you get one side at random and the asymmetry is noise; across a Bo3 you will usually sit on
+  both, so a deck with a large play/draw gap has that gap reliably exposed rather than hidden.
+  Keep the split — do not let anyone average it away.
+- **Variance falls, so list and pilot quality matter more.** Consistent 60/40 beats spiky 50/50
+  over three games. This cuts against the fringe-archetype risk slightly, and it raises the value
+  of reps — a Bo3 is a longer decision chain and fatigue is real for a first-time competitor.
+- **Information after game 1 has value, but only through play, not cards.** There is no side deck
+  (see below), so you cannot swap anything in. What you can do is mulligan and sequence differently
+  knowing their deck. That rewards cards with multiple modes over narrow ones.
+- **It does not change the tech-slot maths.** Same 50 cards all event either way, so
+  `ΔEV(c) = Σ share × ΔWR` is unchanged. Bo1 vs Bo3 was never the variable there.
+
 ## Legal-pool parity with EN/JP — confirmed 2026-08-17
 
 Ping: **SC matches the other regions on banlist and rotation.** So the four bans and Block 2+ apply
@@ -80,8 +98,8 @@ share-weighted EV numbers remain EN proxies. Parity closes the legality question
 
 ## Open inputs needed
 
-1. **Target event and date** (店赛 / 标准对战会 / 旗舰赛), and whether it is Bo1 or Bo3 — *now the
-   binding unknown; it decides whether the engine track is relevant this cycle at all*
+1. **Target event and date** (店赛 / 标准对战会 / 旗舰赛) — *the binding unknown; it decides whether
+   the engine track is relevant this cycle at all.* Format is settled: **Bo3**.
 2. Acquisition budget ceiling (RMB)
 3. Is SC OP17 the same list as JP/EN OP17, or does it carry SC-exclusive content? *(the 08-17
    confirmation was scoped to banlist and rotation, so this is still open)*
