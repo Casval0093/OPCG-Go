@@ -8,5 +8,6 @@ cd "$ROOT/vendor/tcg-engines/submodules/one-piece"
 corepack enable && corepack prepare pnpm@10.33.0 --activate
 pnpm install --ignore-scripts
 "$ROOT/.venv/bin/python" "$ROOT/tools/graft_cards.py"   # copy cards/OP15|OP16 into the vendored engine
+"$ROOT/.venv/bin/python" "$ROOT/tools/patch_engine.py"
 cd packages/engine && ./node_modules/.bin/vp test run   # expect 2631 pass in ~60s
 echo "Bootstrap OK."

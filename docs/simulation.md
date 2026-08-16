@@ -1,9 +1,11 @@
 # The simulation system
 
-Status 2026-08-17: **harness built and validated. Matchup simulation of real decks is BLOCKED** —
-not by throughput, but because the bot policy cannot legally play Block 2+ card effects. See "The
-binding constraint is not throughput". That finding supersedes the framing of
-`docs/engine-audit.md`, whose four options are all about speed.
+Status 2026-08-17: **working. Real Block 2+ decks simulate end to end at 100% completion.**
+
+Getting there took finding and fixing one missing branch in the engine's bot prompt resolver, which
+had been abandoning 88% of games on modern decks. See "The blocker was one unimplemented prompt
+kind". That is a policy-legality problem, and none of `docs/engine-audit.md`'s four options — all
+about throughput — would have found or fixed it.
 
 ```bash
 ./scripts/simulate.sh --games 400                       # ST01 mirror, the validation case
@@ -70,59 +72,72 @@ ST01 vs ST01, `valueRanked` both seats, 400 games, seats alternated strictly by 
 seat fix it read 25% with all 120 games on the draw — the harness was measuring turn order and
 calling it deck strength.
 
-## The binding constraint is not throughput. The bot cannot legally play modern cards.
+## The blocker was one unimplemented prompt kind
 
-This is the most important result here, and it reframes the engine track.
+A Block 2+ mono-green deck abandoned **88% of games** at turn 2 with `illegal-command`. A vanilla
+control — same leader, colour, set range and deck size, differing only in having no card effects —
+completed 100%. So effects were the cause.
 
-Three mirrors, same harness, same `valueRanked` policy, 60–400 games each:
+`sim/prompt-diag.test.ts` replays the match loop manually and reports the engine's own rejection
+reason per prompt kind. 20 games:
 
-| Deck | termination | play/draw gap | median turns |
+| choiceKind | seen | rejected |
+|---|---|---|
+| selectCards | 149 | 0 |
+| confirm | 51 | 0 |
+| costPayment | 23 | 0 |
+| **orderCards** | **17** | **17** |
+| selectTargets | 16 | 0 |
+| chooseOption | 13 | 0 |
+
+**`orderCards` failed 100% of the time**, with *"Prompt resolution could not be applied."*
+
+`resolveBotPromptCommand` branches on four of the six `ChoiceKind`s and lets the other two fall
+through to `optionId = prompt.options[0]?.id`. That fall-through is fine for `chooseOption` —
+picking an option is what it wants, and it never failed. It is meaningless for `orderCards`, which
+needs a full permutation in `selectedIds`. One rejected command is fatal to `runBotMatch`, so a
+single missing branch abandoned seven games in eight.
+
+The fix is ~8 lines and lives in `tools/patch_engine.py`, re-applied by `scripts/bootstrap.sh`
+because `vendor/` is gitignored and recreated. A/B on the same 20 games:
+
+| resolver | games completed | prompts resolved | rejected |
 |---|---|---|---|
-| ST01 starter (Block 1, simple effects) | **100% `rules-win`** | 54.5 pts | 7 |
-| Green Block 2+ **with encoded effects** | **88% `illegal-command`** | — | **2** |
-| Green Block 2+ **vanilla control** (no effects) | **100% `rules-win`** | 26.7 pts | 8 |
+| stock | **3/20 (15%)** | 252 | 17 |
+| patched | **20/20 (100%)** | 890 | 0 |
 
-The control isolates the cause. Same leader (`OP14-020`), same colour, same set range, same 50-card
-size, same policy — **the only difference is whether the cards have effects**, and abandonment goes
-from 88% to 0%. The bot issues illegal commands and `runBotMatch` aborts at turn 2.
+The engine's own suite still passes unchanged (2632) with the patch applied. **This belongs
+upstream** — `TheCardGoat/tcg-engines` is MIT and the bug is in their harness, not in our use of it.
 
-It is not "all effects": ST01's cards have effects (blockers, counters, DON!! manipulation) and it
-completes every game. The failure is specific to **Block 2+ card effects**, which is precisely the
-card pool the entire project cares about.
+Ordering cards *well* is a strategy question and identity order is a placeholder. Ordering them
+*legally* is not, and that is all this fixes.
 
-**Consequence for `docs/engine-audit.md`.** Its four options — A Rust port, B learned value net,
-C Tier 2.5, D rent compute — are *all* about throughput. None of them addresses policy legality.
-Option C is described as "runs today on 2 cores"; on decks with modern effects **it does not run at
-all**. Throughput was never the binding constraint, and the earlier correction that Option C is
-"optimistic by ~3.4x" understated the problem by describing the wrong axis.
+## Play/draw gap: an earlier conclusion here was wrong
 
-The work item this implies is a policy that can generate legal commands for encoded effects —
-prompt handling, targeting, optional-cost decisions. That is upstream of every throughput question,
-and it is not on the options list.
+An earlier version of this document claimed the policy "exaggerates the first-player advantage by
+roughly an order of magnitude" and that matchup numbers were therefore unusable. **That was
+measured on degenerate decks and does not hold.** Corrected picture:
 
-**Caveat:** one colour, one leader, one policy. Confirm across colours and against `greedy` before
-treating it as universal. The mechanism is clear but the breadth is not measured.
+| Deck | play/draw gap | completion |
+|---|---|---|
+| ST01 starter (Block 1) | 54.5 pts | 100% |
+| Green Block 2+, vanilla control (no effects) | 26.7 pts | 100% |
+| **Green Block 2+, real cards, patched resolver** | **8.5 pts** | **100%** |
 
-## The bot exaggerates the first-player advantage — treat matchup numbers as unusable until fixed
+8.5 points is a plausible first-player advantage for OPTCG, where going first also costs you a draw
+(Comprehensive Rules 6-3-1). The gap tracks how much *interaction* a deck has: a starter deck and a
+vanilla pile have no blockers, counters or removal worth speaking of, so whoever attacks first
+snowballs unopposed. Give the policy real defensive tools and it uses them.
 
-Measured on ST01: **54.5 points**. On the modern vanilla control: **26.7 points**. Both are
-implausible — real first-player advantage is a few points, and the first player skips a draw as
-compensation (Comprehensive Rules 6-3-1). The deck matters a great deal, so do not quote 54.5 as
-*the* number; quote the range and the fact that both ends are wrong.
+The lesson is about the validation deck, not the policy: **a degenerate deck produces degenerate
+calibration.** ST01 was chosen because it ships with the engine and cannot rot, which makes it a
+good smoke test and a bad calibration target.
 
-Both say the same thing about the policy: `valueRanked` cannot defend. Whoever attacks first
-snowballs, and the game is decided by turn order rather than by cards. Halving the gap by removing
-card effects says the effects are not the cause — the attack/block decision is.
-
-This is direct evidence for the question `docs/engine-audit.md` leaves open. Its recommendation was
-"Option C now, B next, **A only if calibration proves heuristic play distorts matchup results**".
-Calibration now shows a distortion large enough to swamp the 2–3 point effects the tech-slot
-question exists to measure. **Any matchup number produced with this policy is measuring the bot,
-not the deck** — even on the decks where the policy manages to finish a game.
-
-Taken with the section above, the two findings compound rather than compete: on decks with modern
-effects the policy cannot produce legal play at all, and on decks where it can, the play it
-produces is dominated by turn order. Both are policy problems. Neither is a throughput problem.
+This weakens — it does not settle — the case for Option A/B over Option C in
+`docs/engine-audit.md`. The trigger stated there is "calibration proves heuristic play distorts
+matchup results", and the distortion now looks far smaller than it did an hour ago. The honest
+position is that policy quality is still unmeasured: a plausible play/draw split shows the policy
+is not obviously broken, not that it plays well.
 
 ## Statistical design
 
@@ -144,11 +159,12 @@ in the play/draw split.
 
 ## What is not done
 
-- **No real matchup can be simulated yet** — the policy aborts on Block 2+ effects (above). This
-  is the blocker, and it is upstream of finishing the OP15/OP16 encodings: encoding more cards the
-  bot cannot legally play does not produce a single usable matchup number.
-- No real matchup has been simulated. Every deck in the current meta is OP15/OP16, and the engine
-  only got those card *shells* in Task 1 — the effects are not encoded yet.
+- **No *meta* matchup yet.** Block 2+ decks now simulate fine, but every deck in the current field
+  is OP15/OP16 and those cards are still shells — Task 1 generated definitions, not encodings. The
+  Mihawk proxy deck is built from OP09–OP14 cards precisely because those are encoded today.
+- The `orderCards` fix uses identity order, which is legal but not a policy. Ordering
+  top-of-deck cards deliberately is real strategy and is unimplemented.
+- Policy quality is unmeasured. A plausible play/draw split is a sanity check, not a skill test.
 - The turns-to-minutes mapping is unmeasured, so the timeout column is a knob, not a prediction.
 - The bot does not value Life, which the elimination-bracket tiebreak rewards.
 - Mulligan policy is whatever the engine's default is; the Comprehensive Rules allow one

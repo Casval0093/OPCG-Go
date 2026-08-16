@@ -95,6 +95,10 @@ interface GameResult {
    */
   termination: string;
   stuck: boolean;
+  /** Last command the engine accepted before it gave up — names the failing decision point. */
+  lastCommand: string;
+  /** The engine's own rejection text, when it abandoned the game. */
+  rejection: string;
 }
 
 function env(name: string, fallback: string): string {
@@ -178,9 +182,21 @@ function playOne(
   } else {
     outcome = r.winner === aSeat ? "win" : "loss";
   }
+  // When the engine abandons a game, the last command it accepted plus the rejected one that
+  // followed is the actionable signal: it names which command type the policy gets wrong.
+  // logHistory carries the engine's own rejection reason text.
+  const tail = r.commandHistory.slice(-1)[0] as { type?: string } | undefined;
+  const rejection =
+    r.termination === "illegal-command"
+      ? (r.logHistory.filter((l) => /cannot|only|must|invalid|not /i.test(String(l))).slice(-1)[0] ??
+        "")
+      : "";
+
   return {
     seed,
     aSeat,
+    lastCommand: tail?.type ?? "none",
+    rejection: String(rejection).slice(0, 160),
     aOnPlay: actualFirst === aSeat,
     outcome,
     turns,
@@ -253,12 +269,23 @@ function report(label: string, all: GameResult[]): Summary {
   console.log(`  termination: ${breakdown.map(([k, v]) => `${k}=${v}`).join("  ")}`);
   // rules-win is a real game ending. Anything else means the ENGINE stopped, not the clock,
   // and those games say nothing about which deck is better.
-  const abandoned = all.filter((r) => r.termination !== "rules-win").length;
-  if (abandoned > all.length * 0.05) {
+  const abandonedGames = all.filter((r) => r.termination !== "rules-win");
+  if (abandonedGames.length > all.length * 0.05) {
     console.log(
-      `  *** WARNING: ${pct(abandoned / all.length)} of games were abandoned by the engine, not ` +
-        `decided. Win rates below are NOT meaningful — the bot cannot play this deck. ***`,
+      `  *** WARNING: ${pct(abandonedGames.length / all.length)} of games were abandoned by the ` +
+        `engine, not decided. Win rates above are NOT meaningful — the bot cannot play this deck. ***`,
     );
+    const cmds = new Map<string, number>();
+    for (const r of abandonedGames) cmds.set(r.lastCommand, (cmds.get(r.lastCommand) ?? 0) + 1);
+    console.log(
+      `  last accepted command before giving up: ` +
+        [...cmds.entries()].sort((x, y) => y[1] - x[1]).slice(0, 6).map(([k, v]) => `${k}=${v}`).join("  "),
+    );
+    const reasons = new Map<string, number>();
+    for (const r of abandonedGames) if (r.rejection) reasons.set(r.rejection, (reasons.get(r.rejection) ?? 0) + 1);
+    for (const [reason, n] of [...reasons.entries()].sort((x, y) => y[1] - x[1]).slice(0, 5)) {
+      console.log(`    ${String(n).padStart(4)}x  ${reason}`);
+    }
   }
   return s;
 }

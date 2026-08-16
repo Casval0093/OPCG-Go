@@ -44,19 +44,21 @@ games. If you write something implying otherwise, you are wrong. The engine does
   `runBotMatch` consumes that command from its prompt queue before any strategy sees it. Forcing
   it both ways gives byte-identical results, and **north led all 120 test games**. Control turn
   order by **seat assignment** instead — north leads, so seat the deck north to put it on the play.
-- **THE ENGINE TRACK'S BLOCKER IS POLICY LEGALITY, NOT THROUGHPUT (2026-08-17).** The
-  `valueRanked` bot **cannot legally play Block 2+ card effects** — it issues illegal commands and
-  `runBotMatch` aborts at turn 2 in **88%** of games on a modern green deck. A vanilla control with
-  the same leader, colour, set range and deck size completes **100%**, so effects are the cause.
-  ST01 also completes 100%, so it is modern effects specifically, not all effects.
-  **`docs/engine-audit.md`'s options A–D are all about speed and none of them fixes this.** Option
-  C does not "run today" on real decks; it does not run at all. Encoding more OP15/OP16 cards does
-  not help until the policy can play them. See `docs/simulation.md`.
-- **The bot also exaggerates the first-player advantage by roughly an order of magnitude** —
-  play/draw gap **54.5 pts** on ST01, **26.7 pts** on the modern vanilla control, against a few
-  points in reality. It cannot defend, so turn order decides games. Any matchup number from this
-  policy measures the bot, not the deck, even where it finishes. This is the calibration evidence
-  the audit names as the trigger for Option A/B over Option C.
+- **The engine's bot could not resolve `orderCards` prompts — FIXED 2026-08-17, do not re-diagnose.**
+  It abandoned **88% of games** on a Block 2+ deck with `illegal-command` at turn 2. Cause:
+  `resolveBotPromptCommand` branches on four of six `ChoiceKind`s and falls through to a single
+  `optionId`, which cannot express an ordering. `orderCards` failed **17/17**; every other kind
+  passed, including `chooseOption`. The ~8-line fix is `tools/patch_engine.py`, re-applied by
+  `scripts/bootstrap.sh` since `vendor/` is gitignored. A/B: 3/20 games completed → **20/20**.
+  Engine suite unchanged at 2632. **This belongs upstream** — tcg-engines is MIT and the bug is
+  theirs. See `docs/simulation.md`.
+- **Real Block 2+ decks now simulate end to end**, 400/400 `rules-win`, median 9 turns.
+- **Do not calibrate on ST01.** The play/draw gap is **54.5 pts** on ST01, **26.7** on a vanilla
+  Block 2+ pile, and **8.5 pts** on a real Block 2+ deck — the last of which is plausible. The gap
+  tracks how much interaction a deck has; a degenerate deck gives degenerate calibration. An
+  earlier note here claiming the bot exaggerates first-player advantage "by an order of magnitude"
+  was measured on ST01 and is **retracted**. Policy quality remains unmeasured — a plausible split
+  shows the policy is not obviously broken, not that it plays well.
 - **There is no sideboard in Constructed.** The deck is locked for the whole event; only Sealed
   permits a side deck (official Tournament Rules Manual / Floor Rule). Every tech slot is a
   permanent tax paid in every matchup, so slot decisions are `Σ share × ΔWR` across the *whole*
