@@ -9,9 +9,10 @@ Goal: determine and field the highest-EV deck in the SC format, continuously, ac
 | Phase | State |
 |---|---|
 | Engine audit | **done** — see [`docs/engine-audit.md`](docs/engine-audit.md) |
-| SC OP16 deck recommendation | pending |
+| Competitive research | **done** — see [`docs/research-findings.md`](docs/research-findings.md) |
 | Card encoding backlog | scoped — 331 gaps + ~400 new cards for OP15–17 |
 | Search AI | blocked on throughput decision |
+| Chosen archetypes | Ace (`OP16-001`) primary, Mihawk (`OP14-020`) secondary |
 
 ## Approach
 
@@ -30,6 +31,7 @@ calibration of simulated matchup rates against observed tournament data.
 ## Quick start
 
 ```bash
+python3 tools/ev_analysis.py             # field-weighted EV, Nash, sensitivity
 ./scripts/bootstrap.sh                  # clones + installs the vendored engine, runs its test suite
 python3 tools/coverage_report.py        # card-effect encoding coverage
 python3 tools/coverage_report.py --exclude-promos
@@ -70,7 +72,7 @@ Reproduce with [`bench/throughput.test.ts`](bench/throughput.test.ts) (drop into
 ## Layout
 
 ```
-docs/     charter and audit
+docs/     charter, engine audit, research findings
 tools/    analysis scripts
 bench/    throughput benchmarks
 data/     generated datasets
