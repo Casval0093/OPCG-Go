@@ -1,0 +1,12 @@
+# Python dependencies for tools/.
+#
+# Only tools/ev_analysis.py needs anything outside the stdlib:
+#   numpy  - required; the script exits on ImportError without it
+#   scipy  - optional; without it the Nash equilibrium solve is silently skipped
+#
+# coverage_report.py, variant_audit.py and import_cards.py are stdlib-only by
+# design (import_cards.py fetches over urllib so it runs on a bare interpreter).
+#
+#   python3 -m venv .venv && ./.venv/bin/pip install -r requirements.txt
+numpy==2.5.2
+scipy==1.18.0

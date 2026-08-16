@@ -31,11 +31,16 @@ calibration of simulated matchup rates against observed tournament data.
 ## Quick start
 
 ```bash
-python3 tools/ev_analysis.py             # field-weighted EV, Nash, sensitivity
-./scripts/bootstrap.sh                  # clones + installs the vendored engine, runs its test suite
-python3 tools/coverage_report.py        # card-effect encoding coverage
-python3 tools/coverage_report.py --exclude-promos
+python3 -m venv .venv && ./.venv/bin/pip install -r requirements.txt
+./scripts/bootstrap.sh                          # clones + installs the vendored engine, runs its test suite
+./.venv/bin/python tools/ev_analysis.py         # field-weighted EV, Nash, sensitivity
+./.venv/bin/python tools/coverage_report.py     # card-effect encoding coverage
+./.venv/bin/python tools/coverage_report.py --exclude-promos
 ```
+
+`ev_analysis.py` needs numpy and it exits without it; scipy is optional and only
+gates the Nash solve. The other three tools are stdlib-only and run on a bare
+`python3`. `bootstrap.sh` needs node + corepack, and ends with 2631 passing tests.
 
 ## Card encoding backlog
 
