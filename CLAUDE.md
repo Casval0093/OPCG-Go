@@ -67,9 +67,26 @@ games. If you write something implying otherwise, you are wrong. The engine does
 - **OP17 is not published yet — it is not missing, it does not exist upstream.** Bandai has
   not put it on the official card list. EN release 2026-08-28, SC ~2026-08-23. Re-run
   `python3 tools/import_cards.py --set OP17 --refresh` after that date; no code change needed.
-- **`OP17-005`'s effect: `docs/research-findings.md` is correct, the aggregator was wrong.**
-  A WebSearch summary claimed an On Play that sets your own single-colour Leader's base power
-  to 8000. Ping checked Limitless and rejected it. Do not reintroduce that clause.
+- **`OP17-005`'s On Play is REOPENED (2026-08-17) and needs Ping's call.** The standing 08-16
+  decision was that the clause is an aggregator error. Limitless — the source cited for that
+  rejection — now shows it, on two independently-worded fetches. The rejection's reasoning is
+  also broken: it called the clause a cost "since it would shrink your own Leader", but Ace's
+  `OP16-001` is **5000 base power**, so 5000 → 8000 is a **+3000 buff**. No Leader has 8000 base.
+  The clause has NOT been re-added to the row pending adjudication. Do not add it unilaterally,
+  and do not delete the evidence either.
+- **Egress: the blocks are environment-specific, not universal. On Ping's Mac, Limitless,
+  `en.onepiece-cardgame.com` and `onepiece-cardgame.cn` all return 200.** Only `optcgapi.com`
+  times out. Limitless `robots.txt` is `User-agent: * / Disallow:` — empty, so automated fetch
+  is explicitly permitted; use it directly for card verification. `onepiece-cardgame.cn` serves
+  **no robots.txt at all** — the "robots-blocked" note was wrong; it is a JavaScript SPA, so
+  plain fetch returns an empty shell. That needs a rendering browser or its JSON API, which is
+  a different problem with a different fix.
+- **Aggregator card IDs are not trustworthy, not just aggregator card text.** Re-verifying OP17
+  §5 against Limitless found an error in **every** row, including a wrong ID: the card the doc
+  filed as `OP17-009` Rakuyo is actually `OP17-016`; `OP17-009` is Haruta, a different card.
+- **python.org Python on macOS ships without root certificates.** `import_cards.py` dies with
+  `CERTIFICATE_VERIFY_FAILED` until `/Applications/Python 3.13/Install Certificates.command`
+  is run once. Not a repo bug; it bites every fresh machine.
 - **The benchmark deck is fixed and the re-measure is done (2026-08-17). Do not redo it.**
   `bench/throughput.test.ts` now runs the 4-card synthetic deck and the engine's real 50-card
   ST01 deck back to back. **Realism ratio 1.79x per game, 0.97x per command.** The audit's
@@ -90,9 +107,20 @@ The charter says "field the highest-EV deck." The archetype is nonetheless locke
 Those did not compose into a decision procedure. Ping resolved it: **the EV tooling does not pick
 the deck.** It has two narrower jobs.
 
-1. **Field forecasting** — what will Ping actually face, so flex slots, mulligans and tech choices
-   can be tuned to it.
-2. **Tripwire** — the condition under which Ace is abandoned despite preference.
+1. **Tech-slot optimisation — the primary job (Ping, 2026-08-17).** The deck is fixed; the
+   *slots* are the decision variable. As the meta moves, meta-beater cards get swapped in — his
+   worked example is 1–2 copies of `OP17-016` Rakuyo against aggro. The question the simulator
+   exists to answer is **"which 1–2 cards raise my win rate against the field I will actually
+   face"**, not "which deck is best."
+2. **Field forecasting** — what will Ping actually face, so those slots and the mulligans can be
+   tuned to it.
+3. **Tripwire** — the condition under which Ace is abandoned despite preference.
+
+**This changes the objective function and the critical path.** Marginal EV *per slot* is not
+derivable from a leader-vs-leader matchup matrix — a 50-card list differing by 2 cards is the same
+row in that matrix. It requires simulation at card granularity, which requires OP15/16/17 encoded
+in the engine. **Next action #3 is therefore the critical path, not #2.** Everything else in the
+engine track is downstream of it.
 
 The tripwire is **qualitative, not numeric — Ping's call, 2026-08-17.** He has not set a points
 threshold and may not. The standing criterion is: **a structural deficiency is decisional; a points

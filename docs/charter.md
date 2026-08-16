@@ -36,10 +36,24 @@ Banned: Gecko Moria (OP06-086), Jinbe (OP07-045), Kingdom Come (EB01-059), Ice A
 **EN OP16 field (Limitless):** B/Y Nami 23.5% · G/B Luffy 22.9% · P Enel 22.7% · then a cliff to
 P/Y Rosinante 9.9%. Top three ≈ 69% of the field.
 
+## What the simulator is for — Ping, 2026-08-17
+
+**Find weak points in the meta and raise this deck's win rate against them.** The archetype is
+fixed; the flex slots are the decision variable, and they move as the meta moves. Worked example:
+1–2 `OP17-016` Rakuyo against an aggro field.
+
+Consequence: the unit of analysis is a **card slot**, not a deck. A leader-vs-leader matchup matrix
+cannot answer it — two lists differing by two cards are one row in that matrix. Card-granular
+simulation is required, so encoding OP15/16/17 into the engine is the critical path.
+
 ## Known blockers
 
-- `onepiece-cardgame.cn` (official SC) is robots-blocked to automated fetch. SC-official banlist,
-  card DB and schedule must come from mirrors, community sources, or Ping directly.
+- ~~`onepiece-cardgame.cn` is robots-blocked~~ — **wrong, corrected 2026-08-17.** It serves no
+  robots.txt and returns 200. It is a JavaScript SPA, so a plain fetch gets an empty shell; it
+  needs a rendering browser or its underlying JSON API.
+- Egress blocks are **environment-specific**. On Ping's Mac, Limitless, `en.onepiece-cardgame.com`
+  and `onepiece-cardgame.cn` are all reachable; only `optcgapi.com` times out. Limitless permits
+  automated fetch (`robots.txt` is `Disallow:` with an empty value).
 - Limitless `/decks/matchups` returned HTTP 500 on first attempt; retry needed for calibration data.
 
 ## Resolved
