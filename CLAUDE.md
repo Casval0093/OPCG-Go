@@ -11,12 +11,21 @@ set rotations.
 Two tracks run in parallel:
 
 - **Research track** — mine real tournament + ladder data, compute field-weighted EV, recommend a deck. *Working today.*
-- **Engine track** — fork a rules engine, add search AI, simulate matchups for formats that have no data yet. *Scoped, not started.*
+- **Engine track** — fork a rules engine, add search AI, simulate matchups for formats that have no
+  data yet. *In progress:* OP15/OP16 card shells generated, simulation harness working end to end
+  on Block 2+ decks. Remaining: encode OP15/OP16 effects, then a play policy worth trusting.
 
 ## Ground truth: what is real vs what is not
 
-**No simulation has ever run in this project.** Every number in `docs/` is empirical — real human
-games. If you write something implying otherwise, you are wrong. The engine does not exist yet.
+**Every competitive number in `docs/research-findings.md` and `docs/charter.md` is empirical** —
+real human games from Limitless and an EN ladder. No simulated figure has ever been mixed into
+them, and none should be without saying so explicitly.
+
+**Simulation started working on 2026-08-17** and its output lives only in `docs/simulation.md` and
+`sim/results/`. So far that is mirror matches used to validate the harness — 400-game ST01 and
+Mihawk mirrors — plus the prompt diagnostic. **No matchup between two different decks has been
+simulated**, because the current field is OP15/OP16 and those cards are shells, not encodings.
+Keep the two bodies of evidence clearly separated when writing anything.
 
 ## Locked decisions
 
@@ -68,10 +77,11 @@ games. If you write something implying otherwise, you are wrong. The engine does
 - **Banlist:** OP06-086 Gecko Moria, OP07-045 Jinbe, EB01-059 Kingdom Come, OP02-117 Ice Age.
 - **Ladder data understates value/control decks.** Bo1, speed-rewarded, complex decks piloted worse
   by the median ladder player. Treat resource-rotation archetypes as a *lower bound*, always.
-- **Engine throughput is 2.80 games/s single-core** (3.54 with the cycle detector off). Full-strength
-  ISMCTS is ~2 orders of magnitude out of reach. See `docs/engine-audit.md` for the four options.
-- **`onepiece-cardgame.cn` (official SC) is robots-blocked** to automated fetch. SC-official data must
-  come from mirrors, community sources, or Ping.
+- **Engine throughput: ~2–4 games/s single-core, host-dependent.** The 2.80 figure was measured on
+  another machine and is not comparable across hosts; only within-run ratios are. Full-strength
+  ISMCTS remains ~2 orders of magnitude out of reach. **But throughput has not been the binding
+  constraint so far** — policy legality was (see the `orderCards` bug below), and
+  `docs/engine-audit.md`'s options A–D are all speed levers that would not have found it.
 - **Card-effect encoding does not templatise.** 1,092 of 1,219 normalized effect templates are
   singletons; top-100 templates cover only 34.6% of clauses. Composition, not pattern matching.
 - **There is no encoding backlog in the existing sets — it is 0, not 331/125.** Both figures
@@ -85,9 +95,10 @@ games. If you write something implying otherwise, you are wrong. The engine does
   `OP02-013_p3` misspells the trait `"Whitebeard Piratess"` — the exact trait Ace keys on.
   Play is correct today because the engine runs the base's encoding. **When authoring
   OP15–OP17 encodings from printed text, read the base printing.** `tools/variant_audit.py`.
-- **Card data is SOLVED for OP15/OP16 via npm — do not re-litigate the egress problem.**
-  Direct card sites (`optcgapi.com`, `onepiece.limitlesstcg.com`, `onepiece-cardgame.cn`,
-  `en.onepiece-cardgame.com`) are all blocked by egress policy. The npm registry is not.
+- **Card data is SOLVED for OP15/OP16 via npm — do not re-litigate the acquisition problem.**
+  (The egress claim that used to sit here is superseded: see the environment-specific note below.
+  On this Mac the direct card sites are reachable; the npm route is still the one the importer
+  uses, and it is a mirror of the official Bandai list.)
   `one-piece-card-game-json` publishes the **official Bandai** list (its `image_url`s point
   at `en.onepiece-cardgame.com`), so it is a mirror of the primary source, not an aggregator
   summary. `tools/import_cards.py` pulls it. Validated against the engine's 2,282 hand-checked
@@ -248,11 +259,17 @@ python3 tools/coverage_report.py --exclude-promos # encoding backlog
    its existing DSL with per-card tests. Author from these files, never from a variant printing.
    (The "fill the 125 mainline gaps" item that used to sit here has been deleted — that backlog
    was a measurement bug and is 0.)
-4. **Pick the Tier-3 lever** — recommendation is Tier 2.5 now, learned value net next, Rust port only
-   if calibration proves heuristic play distorts matchups. The multiplier is now measured, not
-   assumed: Option C's "runs today on 2 cores" is optimistic by ~3.4x (1.85x game length hitting
-   both decisions/game and rollout length), and that is a lower bound since ST01 is a starter deck.
-   Option A's framing needs revising — the cost is state transitions, not effect resolution.
+4. **Pick the Tier-3 lever — but the audit's framing needs revising first.** Its four options are
+   all throughput levers, and throughput has not been the binding constraint: an unimplemented
+   `orderCards` branch was, and it cost 88% of games on modern decks until fixed. Two measured
+   corrections stand: the deck-realism multiplier is ~1.79x per game (flat per command, so the
+   cost is state transitions rather than effect resolution), which makes Option C optimistic by
+   ~3.4x; and the calibration evidence that would trigger Option A/B is **much weaker than it
+   looked** — the play/draw gap is 8.5 pts on a real Block 2+ deck, not the 54.5 pts ST01 showed.
+   Measure policy *quality* before spending on speed.
+5. **Send the `orderCards` fix upstream to `TheCardGoat/tcg-engines`.** MIT, the bug is theirs, the
+   fix is ~8 lines and A/B-proven (3/20 → 20/20 games completed). Currently carried locally in
+   `tools/patch_engine.py`.
 
 ## Open questions only Ping can answer
 
