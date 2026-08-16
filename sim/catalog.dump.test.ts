@@ -17,41 +17,49 @@ import { allCards } from "@tcg/op-cards";
 
 const run = process.env.SIM_DUMP_CATALOG === "1" ? test : test.skip;
 
-run("dump catalog", () => {
-  const root = process.env.SIM_ROOT ?? process.cwd();
-  const out = resolve(root, process.env.SIM_CATALOG_OUT ?? "sim/catalog.json");
+run(
+  "dump catalog",
+  () => {
+    const root = process.env.SIM_ROOT ?? process.cwd();
+    const out = resolve(root, process.env.SIM_CATALOG_OUT ?? "sim/catalog.json");
 
-  const rows = allCards.map((c) => {
-    const card = c as Record<string, unknown>;
-    return {
-      id: card.id as string,
-      set: card.setId as string,
-      name: card.name as string,
-      cardType: card.cardType as string,
-      color: (card.color ?? []) as string[],
-      rarity: card.rarity as string,
-      cost: card.cost ?? null,
-      power: card.power ?? null,
-      counter: card.counter ?? null,
-      life: card.life ?? null,
-      traits: (card.traits ?? []) as string[],
-      attribute: card.attribute ?? null,
-      hasEffectText: Boolean(card.effect),
-      // Executable encoding present, as opposed to printed text. Alternate arts inherit this by
-      // spread from their base printing, so it follows the spread rather than the file.
-      hasEffects: Boolean(card.effects),
-    };
-  });
+    const rows = allCards.map((c) => {
+      // OPCard is a union of Leader/Character/Event/Stage/Don, and the fields that differ between
+      // them (cost, power, counter, life) are exactly the ones worth dumping. Narrowing on
+      // cardType would mean four near-identical branches for a serialiser whose whole job is to
+      // flatten the union, so widen once, deliberately, through unknown.
+      const card = c as unknown as Record<string, unknown>;
+      return {
+        id: card.id as string,
+        set: card.setId as string,
+        name: card.name as string,
+        cardType: card.cardType as string,
+        color: (card.color ?? []) as string[],
+        rarity: card.rarity as string,
+        cost: card.cost ?? null,
+        power: card.power ?? null,
+        counter: card.counter ?? null,
+        life: card.life ?? null,
+        traits: (card.traits ?? []) as string[],
+        attribute: card.attribute ?? null,
+        hasEffectText: Boolean(card.effect),
+        // Executable encoding present, as opposed to printed text. Alternate arts inherit this by
+        // spread from their base printing, so it follows the spread rather than the file.
+        hasEffects: Boolean(card.effects),
+      };
+    });
 
-  mkdirSync(dirname(out), { recursive: true });
-  writeFileSync(out, JSON.stringify(rows, null, 1));
+    mkdirSync(dirname(out), { recursive: true });
+    writeFileSync(out, JSON.stringify(rows, null, 1));
 
-  const bySet = new Map<string, number>();
-  for (const r of rows) bySet.set(r.set, (bySet.get(r.set) ?? 0) + 1);
-  console.log(`\nwrote ${out}: ${rows.length} cards across ${bySet.size} sets`);
-  console.log(
-    `encoded ${rows.filter((r) => r.hasEffects).length}, ` +
-      `printed-text-only ${rows.filter((r) => r.hasEffectText && !r.hasEffects).length}, ` +
-      `vanilla ${rows.filter((r) => !r.hasEffectText).length}`,
-  );
-}, 300_000);
+    const bySet = new Map<string, number>();
+    for (const r of rows) bySet.set(r.set, (bySet.get(r.set) ?? 0) + 1);
+    console.log(`\nwrote ${out}: ${rows.length} cards across ${bySet.size} sets`);
+    console.log(
+      `encoded ${rows.filter((r) => r.hasEffects).length}, ` +
+        `printed-text-only ${rows.filter((r) => r.hasEffectText && !r.hasEffects).length}, ` +
+        `vanilla ${rows.filter((r) => !r.hasEffectText).length}`,
+    );
+  },
+  300_000,
+);

@@ -166,7 +166,11 @@ function playOne(
   turnBudget: number,
   maxCommands: number,
 ): GameResult {
-  const r = runBotMatch(config(a, b, seed, aSeat), { south: strategy, north: strategy }, { maxCommands });
+  const r = runBotMatch(
+    config(a, b, seed, aSeat),
+    { south: strategy, north: strategy },
+    { maxCommands },
+  );
   const turns = r.finalState.turnNumber ?? 0;
 
   // Read who actually led rather than trusting the request; if the engine's behaviour changes,
@@ -188,8 +192,9 @@ function playOne(
   const tail = r.commandHistory.slice(-1)[0] as { type?: string } | undefined;
   const rejection =
     r.termination === "illegal-command"
-      ? (r.logHistory.filter((l) => /cannot|only|must|invalid|not /i.test(String(l))).slice(-1)[0] ??
-        "")
+      ? (r.logHistory
+          .filter((l) => /cannot|only|must|invalid|not /i.test(String(l)))
+          .slice(-1)[0] ?? "")
       : "";
 
   return {
@@ -279,10 +284,15 @@ function report(label: string, all: GameResult[]): Summary {
     for (const r of abandonedGames) cmds.set(r.lastCommand, (cmds.get(r.lastCommand) ?? 0) + 1);
     console.log(
       `  last accepted command before giving up: ` +
-        [...cmds.entries()].sort((x, y) => y[1] - x[1]).slice(0, 6).map(([k, v]) => `${k}=${v}`).join("  "),
+        [...cmds.entries()]
+          .sort((x, y) => y[1] - x[1])
+          .slice(0, 6)
+          .map(([k, v]) => `${k}=${v}`)
+          .join("  "),
     );
     const reasons = new Map<string, number>();
-    for (const r of abandonedGames) if (r.rejection) reasons.set(r.rejection, (reasons.get(r.rejection) ?? 0) + 1);
+    for (const r of abandonedGames)
+      if (r.rejection) reasons.set(r.rejection, (reasons.get(r.rejection) ?? 0) + 1);
     for (const [reason, n] of [...reasons.entries()].sort((x, y) => y[1] - x[1]).slice(0, 5)) {
       console.log(`    ${String(n).padStart(4)}x  ${reason}`);
     }
@@ -309,84 +319,102 @@ function pairedDiff(a: GameResult[], b: GameResult[]) {
 
 const run = process.env.SIM_RUN === "1" ? test : test.skip;
 
-run("matchup", () => {
-  const root = env("SIM_ROOT", process.cwd());
-  const deckA = loadDeck(resolve(root, env("SIM_DECK_A", "sim/decks/st01.json")));
-  const deckB = loadDeck(resolve(root, env("SIM_DECK_B", "sim/decks/st01.json")));
-  const comparePath = env("SIM_COMPARE", "");
-  const games = Number(env("SIM_GAMES", "200"));
-  const seed0 = Number(env("SIM_SEED", "1000"));
-  const turnBudget = Number(env("SIM_TURN_BUDGET", "40"));
-  const maxCommands = Number(env("SIM_MAX_COMMANDS", "800"));
-  const strategyName = env("SIM_STRATEGY", "valueRanked");
-  const strategy = STRATEGIES[strategyName];
-  if (!strategy) throw new Error(`unknown strategy ${strategyName}; have ${Object.keys(STRATEGIES).join(", ")}`);
+run(
+  "matchup",
+  () => {
+    const root = env("SIM_ROOT", process.cwd());
+    const deckA = loadDeck(resolve(root, env("SIM_DECK_A", "sim/decks/st01.json")));
+    const deckB = loadDeck(resolve(root, env("SIM_DECK_B", "sim/decks/st01.json")));
+    const comparePath = env("SIM_COMPARE", "");
+    const games = Number(env("SIM_GAMES", "200"));
+    const seed0 = Number(env("SIM_SEED", "1000"));
+    const turnBudget = Number(env("SIM_TURN_BUDGET", "40"));
+    const maxCommands = Number(env("SIM_MAX_COMMANDS", "800"));
+    const strategyName = env("SIM_STRATEGY", "valueRanked");
+    const strategy = STRATEGIES[strategyName];
+    if (!strategy)
+      throw new Error(
+        `unknown strategy ${strategyName}; have ${Object.keys(STRATEGIES).join(", ")}`,
+      );
 
-  console.log(
-    `\nSIM  A=${deckA.name} vs B=${deckB.name}  games=${games} strategy=${strategyName} ` +
-      `turnBudget=${turnBudget} seed0=${seed0}  catalog=${allCards.length} cards`,
-  );
-
-  // Fail loudly and specifically rather than letting the engine throw a bare
-  // "Unknown One Piece card" from deep inside match construction.
-  const missing = [...new Set([deckA.leader, ...deckA.main, deckB.leader, ...deckB.main])].filter(
-    (id) => !allCards.some((c) => c.id === id),
-  );
-  if (missing.length) {
-    throw new Error(
-      `${missing.length} card id(s) are not in the engine catalog: ${missing.slice(0, 10).join(", ")}` +
-        `${missing.length > 10 ? " …" : ""}. OP15/OP16 need ./scripts/bootstrap.sh to graft them first.`,
-    );
-  }
-
-  // Alternate strictly by index so play/draw is exactly balanced rather than balanced in expectation.
-  // SIM_FIRST pins it instead, which is how a seat bias gets separated from a turn-order effect:
-  // under a symmetric engine, forcing south-first and forcing north-first must give win rates that
-  // sum to ~100%. If they do not, the asymmetry is in the seat, not the turn order.
-  // North leads, so seating deck A north puts it on the play. SIM_FIRST pins the seat instead of
-  // alternating, which is how a seat bias is separated from a turn-order effect.
-  const forceFirst = env("SIM_FIRST", "alternate");
-  const seatAt = (i: number): MatchSeat =>
-    forceFirst === "play" ? "north" : forceFirst === "draw" ? "south" : i % 2 === 0 ? "north" : "south";
-  const play = (a: Deck, b: Deck) =>
-    Array.from({ length: games }, (_, i) =>
-      playOne(a, b, seed0 + i, seatAt(i), strategy, turnBudget, maxCommands),
+    console.log(
+      `\nSIM  A=${deckA.name} vs B=${deckB.name}  games=${games} strategy=${strategyName} ` +
+        `turnBudget=${turnBudget} seed0=${seed0}  catalog=${allCards.length} cards`,
     );
 
-  const baseline = play(deckA, deckB);
-  const base = report(`A "${deckA.name}" vs B "${deckB.name}"`, baseline);
+    // Fail loudly and specifically rather than letting the engine throw a bare
+    // "Unknown One Piece card" from deep inside match construction.
+    const missing = [...new Set([deckA.leader, ...deckA.main, deckB.leader, ...deckB.main])].filter(
+      (id) => !allCards.some((c) => c.id === id),
+    );
+    if (missing.length) {
+      throw new Error(
+        `${missing.length} card id(s) are not in the engine catalog: ${missing.slice(0, 10).join(", ")}` +
+          `${missing.length > 10 ? " …" : ""}. OP15/OP16 need ./scripts/bootstrap.sh to graft them first.`,
+      );
+    }
 
-  const out: Record<string, unknown> = {
-    deckA: deckA.name,
-    deckB: deckB.name,
-    games,
-    strategy: strategyName,
-    turnBudget,
-    seed0,
-    baseline: base,
-    baselineGames: baseline,
-  };
+    // Alternate strictly by index so play/draw is exactly balanced rather than balanced in expectation.
+    // SIM_FIRST pins it instead, which is how a seat bias gets separated from a turn-order effect:
+    // under a symmetric engine, forcing south-first and forcing north-first must give win rates that
+    // sum to ~100%. If they do not, the asymmetry is in the seat, not the turn order.
+    // North leads, so seating deck A north puts it on the play. SIM_FIRST pins the seat instead of
+    // alternating, which is how a seat bias is separated from a turn-order effect.
+    const forceFirst = env("SIM_FIRST", "alternate");
+    const seatAt = (i: number): MatchSeat =>
+      forceFirst === "play"
+        ? "north"
+        : forceFirst === "draw"
+          ? "south"
+          : i % 2 === 0
+            ? "north"
+            : "south";
+    const play = (a: Deck, b: Deck) =>
+      Array.from({ length: games }, (_, i) =>
+        playOne(a, b, seed0 + i, seatAt(i), strategy, turnBudget, maxCommands),
+      );
 
-  if (comparePath) {
-    // Same seeds, so every game is paired against its baseline twin: identical shuffles and
-    // identical opponent draws, differing only by the swapped cards.
-    const deckC = loadDeck(resolve(root, comparePath));
-    const variant = play(deckC, deckB);
-    const varSum = report(`A' "${deckC.name}" vs B "${deckB.name}"  (common random numbers)`, variant);
-    const d = pairedDiff(variant, baseline);
-    console.log(`\nPAIRED DIFFERENCE  A' - A`);
-    console.log(`  ${(100 * d.mean).toFixed(2)} pts   95% CI [${(100 * d.lo).toFixed(2)}, ${(100 * d.hi).toFixed(2)}]`);
-    console.log(`  discordant pairs ${d.discordant}/${d.n} — only these carry information`);
-    if (d.lo > 0) console.log(`  => A' is better, significant at 95%`);
-    else if (d.hi < 0) console.log(`  => A' is WORSE, significant at 95%`);
-    else console.log(`  => not significant; need more games or the effect is ~0`);
-    out.variant = varSum;
-    out.variantName = deckC.name;
-    out.pairedDiff = d;
-  }
+    const baseline = play(deckA, deckB);
+    const base = report(`A "${deckA.name}" vs B "${deckB.name}"`, baseline);
 
-  const outPath = resolve(root, env("SIM_OUT", "sim/results/last-run.json"));
-  mkdirSync(dirname(outPath), { recursive: true });
-  writeFileSync(outPath, JSON.stringify(out, null, 1));
-  console.log(`\nwrote ${outPath}\n`);
-}, 3_600_000);
+    const out: Record<string, unknown> = {
+      deckA: deckA.name,
+      deckB: deckB.name,
+      games,
+      strategy: strategyName,
+      turnBudget,
+      seed0,
+      baseline: base,
+      baselineGames: baseline,
+    };
+
+    if (comparePath) {
+      // Same seeds, so every game is paired against its baseline twin: identical shuffles and
+      // identical opponent draws, differing only by the swapped cards.
+      const deckC = loadDeck(resolve(root, comparePath));
+      const variant = play(deckC, deckB);
+      const varSum = report(
+        `A' "${deckC.name}" vs B "${deckB.name}"  (common random numbers)`,
+        variant,
+      );
+      const d = pairedDiff(variant, baseline);
+      console.log(`\nPAIRED DIFFERENCE  A' - A`);
+      console.log(
+        `  ${(100 * d.mean).toFixed(2)} pts   95% CI [${(100 * d.lo).toFixed(2)}, ${(100 * d.hi).toFixed(2)}]`,
+      );
+      console.log(`  discordant pairs ${d.discordant}/${d.n} — only these carry information`);
+      if (d.lo > 0) console.log(`  => A' is better, significant at 95%`);
+      else if (d.hi < 0) console.log(`  => A' is WORSE, significant at 95%`);
+      else console.log(`  => not significant; need more games or the effect is ~0`);
+      out.variant = varSum;
+      out.variantName = deckC.name;
+      out.pairedDiff = d;
+    }
+
+    const outPath = resolve(root, env("SIM_OUT", "sim/results/last-run.json"));
+    mkdirSync(dirname(outPath), { recursive: true });
+    writeFileSync(outPath, JSON.stringify(out, null, 1));
+    console.log(`\nwrote ${outPath}\n`);
+  },
+  3_600_000,
+);
