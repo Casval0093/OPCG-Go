@@ -147,6 +147,22 @@ You can rarely have both halves live in the same matchup. Ping's instinct to run
 is right — `+2000` Counter means it is never a blank draw — but the tech does not stack with the
 thesis, it substitutes for it. That is the first concrete question for the simulator.
 
+**And there is no sideboard.** Constructed OPTCG locks the deck for the entire event; only Sealed
+permits a side deck (official Tournament Rules Manual / Floor Rule). So a tech slot cannot be
+brought in against aggro and taken out against big-board decks. **It is a permanent tax paid in
+every matchup, including the ones where it is dead.**
+
+That fixes the objective function for tech slots. For a candidate card *c* replacing an incumbent:
+
+```
+ΔEV(c) = Σ_archetype  share(archetype) × [ WR(deck with c | archetype) − WR(deck without c | archetype) ]
+```
+
+The question is never "does Rakuyo beat aggro." It is whether its gain against the aggro *share*
+of the field outweighs its loss across the remaining ~90%. With OP16 shares, a card that is fully
+dead outside one 10%-share matchup has to swing that matchup by **>9 points** just to break even.
+That bar is the reason this needs card-granular simulation rather than judgement.
+
 **Locked out** — gated on *"if your Leader is [Edward Newgate]"* by NAME, not by the Whitebeard
 Pirates trait: OP17-013 Ace (his own card), OP17-003 Izo, OP17-007 Kouzuki Oden.
 **Ace inherits the bodies; Newgate inherits the engine.**

@@ -35,6 +35,11 @@ games. If you write something implying otherwise, you are wrong. The engine does
 ## Hard-won facts — do not re-derive these
 
 - **An OPTCG deck is 50 cards** + 1 leader + 10 DON!!. (An earlier draft said 51. It was wrong.)
+- **There is no sideboard in Constructed.** The deck is locked for the whole event; only Sealed
+  permits a side deck (official Tournament Rules Manual / Floor Rule). Every tech slot is a
+  permanent tax paid in every matchup, so slot decisions are `Σ share × ΔWR` across the *whole*
+  field — a card dead outside one 10%-share matchup must swing it >9 points to break even.
+  See `docs/research-findings.md` §5.
 - **Rotation is live since 2026-04-01.** Standard = Block 2+ only. OP01–OP04 and ST01–ST09 are dead.
 - **Banlist:** OP06-086 Gecko Moria, OP07-045 Jinbe, EB01-059 Kingdom Come, OP02-117 Ice Age.
 - **Ladder data understates value/control decks.** Bo1, speed-rewarded, complex decks piloted worse
