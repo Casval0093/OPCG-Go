@@ -67,13 +67,17 @@ games. If you write something implying otherwise, you are wrong. The engine does
 - **OP17 is not published yet — it is not missing, it does not exist upstream.** Bandai has
   not put it on the official card list. EN release 2026-08-28, SC ~2026-08-23. Re-run
   `python3 tools/import_cards.py --set OP17 --refresh` after that date; no code change needed.
-- **`OP17-005`'s On Play is REOPENED (2026-08-17) and needs Ping's call.** The standing 08-16
-  decision was that the clause is an aggregator error. Limitless — the source cited for that
-  rejection — now shows it, on two independently-worded fetches. The rejection's reasoning is
-  also broken: it called the clause a cost "since it would shrink your own Leader", but Ace's
-  `OP16-001` is **5000 base power**, so 5000 → 8000 is a **+3000 buff**. No Leader has 8000 base.
-  The clause has NOT been re-added to the row pending adjudication. Do not add it unilaterally,
-  and do not delete the evidence either.
+- **`OP17-005` HAS the On Play, and it is a BUFF. Ping re-added it 2026-08-17, reversing the
+  08-16 rejection.** Full text: *"If your opponent has a Character with 10000 power or more, give
+  this card in your hand −4 cost. [On Play] Your monocolored Leader's base power becomes 8000
+  until the end of your opponent's next End Phase."* Ace's `OP16-001` is **5000 base**, so this is
+  **+3000**, not a cost — the old note's reasoning was simply wrong, and no Leader has 8000 base.
+  It sets base power, so +power modifiers stack on top, and it lasts through the opponent's next
+  End Phase, so it defends too. Provisional until Bandai publishes 2026-08-28. **Do not re-reject
+  this clause**; if you think it is wrong, check `onepiece.limitlesstcg.com/cards/OP17-005`.
+- **The 08-16 failure mode was not "trusted a bad source".** It was a spoiler-stage source
+  changing under us, plus a reasoning error that survived because its conclusion sounded
+  conservative. Treat every OP17 row as provisional until 2026-08-28 and re-diff after.
 - **Egress: the blocks are environment-specific, not universal. On Ping's Mac, Limitless,
   `en.onepiece-cardgame.com` and `onepiece-cardgame.cn` all return 200.** Only `optcgapi.com`
   times out. Limitless `robots.txt` is `User-agent: * / Disallow:` — empty, so automated fetch
@@ -171,7 +175,9 @@ python3 tools/coverage_report.py --exclude-promos # encoding backlog
    `docs/research-findings.md` §4 flips and Mihawk becomes viable.
 2. **Build the Ace OP17 list.** Skeleton is the OP16 Red Ace deck; first slot-in is `OP17-005`
    Edward Newgate (12000 power, cost −4 vs a 10000+ board, so effectively 6-cost — and Ace's leader
-   grants it [Rush]). That is the whole thesis.
+   grants it [Rush]). Its [On Play] also takes Ace's Leader 5000 → 8000 for a full turn cycle.
+   That is the whole thesis. Second: 1–2 `OP17-016` Rakuyo as anti-aggro tech (Ping's call), but
+   see §5 — the removal suite and the discount want opposite fields and rarely both switch on.
 3. **Generate engine card definitions from `data/cards-OP15-en.json` / `cards-OP16-en.json`.**
    Acquisition is done (238 cards, 223 with printed effects). What remains is the real work:
    emit `.ts` + `.i18n.ts` definitions in the vendored engine's shape, then encode effects in

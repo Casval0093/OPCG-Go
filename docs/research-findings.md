@@ -88,32 +88,47 @@ Provisional — only ~135 OP17 cards revealed. Set releases EN 2026-08-28, SC ~2
 
 | ID | Card | Verified text | Relevance |
 |---|---|---|---|
-| **OP17-005** | Edward.Newgate · 10c · **12000** · Special · Four Emperors/WB | "If your opponent has a Character with 10000 power or more, give this card in your hand −4 cost. [On Play] Your monocolored Leader's base power becomes 8000 until the end of your opponent's next End Phase." | Effectively 6-cost 12000, over Ace's 8000 threshold, granted [Rush]. **The thesis.** [On Play] is **contested — see below.** |
+| **OP17-005** | Edward.Newgate · 10c · **12000** · Special · Four Emperors/WB | "If your opponent has a Character with 10000 power or more, give this card in your hand −4 cost. [On Play] Your monocolored Leader's base power becomes 8000 until the end of your opponent's next End Phase." | Effectively 6-cost 12000, over Ace's 8000 threshold, granted [Rush]. **The thesis.** The [On Play] is **upside for Ace, not a cost** — see below. |
 | OP17-009 | **Haruta** · 4c · 5000 · +1000 · Slash · WB | "[Opponent's Turn] This Character gains +3000 power. [On Play] K.O. up to 1 of your opponent's Characters with 2000 base power or less." | **Not Rakuyo.** 8000 on defence + 1 K.O. |
 | OP17-010 | Fossa · 1c · 3000 · Slash · WB | "[Activate: Main] [Once Per Turn] If your opponent has a Character with 10000 power or more **and you have no other [Fossa]**, this Character gains [Blocker] and +2000 power until the end of your opponent's next End Phase." | Not a static Blocker — activated, once/turn, self-limited to 1 copy. Counter value unconfirmed. |
 | OP17-014 | Whitey Bay · 1c · 1000 · +1000 · Slash · **Whitebeard Pirates Allies** | "[On Play] K.O. up to 1 of your opponent's Characters with 2000 base power or less. [On Your Opponent's Attack] You may trash this Character: Your Leader gains +1000 power during this battle." | **Different trait string** to the rest of the package — see the trait-matching hazard in `CLAUDE.md`. |
 | **OP17-016** | **Rakuyo** · 3c · 2000 · +2000 · Strike · WB | "[On Play] K.O. up to 2 of your opponent's Characters with 2000 base power or less." | The card §5 previously filed under OP17-009. Best K.O. rate in the package. |
 | OP17-018 | "The Power to Destroy the World" · 1c Event · Four Emperors/WB | "[Main] You may rest 2 of your DON!! cards: K.O. up to 1 of your opponent's Stages. [Counter] If you have 2 or more Characters with 8000 **base** power or more, up to 1 of your Leader or Characters gains +4000 power during this battle." | Has a Main mode the old row omitted entirely. |
 
-**⚠️ OP17-005's [On Play] — reopened 2026-08-17, awaiting Ping's adjudication.**
+### OP17-005's [On Play] — re-added by Ping, 2026-08-17. It is a buff.
 
-The 2026-08-16 note below rejected this clause. Limitless — the source cited for that rejection —
-now shows it, on two independently-worded fetches, one phrased to invite "NO ON PLAY ABILITY" as
-the answer. Bandai has still not published OP17, so there is no tiebreaker source.
+The 2026-08-16 decision rejected this clause as an aggregator fabrication. **Reversed.** Limitless —
+the source cited for the original rejection — shows it, on two independently-worded fetches, one
+phrased to invite "NO ON PLAY ABILITY" as the answer. Most likely Limitless firmed up its spoiler
+data between the 16th and the 17th.
 
-The rejection's stated reason does not survive either. It called the clause "a real cost, since it
-would shrink your own Leader." **Ace's Leader `OP16-001` has 5000 base power** (verified). 5000 → 8000
-is **+3000, a buff** — and `OP17-001` Newgate is also 5000 base, so it is a buff there too. No Leader
-in the format has 8000 base power, so this clause cannot shrink anything.
+The rejection's reasoning was also wrong, and this is the part that matters for play. It called the
+clause "a real cost, since it would shrink your own Leader":
 
-Most likely explanation: Limitless firmed up its spoiler data between 08-16 and 08-17. The clause
-is **not** re-added to the row above pending Ping's call, per the standing instruction.
+| Leader | Base power | After the [On Play] |
+|---|---|---|
+| `OP16-001` Ace (mono-Red) | 5000 | **8000 — +3000** |
+| `OP17-001` Newgate (mono-Red) | 5000 | **8000 — +3000** |
 
-> **OP17-005 challenged and upheld, 2026-08-16.** A web-search summary claimed an additional
-> On Play that sets your own single-colour Leader's base power to 8000 until the opponent's
-> next end phase — a real cost, since it would shrink your own Leader. Checked against
-> Limitless: **the aggregator is wrong and the row above stands.** This is the second time an
-> aggregator has returned garbled text for a card in this project. Do not re-add that clause.
+No Leader in the format has 8000 base power, so the clause cannot shrink anything. It **sets** base
+power rather than adding, so later +power modifiers stack on top of 8000, and it persists through
+the opponent's next End Phase — so it is a defensive buff on their swing-back turn as well.
+
+**The thesis is stronger than recorded, not weaker.** On the turn you land Newgate you get a
+12000 [Rush] body *and* a Leader that goes 5000 → 8000. The only way this clause is ever a cost is
+on a two-colour Leader, where it simply does nothing.
+
+**Provisional until Bandai publishes on 2026-08-28.** Bandai has not put OP17 on the official card
+list, so this — like every other OP17 row here — is spoiler-stage. Re-run
+`python3 tools/import_cards.py --set OP17 --refresh` after that date and diff against this table.
+
+> **Superseded — kept for the audit trail.** *"OP17-005 challenged and upheld, 2026-08-16. A
+> web-search summary claimed an additional On Play that sets your own single-colour Leader's base
+> power to 8000 until the opponent's next end phase — a real cost, since it would shrink your own
+> Leader. Checked against Limitless: the aggregator is wrong and the row above stands."* The
+> aggregator was right and the check was wrong. Worth remembering: the failure was not trusting a
+> bad source, it was a **spoiler-stage source changing under us** plus a reasoning error nobody
+> caught because the conclusion sounded conservative.
 
 ### The package pulls in two directions — structural, 2026-08-17
 
