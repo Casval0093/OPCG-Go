@@ -44,11 +44,19 @@ games. If you write something implying otherwise, you are wrong. The engine does
   `runBotMatch` consumes that command from its prompt queue before any strategy sees it. Forcing
   it both ways gives byte-identical results, and **north led all 120 test games**. Control turn
   order by **seat assignment** instead — north leads, so seat the deck north to put it on the play.
-- **The `valueRanked` bot exaggerates the first-player advantage by roughly an order of magnitude**
-  — a measured **54.5-point** play/draw gap on an ST01 mirror, where reality is a few points. Any
-  matchup number from this policy measures the bot, not the deck. This is the calibration evidence
-  `docs/engine-audit.md` names as the trigger for Option A/B over Option C. Re-check on a real
-  Block 2+ deck before generalising.
+- **THE ENGINE TRACK'S BLOCKER IS POLICY LEGALITY, NOT THROUGHPUT (2026-08-17).** The
+  `valueRanked` bot **cannot legally play Block 2+ card effects** — it issues illegal commands and
+  `runBotMatch` aborts at turn 2 in **88%** of games on a modern green deck. A vanilla control with
+  the same leader, colour, set range and deck size completes **100%**, so effects are the cause.
+  ST01 also completes 100%, so it is modern effects specifically, not all effects.
+  **`docs/engine-audit.md`'s options A–D are all about speed and none of them fixes this.** Option
+  C does not "run today" on real decks; it does not run at all. Encoding more OP15/OP16 cards does
+  not help until the policy can play them. See `docs/simulation.md`.
+- **The bot also exaggerates the first-player advantage by roughly an order of magnitude** —
+  play/draw gap **54.5 pts** on ST01, **26.7 pts** on the modern vanilla control, against a few
+  points in reality. It cannot defend, so turn order decides games. Any matchup number from this
+  policy measures the bot, not the deck, even where it finishes. This is the calibration evidence
+  the audit names as the trigger for Option A/B over Option C.
 - **There is no sideboard in Constructed.** The deck is locked for the whole event; only Sealed
   permits a side deck (official Tournament Rules Manual / Floor Rule). Every tech slot is a
   permanent tax paid in every matchup, so slot decisions are `Σ share × ΔWR` across the *whole*

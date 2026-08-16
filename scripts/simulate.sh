@@ -16,9 +16,14 @@ while [ $# -gt 0 ]; do case "$1" in
   --strategy) export SIM_STRATEGY="$2"; shift 2;;
   --first) export SIM_FIRST="$2"; shift 2;;
   --out) export SIM_OUT="$2"; shift 2;;
+  --dump-catalog) export SIM_DUMP_CATALOG=1; shift;;
   *) echo "unknown option: $1" >&2; exit 2;;
 esac; done
 mkdir -p "$ENG/tests/cards"
 cp "$ROOT/sim/matchup.sim.test.ts" "$ENG/tests/cards/matchup.sim.test.ts"
+cp "$ROOT/sim/catalog.dump.test.ts" "$ENG/tests/cards/catalog.dump.test.ts"
 cd "$ENG"
+if [ "${SIM_DUMP_CATALOG:-}" = "1" ]; then
+  exec ./node_modules/.bin/vp test run tests/cards/catalog.dump.test.ts --reporter=verbose
+fi
 exec ./node_modules/.bin/vp test run tests/cards/matchup.sim.test.ts --reporter=verbose

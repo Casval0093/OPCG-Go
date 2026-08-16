@@ -88,6 +88,13 @@ interface GameResult {
   outcome: "win" | "loss" | "timeout";
   turns: number;
   commands: number;
+  /**
+   * Why the game stopped, straight from the engine. Critical: a game the ENGINE abandoned
+   * (unsupported prompt, repeated state, command budget) is not a game that ran out of CLOCK.
+   * Conflating them reports engine limitations as deck weakness.
+   */
+  termination: string;
+  stuck: boolean;
 }
 
 function env(name: string, fallback: string): string {
@@ -178,6 +185,8 @@ function playOne(
     outcome,
     turns,
     commands: r.totalCommands,
+    termination: String(r.termination),
+    stuck: Boolean(r.stuck),
   };
 }
 
@@ -238,6 +247,19 @@ function report(label: string, all: GameResult[]): Summary {
     `  timeouts  ${s.timeouts} (${pct(s.timeouts / Math.max(1, s.games))}) — double losses` +
       `   median turns ${s.medianTurns}   mean cmds ${s.meanCommands.toFixed(1)}`,
   );
+  const reasons = new Map<string, number>();
+  for (const r of all) reasons.set(r.termination, (reasons.get(r.termination) ?? 0) + 1);
+  const breakdown = [...reasons.entries()].sort((x, y) => y[1] - x[1]);
+  console.log(`  termination: ${breakdown.map(([k, v]) => `${k}=${v}`).join("  ")}`);
+  // rules-win is a real game ending. Anything else means the ENGINE stopped, not the clock,
+  // and those games say nothing about which deck is better.
+  const abandoned = all.filter((r) => r.termination !== "rules-win").length;
+  if (abandoned > all.length * 0.05) {
+    console.log(
+      `  *** WARNING: ${pct(abandoned / all.length)} of games were abandoned by the engine, not ` +
+        `decided. Win rates below are NOT meaningful — the bot cannot play this deck. ***`,
+    );
+  }
   return s;
 }
 
