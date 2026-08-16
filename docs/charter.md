@@ -94,6 +94,41 @@ the field beats a spiky edge against part of it.
 **4. It does not change the tech-slot maths.** No side deck in Constructed regardless, so
 `ΔEV(c) = Σ share × ΔWR` is untouched. Bo1 vs Bo3 was never the variable there.
 
+### Why `ΔWR` is taken on game rates, and when that would be wrong
+
+Raised in review on PR #3 against the superseded Bo3 draft: a simulator emits a per-game win
+probability `p`, and under Bo3 the match rate is `3p² − 2p³`, so a constant game-rate delta does
+not map to a constant match-rate delta. The formula is right, and this is worth writing down
+because **it would have been a real defect had the format stayed Bo3.**
+
+What decides it is *where* the non-linearity sits.
+
+- **Per-matchup transforms can reorder candidates.** Under Bo3 you convert each matchup's `p`
+  before the weighted sum, and the slope `6p(1−p)` varies across matchups — 1.50 at `p=0.50`
+  against 0.96 at `p=0.80`. A card swinging a coinflip matchup by 5 points would be worth
+  materially more than one swinging a lopsided matchup by 5 points, and summing raw game-rate
+  deltas would rank them equal. That is a genuine reordering.
+- **Aggregate monotone transforms cannot reorder.** They rescale.
+
+**Under Bo1 the per-matchup transform is the identity** — match win rate *is* game win rate — so
+`ΔWR` on game rates is exactly right, and no conversion belongs in the pipeline. Adding one would
+distort the result rather than improve it.
+
+The only non-linearity left is aggregate: with Swiss + top cut, what you actually want is
+`P(make the cut)`, a binomial in your overall match win rate `p̄`. Over 5 rounds cutting at 4+ wins:
+
+| `p̄` → `p̄+0.05` | `P(cut)` | gain | amplification |
+|---|---|---|---|
+| 0.35 → 0.40 | 0.054 → 0.087 | +3.3 pts | 0.66× |
+| 0.50 → 0.55 | 0.188 → 0.256 | +6.9 pts | 1.37× |
+| 0.60 → 0.65 | 0.337 → 0.428 | +9.2 pts | 1.83× |
+
+**This does not change which tech card wins.** Every candidate shifts the same `p̄` from the same
+baseline through the same monotone function, so the ordering by `Σ share × ΔWR` is preserved. What
+it changes is what an edge is *worth*: a point of match win rate buys nearly **3× more** top-cut
+probability to a 60% deck than to a 35% deck. Use it to judge whether a marginal slot is worth
+chasing — never to re-rank the slots.
+
 ### The ladder-bias correction must be reduced, not applied
 
 `§1` of `docs/research-findings.md` discounts the matchup matrix because it comes from ranked
