@@ -20,7 +20,7 @@ Determine and field the highest-EV deck in the SC format, continuously, across s
 | Engine base | **Fork `TheCardGoat/tcg-engines` (MIT)** — audit complete. MOOgiwara rejected (AGPL, 30% MVP) |
 | Effect encoding | Adopt the engine's existing compositional DSL; LLM-author the gaps with generated tests |
 | Persistence & compute | This repo; heavy self-play on user hardware |
-| Match format | **Bo3** (Ping, 2026-08-17). No side deck — Constructed locks the deck all event |
+| Match format | **Bo1, Swiss + top cut, 30-min rounds** (Ping, 2026-08-17). No side deck — Constructed locks the deck all event |
 | Objective function | Field-weighted expected match win rate vs the real SC field, split by play/draw |
 | Role of that objective | **Diagnostic, not selective** (2026-08-17). It forecasts the field and arms a tripwire; it does not choose the archetype. Tripwire is qualitative: structural deficiency is decisional, a points gap is not. See `CLAUDE.md`. |
 | Validation | Per-card assertion tests → Comprehensive Rules conformance → meta calibration |
@@ -67,22 +67,49 @@ simulation is required, so encoding OP15/16/17 into the engine is the critical p
   official Bandai list. See `tools/import_cards.py` and the README. OP17 is not yet published
   by Bandai, so it is pending a date, not pending a method.
 
-## Bo3 — what it changes, and what it does not
+## Match format: Bo1, Swiss + top cut, 30-minute rounds
 
-Confirmed 2026-08-17. Three consequences, one non-consequence.
+标准赛制 · 1V1 · 一局定胜负 (BO1) · 瑞士轮 + 淘汰赛机制 · 每局 30 分钟.
+Ping, 2026-08-17, from the event announcement. **This supersedes a Bo3 note recorded earlier the
+same day.** The 30-minute clock is the part that matters most, and it was not previously known.
 
-- **The play/draw split gets more valuable, not less.** It is already in the objective function. In
-  Bo1 you get one side at random and the asymmetry is noise; across a Bo3 you will usually sit on
-  both, so a deck with a large play/draw gap has that gap reliably exposed rather than hidden.
-  Keep the split — do not let anyone average it away.
-- **Variance falls, so list and pilot quality matter more.** Consistent 60/40 beats spiky 50/50
-  over three games. This cuts against the fringe-archetype risk slightly, and it raises the value
-  of reps — a Bo3 is a longer decision chain and fatigue is real for a first-time competitor.
-- **Information after game 1 has value, but only through play, not cards.** There is no side deck
-  (see below), so you cannot swap anything in. What you can do is mulligan and sequence differently
-  knowing their deck. That rewards cards with multiple modes over narrow ones.
-- **It does not change the tech-slot maths.** Same 50 cards all event either way, so
-  `ΔEV(c) = Σ share × ΔWR` is unchanged. Bo1 vs Bo3 was never the variable there.
+**1. Swiss validates the objective function.** Swiss pairs you against a roughly random sample of
+the field over N rounds. That is *literally* what `tools/ev_analysis.py` computes — field-weighted
+expected win rate. The objective function was chosen before the format was known and happens to be
+exactly right for it. Single-elimination would have argued for a different target (beat the
+specific decks that top-cut); Swiss does not.
+
+**2. The 30-minute clock is a structural bias toward tempo, and it favours Ace.** A deck that wins
+slowly can fail to close inside the round. This is a real, format-level edge for the archetype
+already chosen on preference — and unlike preference, it is not a matter of taste. It cuts directly
+against the decks the raw EV table favours: **Teach and Big Mom are attrition decks**, and Big Mom
+is explicitly a "life-cycling attrition engine … wins by attrition" (§5). Attrition plans are the
+ones a clock punishes.
+
+**3. Bo1 raises variance, so EV margin matters more than EV rank.** One game decides each round;
+there is no second game to correct a bad draw or a bad play/draw assignment. A 51% deck and a 55%
+deck are much closer in outcome over 5–7 Bo1 rounds than the numbers suggest. Consistency across
+the field beats a spiky edge against part of it.
+
+**4. It does not change the tech-slot maths.** No side deck in Constructed regardless, so
+`ΔEV(c) = Σ share × ΔWR` is untouched. Bo1 vs Bo3 was never the variable there.
+
+### The ladder-bias correction must be reduced, not applied
+
+`§1` of `docs/research-findings.md` discounts the matchup matrix because it comes from ranked
+ladder: *"ladder is Bo1, rewards speed"*, therefore value and control decks are understated and
+should be treated as a lower bound.
+
+**Half of that justification just became an argument for trusting the data.** The target event is
+Bo1 with a 30-minute clock — the same conditions that produce the ladder's speed bias. A matrix
+built from 213,084 **Bo1** games is *format-matched* to this event in a way tournament Bo3 data
+would not be.
+
+What survives of the seam is **population**, not format: ladder players are not the tournament
+field, and median ladder piloting differs from event piloting. Correct for that. **Do not** also
+correct for Bo1-ness — for this event that is signal, not noise. Applying both corrections
+double-counts and would push the analysis toward exactly the slow value decks a 30-minute Bo1
+round punishes.
 
 ## Legal-pool parity with EN/JP — confirmed 2026-08-17
 
