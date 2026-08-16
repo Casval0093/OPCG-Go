@@ -1,0 +1,42 @@
+{
+  "_meta": {
+    "format": "OP16 Standard (Block 2+)",
+    "matchup_source": "opdecks.xyz/winmatrix/op16 — TCG Match Making ranked ladder",
+    "matchup_sample_games": 213084,
+    "matchup_cut_date": "2026-07-16",
+    "share_source": "onepiece.limitlesstcg.com/decks — tournament results",
+    "share_note": "Shares are TOURNAMENT data; matchups are LADDER data. Mixing them is a known methodological seam.",
+    "bias_warning": "Ladder data systematically understates resource-rotation / value / control archetypes: Bo1, speed-rewarded, complex decks piloted worse by median ladder player. Treat value-deck numbers as a LOWER BOUND.",
+    "split_by_turn_order": false,
+    "split_note": "No play/draw split available. OPTCG turn-order asymmetry is severe (first player skips draw, cannot attack turn 1), so these are blended figures."
+  },
+  "leaders": {
+    "Nami": { "card_id": "OP11-041", "colors": ["blue", "yellow"], "share_pct": 23.52, "overall_wr": 54.1, "ladder_games": 30195 },
+    "Luffy": { "card_id": null, "colors": ["green", "blue"], "share_pct": 22.91, "overall_wr": 51.6, "ladder_games": 50254 },
+    "Enel": { "card_id": null, "colors": ["purple"], "share_pct": 22.71, "overall_wr": 53.6, "ladder_games": 24020 },
+    "Rosinante": { "card_id": null, "colors": ["purple", "yellow"], "share_pct": 9.88, "overall_wr": 52.8, "ladder_games": 14884 },
+    "Teach": { "card_id": "OP16-080", "colors": ["black", "yellow"], "share_pct": 8.86, "overall_wr": 51.6, "ladder_games": 31808 },
+    "Hancock": { "card_id": null, "colors": ["blue", "yellow"], "share_pct": 0.41, "overall_wr": 50.8, "ladder_games": 10739 }
+  },
+  "_matrix_note": "matrix[A][B] = A's win percentage against B. Verified internally consistent: every mirrored pair sums to 100.",
+  "matrix": {
+    "Nami":      { "Nami": 50.0, "Luffy": 60.0, "Enel": 66.5, "Rosinante": 50.3, "Teach": 34.1, "Hancock": 38.7 },
+    "Luffy":     { "Nami": 40.0, "Luffy": 50.0, "Enel": 36.9, "Rosinante": 55.1, "Teach": 67.6, "Hancock": 51.5 },
+    "Enel":      { "Nami": 33.5, "Luffy": 63.1, "Enel": 50.0, "Rosinante": 60.2, "Teach": 35.4, "Hancock": 58.0 },
+    "Rosinante": { "Nami": 49.7, "Luffy": 44.9, "Enel": 39.8, "Rosinante": 50.0, "Teach": 56.0, "Hancock": 49.5 },
+    "Teach":     { "Nami": 65.9, "Luffy": 32.4, "Enel": 64.6, "Rosinante": 44.0, "Teach": 50.0, "Hancock": 64.6 },
+    "Hancock":   { "Nami": 61.3, "Luffy": 48.5, "Enel": 42.0, "Rosinante": 50.5, "Teach": 35.4, "Hancock": 50.0 }
+  },
+  "unmodelled_field": {
+    "share_pct": 11.71,
+    "members": ["R/B Lucy 2.44", "B Yamato 1.37", "G Mihawk 1.02", "R Ace 0.87", "R/B Koby 0.81", "R Shanks 0.71", "R/B Ace 0.71", "B Crocodile 0.61", "other <0.6 each"]
+  },
+  "known_cycle": "Luffy > Teach > Nami > Enel > Luffy — a true rock-paper-scissors. No dominant deck.",
+  "banlist": ["OP06-086 Gecko Moria", "OP07-045 Jinbe", "EB01-059 Kingdom Come", "OP02-117 Ice Age"],
+  "rotation": {
+    "effective": "2026-04-01",
+    "rule": "Standard is Block 2+ only",
+    "blocks": { "1": "OP01-OP04, ST01-ST09 (DEAD)", "2": "OP05-OP08", "3": "OP09-OP12", "4": "OP13-OP15 (approx)", "5": "OP16+ (approx)" },
+    "unconfirmed": "SC-specific rotation state and banlist not yet verified."
+  }
+}
