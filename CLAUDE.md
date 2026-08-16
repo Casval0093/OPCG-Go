@@ -44,6 +44,22 @@ games. If you write something implying otherwise, you are wrong. The engine does
   come from mirrors, community sources, or Ping.
 - **Card-effect encoding does not templatise.** 1,092 of 1,219 normalized effect templates are
   singletons; top-100 templates cover only 34.6% of clauses. Composition, not pattern matching.
+- **There is no encoding backlog in the existing sets — it is 0, not 331/125.** Both figures
+  were `coverage_report.py` bugs, now fixed: 309 cards inherit their encoding by spread
+  (`{ ...baseCard, id: "..._p2" }`) and the check never followed it; 22 have a null printed
+  effect written as `effect: "NULL"` and the check read the key's presence as text.
+  309 + 22 = 331 and 103 + 22 = 125 — both reconcile exactly. Do not re-add this work item.
+- **Variant printed text is not trustworthy; base text is.** 39 of 315 spread printings
+  disagree with the base whose encoding they execute — 16 have lost the `−` from a debuff
+  ("give 3000 power" for a card that gives −3000), 12 differ by a bracketed keyword.
+  `OP02-013_p3` misspells the trait `"Whitebeard Piratess"` — the exact trait Ace keys on.
+  Play is correct today because the engine runs the base's encoding. **When authoring
+  OP15–OP17 encodings from printed text, read the base printing.** `tools/variant_audit.py`.
+- **This container cannot reach card data.** Egress is restricted to GitHub and package
+  registries. `optcgapi.com`, `onepiece.limitlesstcg.com`, `onepiece-cardgame.cn` and
+  `en.onepiece-cardgame.com` are all blocked, so OP15–OP17 cannot be imported from here.
+  WebSearch works but returns aggregator summaries, which this file already rules out as a
+  source. Card data must be supplied by Ping or fetched somewhere with open egress.
 
 ## Repo map
 
@@ -55,6 +71,7 @@ docs/engine-audit.md            engine comparison, throughput measurements, opti
 docs/research-findings.md       all verified competitive data (matrix, leaders, OP17)
 tools/ev_analysis.py            field-weighted EV + Nash + sensitivity   <- run this
 tools/coverage_report.py        card-effect encoding coverage against the vendored engine
+tools/variant_audit.py          alternate-art printings vs the base encoding they inherit
 bench/throughput.test.ts        engine throughput benchmark
 data/op16-matchup-matrix.json   the matchup matrix, machine-readable
 data/card-coverage.json         all 2,282 cards classified encoded/gap/vanilla
@@ -80,9 +97,16 @@ python3 tools/coverage_report.py --exclude-promos # encoding backlog
 2. **Build the Ace OP17 list.** Skeleton is the OP16 Red Ace deck; first slot-in is `OP17-005`
    Edward Newgate (12000 power, cost −4 vs a 10000+ board, so effectively 6-cost — and Ace's leader
    grants it [Rush]). That is the whole thesis.
-3. **Encode OP15–OP17** into the vendored engine (absent entirely) and fill the 125 mainline gaps.
+3. **Get OP15–OP17 card data.** This is now the binding constraint on the whole engine track,
+   and it is an acquisition problem, not an encoding one — see the egress note above. Options:
+   ask Ping for a dump, run the import somewhere with open egress, or add the needed hosts to
+   the environment's egress allowlist. Once the data exists, encoding follows the vendored
+   engine's existing DSL. (The "fill the 125 mainline gaps" item that used to sit here has been
+   deleted — that backlog was a measurement bug and is 0.)
 4. **Pick the Tier-3 lever** — recommendation is Tier 2.5 now, learned value net next, Rust port only
-   if calibration proves heuristic play distorts matchups.
+   if calibration proves heuristic play distorts matchups. Note the audit's throughput table is
+   derived from a 4-card test deck; it self-notes real decks run 2–5x slower but does not carry
+   that multiplier into the options, so Option C's "runs today on 2 cores" is optimistic.
 
 ## Open questions only Ping can answer
 

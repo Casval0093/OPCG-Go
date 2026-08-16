@@ -1,0 +1,3896 @@
+[
+ {
+  "id": "OP05-021_p1",
+  "base_id": "OP05-021",
+  "category": "identical",
+  "path": "PRB02/stages/021-revolutionary-army-hq-pirate-foil.ts",
+  "base_path": "OP05/stages/021-revolutionary-army-hq.ts",
+  "variant_text": {
+   "effect": "[Activate:Main] You may trash 1 card from your hand and rest this Stage: Look at 3 cards from the top of your deck; reveal up to 1 [Revolutionary Army] type card and add it to your hand. Then, place the rest at the bottom of your deck in any order."
+  },
+  "base_text": {
+   "effect": "[Activate:Main] You may trash 1 card from your hand and rest this Stage: Look at 3 cards from the top of your deck; reveal up to 1 [Revolutionary Army] type card and add it to your hand. Then, place the rest at the bottom of your deck in any order."
+  }
+ },
+ {
+  "id": "OP04-096_p1",
+  "base_id": "OP04-096",
+  "category": "identical",
+  "path": "PRB02/stages/096-corrida-coliseum-pirate-foil.ts",
+  "base_path": "OP04/stages/096-corrida-coliseum.ts",
+  "variant_text": {
+   "effect": "If your Leader has the [Dressrosa] type, your [Dressrosa] type Characters can attack Characters on the turn in which they are played."
+  },
+  "base_text": {
+   "effect": "If your Leader has the [Dressrosa] type, your [Dressrosa] type Characters can attack Characters on the turn in which they are played."
+  }
+ },
+ {
+  "id": "OP05-097_p1",
+  "base_id": "OP05-097",
+  "category": "identical",
+  "path": "PRB02/stages/097-mary-geoise-pirate-foil.ts",
+  "base_path": "OP05/stages/097-mary-geoise.ts",
+  "variant_text": {
+   "effect": "[Your Turn] The cost of playing [Celestial Dragons] type Character cards with a cost of 2 or more from your hand will be reduced by 1."
+  },
+  "base_text": {
+   "effect": "[Your Turn] The cost of playing [Celestial Dragons] type Character cards with a cost of 2 or more from your hand will be reduced by 1."
+  }
+ },
+ {
+  "id": "ST18-001_r1",
+  "base_id": "ST18-001",
+  "category": "absent",
+  "path": "PRB02/characters/001-uso-hachi-reprint.ts",
+  "base_path": "OP10/characters/001-uso-hachi-sp.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "[On Play] If you have 8 or more DON!! cards on your field, rest up to 1 of your opponent's Characters with a cost of 5 or less."
+  }
+ },
+ {
+  "id": "ST15-002_r1",
+  "base_id": "ST15-002",
+  "category": "absent",
+  "path": "PRB02/characters/002-edward-newgate-st15-002-reprint.ts",
+  "base_path": "OP10/characters/002-edward-newgate-sp.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "[On Play] Give up to 1 rested DON!! card to your Leader or 1 of your Characters.\\n[Activate: Main] You may rest this Character: K.O. up to 1 of your opponent's Characters with 5000 power or less."
+  }
+ },
+ {
+  "id": "ST18-002_p1",
+  "base_id": "ST18-002",
+  "category": "formatting",
+  "path": "PRB02/characters/002-o-nami-pirate-foil.ts",
+  "base_path": "EB03/characters/002-o-nami-st18-002.ts",
+  "variant_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)[On Play] If you have 8 or more DON!! cards on your field, trash 1 card from your hand and draw 2 cards."
+  },
+  "base_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\\n\\n[On Play] If you have 8 or more DON!! cards on your field, trash 1 card from your hand and draw 2 cards."
+  }
+ },
+ {
+  "id": "OP09-002_r1",
+  "base_id": "OP09-002",
+  "category": "absent",
+  "path": "PRB02/characters/002-uta-reprint.ts",
+  "base_path": "OP09/characters/002-uta.ts",
+  "variant_text": {},
+  "base_text": {
+   "trigger": "onPlay"
+  }
+ },
+ {
+  "id": "OP05-004_p1",
+  "base_id": "OP05-004",
+  "category": "identical",
+  "path": "PRB02/characters/004-emporio-ivankov-pirate-foil.ts",
+  "base_path": "OP05/characters/004-emporio-ivankov.ts",
+  "variant_text": {
+   "effect": "[Activate:Main][Once Per Turn] If this Character has 7000 power or more, play up to 1 [Revolutionary Army] type Character card with 5000 power or less other than [Emporio.Ivankov] from your hand."
+  },
+  "base_text": {
+   "effect": "[Activate:Main][Once Per Turn] If this Character has 7000 power or more, play up to 1 [Revolutionary Army] type Character card with 5000 power or less other than [Emporio.Ivankov] from your hand."
+  }
+ },
+ {
+  "id": "OP09-004_r1",
+  "base_id": "OP09-004",
+  "category": "absent",
+  "path": "PRB02/characters/004-shanks-op09-004-reprint.ts",
+  "base_path": "OP09/characters/004-shanks.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "Give all of your opponent's Characters \u22121000 power.\\n[Rush] (This card can attack on the turn in which it is played.)"
+  }
+ },
+ {
+  "id": "ST16-004_r1",
+  "base_id": "ST16-004",
+  "category": "absent",
+  "path": "PRB02/characters/004-shanks-st16-004-reprint.ts",
+  "base_path": "OP11/characters/004-shanks-sp.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "[On Play] K.O. up to 1 of your opponent's rested Characters."
+  }
+ },
+ {
+  "id": "OP02-005_r1",
+  "base_id": "OP02-005",
+  "category": "absent",
+  "path": "PRB02/characters/005-curly-dadan-reprint.ts",
+  "base_path": "OP02/characters/005-curly-dadan.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "[On Play] Look at up to 5 cards from the top of your deck; reveal up to 1 red Character with a cost of 1 and add it to your hand. Then, place the rest at the bottom of your deck in any order."
+  }
+ },
+ {
+  "id": "OP09-005_r1",
+  "base_id": "OP09-005",
+  "category": "absent",
+  "path": "PRB02/characters/005-silvers-rayleigh-op09-005-reprint.ts",
+  "base_path": "OP09/characters/005-silvers-rayleigh.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\\n[On Play] If your opponent has 2 or more Characters with a base power of 5000 or more, draw 2 cards and trash 1 card from your hand."
+  }
+ },
+ {
+  "id": "ST02-007_p3",
+  "base_id": "ST02-007",
+  "category": "absent",
+  "path": "PRB02/characters/007-jewelry-bonney-st02-007-pirate-foil.ts",
+  "base_path": "OP08/characters/007-jewelry-bonney-sp.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "[Activate: Main] (1) (You may rest the specified number of DON!! cards in your cost area.) You may rest this Character: Look at 5 cards from the top of your deck; reveal up to 1 {Supernovas} type card and add it to your hand. Then, place the rest at the bottom of your deck in any order."
+  }
+ },
+ {
+  "id": "OP06-007_p6",
+  "base_id": "OP06-007",
+  "category": "identical",
+  "path": "PRB02/characters/007-shanks-sp.ts",
+  "base_path": "OP06/characters/007-shanks.ts",
+  "variant_text": {
+   "effect": "[On play] K.O. up to 1 of your opponent's Characters with 10000 power or less."
+  },
+  "base_text": {
+   "effect": "[On play] K.O. up to 1 of your opponent's Characters with 10000 power or less."
+  }
+ },
+ {
+  "id": "OP03-008_p2",
+  "base_id": "OP03-008",
+  "category": "absent",
+  "path": "PRB02/characters/008-buggy-op03-008-pirate-foil.ts",
+  "base_path": "OP03/characters/008-buggy.ts",
+  "variant_text": {},
+  "base_text": {
+   "trigger": "onPlay"
+  }
+ },
+ {
+  "id": "OP09-009_r1",
+  "base_id": "OP09-009",
+  "category": "absent",
+  "path": "PRB02/characters/009-benn-beckman-reprint.ts",
+  "base_path": "OP09/characters/009-benn-beckman.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "[On Play] Trash up to 1 of your opponent's Characters with 6000 power or less."
+  }
+ },
+ {
+  "id": "ST01-011_p4",
+  "base_id": "ST01-011",
+  "category": "other",
+  "path": "PRB02/characters/011-brook-st01-011-pirate-foil.ts",
+  "base_path": "ST01/index.ts",
+  "variant_text": {
+   "effect": "[On Play] Give up to 2 rested DON!! cards to your Leader or 1 of your Characters."
+  },
+  "base_text": {
+   "effect": "[On Play] Give up to 2 rested DON!! cards to your Leader or 1 of your Characters.",
+   "trigger": "onPlay"
+  }
+ },
+ {
+  "id": "OP10-011_r1",
+  "base_id": "OP10-011",
+  "category": "absent",
+  "path": "PRB02/characters/011-tony-tony-chopper-reprint.ts",
+  "base_path": "OP10/characters/011-tony-tony-chopper.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\\n[Opponent's Turn] This Character gains +2000 power."
+  }
+ },
+ {
+  "id": "EB01-012_r1",
+  "base_id": "EB01-012",
+  "category": "absent",
+  "path": "PRB02/characters/012-cavendish-eb01-012-reprint.ts",
+  "base_path": "EB01/characters/012-cavendish.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "[On Play]/[When Attacking] If your Leader has the [Supernovas] type and you have no other [Cavendish] Characters, set up to 2 of your DON!! cards as active."
+  }
+ },
+ {
+  "id": "OP09-014_r2",
+  "base_id": "OP09-014",
+  "category": "identical",
+  "path": "PRB02/characters/014-limejuice-pirate-foil.ts",
+  "base_path": "OP09/characters/014-limejuice.ts",
+  "variant_text": {
+   "effect": "[On Play] Your opponent cannot activate up to 1 [Blocker] Character that has 4000 power or less during this turn."
+  },
+  "base_text": {
+   "effect": "[On Play] Your opponent cannot activate up to 1 [Blocker] Character that has 4000 power or less during this turn."
+  }
+ },
+ {
+  "id": "OP07-014_r1_LLH4ouU",
+  "base_id": "OP07-014",
+  "category": "identical",
+  "path": "PRB02/characters/014-moda-pirate-foil.ts",
+  "base_path": "OP07/characters/014-moda.ts",
+  "variant_text": {
+   "effect": "[Your Turn][On Play] Up to 1 of your [Portgas.D.Ace] cards gains +2000 power during this turn."
+  },
+  "base_text": {
+   "effect": "[Your Turn][On Play] Up to 1 of your [Portgas.D.Ace] cards gains +2000 power during this turn."
+  }
+ },
+ {
+  "id": "OP07-015_r1",
+  "base_id": "OP07-015",
+  "category": "absent",
+  "path": "PRB02/characters/015-monkey-d-dragon-reprint.ts",
+  "base_path": "OP07/characters/015-monkey-d-dragon.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "[Rush](This card can attack on the turn in which it is played.) [On Play] Give up to 2 rested DON!! cards to your Leader or 1 of your Characters."
+  }
+ },
+ {
+  "id": "EB01-015_r1",
+  "base_id": "EB01-015",
+  "category": "absent",
+  "path": "PRB02/characters/015-scratchmen-apoo-eb01-015-reprint.ts",
+  "base_path": "EB01/characters/015-scratchmen-apoo.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "[On Play] Rest up to 1 of your opponent's Characters with a cost of 2 or less."
+  }
+ },
+ {
+  "id": "EB01-018_r1_8aijthW",
+  "base_id": "EB01-018",
+  "category": "identical",
+  "path": "PRB02/characters/018-mountain-god-pirate-foil.ts",
+  "base_path": "EB01/characters/018-mountain-god.ts",
+  "variant_text": {},
+  "base_text": {}
+ },
+ {
+  "id": "OP07-021_r2",
+  "base_id": "OP07-021",
+  "category": "absent",
+  "path": "PRB02/characters/021-urouge-reprint.ts",
+  "base_path": "OP07/characters/021-urouge.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.) [End of Your Turn] Set up to 1 of your DON!! cards as active."
+  }
+ },
+ {
+  "id": "OP08-023_r1",
+  "base_id": "OP08-023",
+  "category": "formatting",
+  "path": "PRB02/characters/023-carrot-reprint.ts",
+  "base_path": "OP08/characters/023-carrot.ts",
+  "variant_text": {
+   "effect": "[On Play]/[When Attacking] Up to 1 of your opponent's rested Characters with a cost of 7 or less will not become active in your opponent's next Refresh Phase.Disclaimer: This card was reprinted from the original set with changes to the copyright information (Note: the original print did not include \\\"EN\\\" at the end of the copyright)."
+  },
+  "base_text": {
+   "effect": "[On Play]/[When Attacking] Up to 1 of your opponent's rested Characters with a cost of 7 or less will not become active in your opponent's next Refresh Phase."
+  }
+ },
+ {
+  "id": "OP07-026_r1",
+  "base_id": "OP07-026",
+  "category": "formatting",
+  "path": "PRB02/characters/026-jewelry-bonney-op07-026-reprint.ts",
+  "base_path": "OP07/characters/026-jewelry-bonney.ts",
+  "variant_text": {
+   "effect": "[On Play] Up to 1 of your opponent's rested Character or DON!! cards will not become active in your opponent's next Refresh Phase.Disclaimer: This card was reprinted from the original set with changes to the copyright information (Note: the original print did not include \\\"EN\\\" at the end of the copyright)."
+  },
+  "base_text": {
+   "effect": "[On Play] Up to 1 of your opponent's rested Character or DON!! cards will not become active in your opponent's next Refresh Phase."
+  }
+ },
+ {
+  "id": "OP09-027_p1",
+  "base_id": "OP09-027",
+  "category": "identical",
+  "path": "PRB02/characters/027-sabo-op09-027-pirate-foil.ts",
+  "base_path": "OP09/characters/027-sabo.ts",
+  "variant_text": {
+   "effect": "[When Attacking] [Once Per Turn] If you have 3 or more rested Characters, draw 1 card."
+  },
+  "base_text": {
+   "effect": "[When Attacking] [Once Per Turn] If you have 3 or more rested Characters, draw 1 card."
+  }
+ },
+ {
+  "id": "OP07-029_r1",
+  "base_id": "OP07-029",
+  "category": "formatting",
+  "path": "PRB02/characters/029-basil-hawkins-op07-029-reprint.ts",
+  "base_path": "OP07/characters/029-basil-hawkins.ts",
+  "variant_text": {
+   "effect": "If your Leader has the [Supernovas] type, this Character gains [Blocker]. (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)[Once Per Turn] If this Character would be removed from the field by your opponent's effect, you may rest 1 of your opponent's Characters instead.Disclaimer: This card was reprinted from the original set with changes to the copyright information (Note: the original print did not include \\\"EN\\\" at the end of the copyright)."
+  },
+  "base_text": {
+   "effect": "If your Leader has the [Supernovas] type, this Character gains [Blocker]. (After your opponent declares an attack, you may rest this card to make it the new target of the attack.) [Once Per Turn] If this Character would be removed from the field by your opponent's effect, you may rest 1 of your opponent's Characters instead."
+  }
+ },
+ {
+  "id": "OP05-030_r1",
+  "base_id": "OP05-030",
+  "category": "formatting",
+  "path": "PRB02/characters/030-donquixote-rosinante-reprint.ts",
+  "base_path": "OP05/characters/030-donquixote-rosinante.ts",
+  "variant_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)[Opponent's Turn] If your rested Character would be K.O.'d, you may trash this Character instead.Disclaimer: This card was reprinted from the original set with changes to the copyright information (Note: the original print did not include \\\"EN\\\" at the end of the copyright) and the Artist Credit (Note: there is no pencil design on top of the artist name)."
+  },
+  "base_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.) [Opponent's Turn] If your rested Character would be K.O.'d, you may trash this Character instead."
+  }
+ },
+ {
+  "id": "OP07-031_p1",
+  "base_id": "OP07-031",
+  "category": "formatting",
+  "path": "PRB02/characters/031-bartolomeo-pirate-foil.ts",
+  "base_path": "OP07/characters/031-bartolomeo.ts",
+  "variant_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)[Your Turn] [Once Per Turn] If a Character is rested by your effect, draw 1 card and trash 1 card from your hand."
+  },
+  "base_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.) [Your Turn] [Once Per Turn] If a Character is rested by your effect, draw 1 card and trash 1 card from your hand."
+  }
+ },
+ {
+  "id": "OP10-032_r1",
+  "base_id": "OP10-032",
+  "category": "absent",
+  "path": "PRB02/characters/032-tashigi-reprint.ts",
+  "base_path": "OP10/characters/032-tashigi.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "If you have a green Character other than [Tashigi] that would be removed from the field by your opponent's effect, you may rest this Character instead."
+  }
+ },
+ {
+  "id": "OP09-033_p1",
+  "base_id": "OP09-033",
+  "category": "absent",
+  "path": "PRB02/characters/033-nico-robin-op09-033-pirate-foil.ts",
+  "base_path": "OP09/characters/033-nico-robin.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "[On Play] If you have 2 or more rested Characters, none of your {ODYSSEY} or {Straw Hat Crew} type Characters can be K.O.'d by effects until the end of your opponent's next turn."
+  }
+ },
+ {
+  "id": "OP05-036_p2",
+  "base_id": "OP05-036",
+  "category": "formatting",
+  "path": "PRB02/characters/036-monet-pirate-foil.ts",
+  "base_path": "OP05/characters/036-monet.ts",
+  "variant_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)[On Block] Rest up to 1 of your opponent's Characters with a cost of 4 or less."
+  },
+  "base_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.) [On Block] Rest up to 1 of your opponent's Characters with a cost of 4 or less."
+  }
+ },
+ {
+  "id": "OP01-039_p1",
+  "base_id": "OP01-039",
+  "category": "formatting",
+  "path": "PRB02/characters/039-killer-pirate-foil.ts",
+  "base_path": "OP01/characters/039-killer.ts",
+  "variant_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)[DON!! x1] [On Block] If you have 3 or more Characters, draw 1 card."
+  },
+  "base_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.) [DON!! x1] [On Block] If you have 3 or more Characters, draw 1 card."
+  }
+ },
+ {
+  "id": "OP07-040_p2",
+  "base_id": "OP07-040",
+  "category": "identical",
+  "path": "PRB02/characters/040-crocodile-op07-040-pirate-foil.ts",
+  "base_path": "OP07/characters/040-crocodile.ts",
+  "variant_text": {
+   "effect": "[On Play] (1) (You may rest the specified number of DON!! cards in your cost area.): Return up to 1 Character with a cost of 2 or less to the owner's hand."
+  },
+  "base_text": {
+   "effect": "[On Play] (1) (You may rest the specified number of DON!! cards in your cost area.): Return up to 1 Character with a cost of 2 or less to the owner's hand."
+  }
+ },
+ {
+  "id": "OP06-044_p1",
+  "base_id": "OP06-044",
+  "category": "identical",
+  "path": "PRB02/characters/044-gion-pirate-foil.ts",
+  "base_path": "OP06/characters/044-gion.ts",
+  "variant_text": {
+   "effect": "[Your Turn][Once Per Turn] When your opponent activates an Event, your opponent must place 1 card from their hand at the bottom of their deck."
+  },
+  "base_text": {
+   "effect": "[Your Turn][Once Per Turn] When your opponent activates an Event, your opponent must place 1 card from their hand at the bottom of their deck."
+  }
+ },
+ {
+  "id": "OP03-044_r1",
+  "base_id": "OP03-044",
+  "category": "absent",
+  "path": "PRB02/characters/044-kaya-reprint.ts",
+  "base_path": "OP03/characters/044-kaya.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "[On Play] Draw 2 cards and trash 2 cards from your hand."
+  }
+ },
+ {
+  "id": "EB01-046_r1",
+  "base_id": "EB01-046",
+  "category": "formatting",
+  "path": "PRB02/characters/046-brook-eb01-046-reprint.ts",
+  "base_path": "EB01/characters/046-brook.ts",
+  "variant_text": {
+   "effect": "[On Play]/[When Attacking] Give up to 1 of your opponent's Characters -1 cost during this turn. Then, K.O. up to 1 of your opponent's Characters with a cost of 0.Disclaimer: This card was reprinted from the original set with changes to the copyright information (Note: the original print did not include \\\"EN\\\" at the end of the copyright)."
+  },
+  "base_text": {
+   "effect": "[On Play]/[When Attacking] Give up to 1 of your opponent's Characters -1 cost during this turn. Then, K.O. up to 1 of your opponent's Characters with a cost of 0."
+  }
+ },
+ {
+  "id": "OP09-046_r1",
+  "base_id": "OP09-046",
+  "category": "absent",
+  "path": "PRB02/characters/046-crocodile-op09-046-reprint.ts",
+  "base_path": "OP09/characters/046-crocodile.ts",
+  "variant_text": {},
+  "base_text": {
+   "trigger": "onPlay"
+  }
+ },
+ {
+  "id": "OP10-046_r1",
+  "base_id": "OP10-046",
+  "category": "absent",
+  "path": "PRB02/characters/046-kyros-reprint.ts",
+  "base_path": "OP10/characters/046-kyros.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "[On Play] Return up to 1 Character with a cost of 5 or less to the owner's hand."
+  }
+ },
+ {
+  "id": "OP06-047_r1",
+  "base_id": "OP06-047",
+  "category": "absent",
+  "path": "PRB02/characters/047-charlotte-pudding-reprint.ts",
+  "base_path": "OP06/characters/047-charlotte-pudding.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "[On Play] Your opponent returns all cards in their hand to their deck and shuffles their deck. Then, your opponent draws 5 cards."
+  }
+ },
+ {
+  "id": "OP09-048_r1",
+  "base_id": "OP09-048",
+  "category": "absent",
+  "path": "PRB02/characters/048-dracule-mihawk-op09-048-reprint.ts",
+  "base_path": "OP09/characters/048-dracule-mihawk.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\\n[On Play] Draw 2 cards and trash 1 card from your hand."
+  }
+ },
+ {
+  "id": "EB01-048_r1",
+  "base_id": "EB01-048",
+  "category": "absent",
+  "path": "PRB02/characters/048-laboon-reprint.ts",
+  "base_path": "EB01/characters/048-laboon.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "[Activate:Main]You may rest this Character: Give up to 1 of your opponent's Characters -4 cost during this turn."
+  }
+ },
+ {
+  "id": "OP03-048_p1",
+  "base_id": "OP03-048",
+  "category": "identical",
+  "path": "PRB02/characters/048-nojiko-pirate-foil.ts",
+  "base_path": "OP03/characters/048-nojiko.ts",
+  "variant_text": {
+   "effect": "[On Play] If your Leader is [Nami], return up to 1 of your opponent's Characters with a cost of 5 or less to the owner's hand."
+  },
+  "base_text": {
+   "effect": "[On Play] If your Leader is [Nami], return up to 1 of your opponent's Characters with a cost of 5 or less to the owner's hand."
+  }
+ },
+ {
+  "id": "OP06-049_p1",
+  "base_id": "OP06-049",
+  "category": "identical",
+  "path": "PRB02/characters/049-sengoku-op06-049-pirate-foil.ts",
+  "base_path": "OP06/characters/049-sengoku.ts",
+  "variant_text": {},
+  "base_text": {}
+ },
+ {
+  "id": "OP05-052_p1",
+  "base_id": "OP05-052",
+  "category": "identical",
+  "path": "PRB02/characters/052-maynard-pirate-foil.ts",
+  "base_path": "OP05/characters/052-maynard.ts",
+  "variant_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)"
+  },
+  "base_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)"
+  }
+ },
+ {
+  "id": "OP09-056_r2",
+  "base_id": "OP09-056",
+  "category": "absent",
+  "path": "PRB02/characters/056-mr-3-galdino-op09-056-reprint.ts",
+  "base_path": "OP09/characters/056-mr-3-galdino.ts",
+  "variant_text": {},
+  "base_text": {
+   "trigger": "onPlay"
+  }
+ },
+ {
+  "id": "EB01-057_r1",
+  "base_id": "EB01-057",
+  "category": "formatting",
+  "path": "PRB02/characters/057-shirahoshi-reprint.ts",
+  "base_path": "EB01/characters/057-shirahoshi.ts",
+  "variant_text": {
+   "effect": "When this Character is K.O.'d by your opponent's effect, add up to 1 card from the top of your deck to the top of your Life cards.[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)Disclaimer: This card was reprinted from the original set with changes to the copyright information (Note: the original print did not include \\\"EN\\\" at the end of the copyright)."
+  },
+  "base_text": {
+   "effect": "When this Character is K.O.'d by your opponent's effect, add up to 1 card from the top of your deck to the top of your Life cards.[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)"
+  }
+ },
+ {
+  "id": "EB02-061_r1_87VjsGa",
+  "base_id": "EB02-061",
+  "category": "formatting",
+  "path": "PRB02/characters/061-monkey-d-luffy-eb02-061-reprint.ts",
+  "base_path": "EB02/characters/061-monkey-d-luffy.ts",
+  "variant_text": {
+   "effect": "If your Leader is multicolored and your opponent has 5 or more DON!! cards on their field, this Character gains [Rush].[When Attacking] [Once Per Turn] You may return 2 of your active DON!! cards to your DON!! deck: Set this Character as active. Then, add 1 card from the top of your Life cards to your hand."
+  },
+  "base_text": {
+   "effect": "If your Leader is multicolored and your opponent has 5 or more DON!! cards on their field, this Character gains [Rush].\\n[When Attacking] [Once Per Turn] You may return 2 of your active DON!! cards to your DON!! deck: Set this Character as active. Then, add 1 card from the top of your Life cards to your hand."
+  }
+ },
+ {
+  "id": "EB01-061_r1",
+  "base_id": "EB01-061",
+  "category": "formatting",
+  "path": "PRB02/characters/061-mr-2-bon-kurei-bentham-reprint.ts",
+  "base_path": "EB01/characters/061-mr-2-bon-kurei-bentham.ts",
+  "variant_text": {
+   "effect": "[On Play] Add up to 1 DON!! card from your DON!! deck and set it as active.[When Attacking] Select up to 1 of your opponent's Characters. This Character's base power becomes the same as the selected Character's power during this turn.Disclaimer: This card was reprinted from the original set with changes to the copyright information (Note: the original print did not include \\\"EN\\\" at the end of the copyright)."
+  },
+  "base_text": {
+   "effect": "[On Play] Add up to 1 DON!! card from your DON!! deck and set it as active.[When Attacking] Select up to 1 of your opponent's Characters. This Character's base power becomes the same as the selected Character's power during this turn."
+  }
+ },
+ {
+  "id": "OP06-063_r1_gDLU3wS",
+  "base_id": "OP06-063",
+  "category": "identical",
+  "path": "PRB02/characters/063-vinsmoke-sora-pirate-foil.ts",
+  "base_path": "OP06/characters/063-vinsmoke-sora.ts",
+  "variant_text": {
+   "effect": "[On Play] You may trash 1 card from your hand: If the number of DON!! cards on your field is equal to or less than the number on your opponent's field, add up to 1 [The Vinsmoke Family] type Character card with 4000 power or less from your trash to your hand."
+  },
+  "base_text": {
+   "effect": "[On Play] You may trash 1 card from your hand: If the number of DON!! cards on your field is equal to or less than the number on your opponent's field, add up to 1 [The Vinsmoke Family] type Character card with 4000 power or less from your trash to your hand."
+  }
+ },
+ {
+  "id": "OP07-064_r1",
+  "base_id": "OP07-064",
+  "category": "absent",
+  "path": "PRB02/characters/064-sanji-reprint.ts",
+  "base_path": "OP07/characters/064-sanji.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "If the number of DON!! cards on your field is at least 2 less than the number on your opponent's field, give this card in your hand -3 cost. [Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)"
+  }
+ },
+ {
+  "id": "OP09-065_r1",
+  "base_id": "OP09-065",
+  "category": "absent",
+  "path": "PRB02/characters/065-sanji-op09-065-reprint.ts",
+  "base_path": "OP09/characters/065-sanji.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "[On Play] You may return 1 or more DON!! cards from your field to your DON!! deck: This Character gains [Rush] during this turn. Then, rest up to 1 of your opponent's Characters with a cost of 6 or less."
+  }
+ },
+ {
+  "id": "OP08-067_r1",
+  "base_id": "OP08-067",
+  "category": "absent",
+  "path": "PRB02/characters/067-charlotte-pudding-op08-067-reprint.ts",
+  "base_path": "OP08/characters/067-charlotte-pudding.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "[Your Turn] [Once Per Turn] When a DON!! card on your field is returned to your DON!! deck, add up to 1 DON!! card from your DON!! deck and rest it."
+  }
+ },
+ {
+  "id": "OP09-069_r1",
+  "base_id": "OP09-069",
+  "category": "absent",
+  "path": "PRB02/characters/069-trafalgar-law-op09-069-reprint.ts",
+  "base_path": "OP09/characters/069-trafalgar-law.ts",
+  "variant_text": {},
+  "base_text": {
+   "trigger": "onPlay"
+  }
+ },
+ {
+  "id": "OP09-072_r1",
+  "base_id": "OP09-072",
+  "category": "absent",
+  "path": "PRB02/characters/072-franky-op09-072-reprint.ts",
+  "base_path": "OP09/characters/072-franky.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\\n[On Play] DON!! \u22122, You may trash 1 card from your hand: Draw 2 cards."
+  }
+ },
+ {
+  "id": "OP06-073_p1",
+  "base_id": "OP06-073",
+  "category": "formatting",
+  "path": "PRB02/characters/073-shiki-pirate-foil.ts",
+  "base_path": "OP06/characters/073-shiki.ts",
+  "variant_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)[On Play] If you have 8 or more DON!! cards on your field, draw 1 card and trash 1 card from your hand."
+  },
+  "base_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\\n[On Play] If you have 8 or more DON!! cards on your field, draw 1 card and trash 1 card from your hand."
+  }
+ },
+ {
+  "id": "OP08-074_r1",
+  "base_id": "OP08-074",
+  "category": "absent",
+  "path": "PRB02/characters/074-black-maria-reprint.ts",
+  "base_path": "OP08/characters/074-black-maria.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "[Activate:Main] [Once Per Turn] If you have no other [Black Maria] Characters, add up to 5 DON!! cards from your DON!! deck and rest them. Then, at the end of this turn, return DON!! cards from your field to your DON!! deck until you have the same number of DON!! cards on your field as your opponent."
+  }
+ },
+ {
+  "id": "OP06-076_p2",
+  "base_id": "OP06-076",
+  "category": "identical",
+  "path": "PRB02/characters/076-hitokiri-kamazo-pirate-foil.ts",
+  "base_path": "OP06/characters/076-hitokiri-kamazo.ts",
+  "variant_text": {
+   "effect": "[Your Turn][Once Per Turn] When a DON!! card on your field is returned to your DON!! deck, K.O. up to 1 of your opponent's Characters with a cost of 2 or less."
+  },
+  "base_text": {
+   "effect": "[Your Turn][Once Per Turn] When a DON!! card on your field is returned to your DON!! deck, K.O. up to 1 of your opponent's Characters with a cost of 2 or less."
+  }
+ },
+ {
+  "id": "OP09-076_r2",
+  "base_id": "OP09-076",
+  "category": "absent",
+  "path": "PRB02/characters/076-roronoa-zoro-op09-076.ts",
+  "base_path": "OP09/characters/076-roronoa-zoro.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "[On Play] You may return 1 or more DON!! cards from your field to your DON!! deck: Add up to 1 DON!! card from your DON!! deck and set it as active."
+  }
+ },
+ {
+  "id": "OP04-077_p1",
+  "base_id": "OP04-077",
+  "category": "identical",
+  "path": "PRB02/characters/077-ideo-pirate-foil.ts",
+  "base_path": "OP04/characters/077-ideo.ts",
+  "variant_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)"
+  },
+  "base_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)"
+  }
+ },
+ {
+  "id": "OP04-083_r3",
+  "base_id": "OP04-083",
+  "category": "absent",
+  "path": "PRB02/characters/083-sabo-op04-083-reprint.ts",
+  "base_path": "OP04/characters/083-sabo.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.) [On Play] None of your Characters can be K.O.'d by effects until the start of your next turn. Then, draw 2 cards and trash 2 cards from your hand."
+  }
+ },
+ {
+  "id": "OP09-084_p1",
+  "base_id": "OP09-084",
+  "category": "absent",
+  "path": "PRB02/characters/084-catarina-devon-pirate-foil.ts",
+  "base_path": "OP09/characters/084-catarina-devon.ts",
+  "variant_text": {},
+  "base_text": {
+   "trigger": "activateMain"
+  }
+ },
+ {
+  "id": "OP09-086_r2",
+  "base_id": "OP09-086",
+  "category": "absent",
+  "path": "PRB02/characters/086-jesus-burgess-reprint.ts",
+  "base_path": "OP09/characters/086-jesus-burgess.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "This Character cannot be K.O.'d by your opponent's effects.\\nIf your Leader has the \\\"Blackbeard Pirates\\\" type, this Character gains +1000 power for every 4 cards in your trash."
+  }
+ },
+ {
+  "id": "OP08-087_p1",
+  "base_id": "OP08-087",
+  "category": "sign",
+  "path": "PRB02/characters/087-scratchmen-apoo-op08-087-pirate-foil.ts",
+  "base_path": "OP08/characters/087-scratchmen-apoo.ts",
+  "variant_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)[Activate:Main] [Once Per Turn] Give up to 1 of your opponent's Characters 1 cost during this turn."
+  },
+  "base_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.) [Activate:Main] [Once Per Turn] Give up to 1 of your opponent's Characters \u22121 cost during this turn."
+  }
+ },
+ {
+  "id": "OP05-091_r1",
+  "base_id": "OP05-091",
+  "category": "absent",
+  "path": "PRB02/characters/091-rebecca-reprint.ts",
+  "base_path": "OP05/characters/091-rebecca.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "[Blocker] [On Play] Add up to 1 black Character card with a cost of 3 to 7 other than [Rebecca] from your trash to your hand. Then, play up to 1 black Character card with a cost of 3 or less from your hand rested."
+  }
+ },
+ {
+  "id": "OP09-093_r3",
+  "base_id": "OP09-093",
+  "category": "absent",
+  "path": "PRB02/characters/093-marshall-d-teach-op09-093-reprint.ts",
+  "base_path": "OP09/characters/093-marshall-d-teach.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "[Blocker]\\n[Activate: Main] [Once Per Turn] If your Leader has the \\\"Blackbeard Pirates\\\" type and this Character was played on this turn, negate the effect of up to 1 of your opponent's Leader during this turn. Then, negate the effect of up to 1 of your opponent's Characters and that Character cannot attack until the end of your opponent's next turn."
+  }
+ },
+ {
+  "id": "OP10-095_r1",
+  "base_id": "OP10-095",
+  "category": "absent",
+  "path": "PRB02/characters/095-roronoa-zoro-op10-095-reprint.ts",
+  "base_path": "OP10/characters/095-roronoa-zoro.ts",
+  "variant_text": {},
+  "base_text": {
+   "trigger": "onPlay"
+  }
+ },
+ {
+  "id": "OP08-099_p1",
+  "base_id": "OP08-099",
+  "category": "identical",
+  "path": "PRB02/characters/099-kalgara-pirate-foil.ts",
+  "base_path": "OP08/characters/099-kalgara.ts",
+  "variant_text": {},
+  "base_text": {}
+ },
+ {
+  "id": "OP05-102_r1",
+  "base_id": "OP05-102",
+  "category": "formatting",
+  "path": "PRB02/characters/102-gedatsu-reprint.ts",
+  "base_path": "OP05/characters/102-gedatsu.ts",
+  "variant_text": {
+   "effect": "[On Play] K.O. up to 1 of your opponent's Characters with a cost equal to or less than the number of your opponent's Life cards.Disclaimer: This card was reprinted from the original set with changes to the copyright information (Note: the original print did not include \\\"EN\\\" at the end of the copyright) and the Artist Credit (Note: there is no pencil design on top of the artist name)."
+  },
+  "base_text": {
+   "effect": "[On Play] K.O. up to 1 of your opponent's Characters with a cost equal to or less than the number of your opponent's Life cards."
+  }
+ },
+ {
+  "id": "OP10-105_p1",
+  "base_id": "OP10-105",
+  "category": "identical",
+  "path": "PRB02/characters/105-cavendish-op10-105-pirate-foil.ts",
+  "base_path": "OP10/characters/105-cavendish.ts",
+  "variant_text": {},
+  "base_text": {}
+ },
+ {
+  "id": "OP07-107_r1",
+  "base_id": "OP07-107",
+  "category": "absent",
+  "path": "PRB02/characters/107-franky-op07-107-reprint.ts",
+  "base_path": "OP07/characters/107-franky.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "[Trigger] Draw 1 card. Then, if you have 1 or less Life cards, play this card."
+  }
+ },
+ {
+  "id": "OP06-107_r1",
+  "base_id": "OP06-107",
+  "category": "absent",
+  "path": "PRB02/characters/107-kouzuki-momonosuke-reprint.ts",
+  "base_path": "OP06/characters/107-kouzuki-momonosuke.ts",
+  "variant_text": {},
+  "base_text": {
+   "trigger": "onPlay"
+  }
+ },
+ {
+  "id": "OP10-108_p1",
+  "base_id": "OP10-108",
+  "category": "identical",
+  "path": "PRB02/characters/108-scratchmen-apoo-op10-108-pirate-foil.ts",
+  "base_path": "OP10/characters/108-scratchmen-apoo.ts",
+  "variant_text": {},
+  "base_text": {}
+ },
+ {
+  "id": "OP10-109_r1",
+  "base_id": "OP10-109",
+  "category": "absent",
+  "path": "PRB02/characters/109-basil-hawkins-op10-109-reprint.ts",
+  "base_path": "OP10/characters/109-basil-hawkins.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "[On K.O.] Trash up to 1 card from the top of your opponent's Life cards."
+  }
+ },
+ {
+  "id": "OP07-109_r1",
+  "base_id": "OP07-109",
+  "category": "formatting",
+  "path": "PRB02/characters/109-monkey-d-luffy-op07-109-reprint.ts",
+  "base_path": "OP07/characters/109-monkey-d-luffy.ts",
+  "variant_text": {
+   "effect": "[Activate: Main]You may trash this Character: If you have 2 or less Life cards, K.O. up to 1 of your opponent's Characters with a cost of 4 or less. Then, draw 1 card.[Trigger] K.O. up to 1 of your opponent's Characters with a cost of 4 or less.Disclaimer: This card was reprinted from the original set with changes to the copyright information (Note: the original print did not include \\\"EN\\\" at the end of the copyright)."
+  },
+  "base_text": {
+   "effect": "[Activate: Main] You may trash this Character: If you have 2 or less Life cards, K.O. up to 1 of your opponent's Characters with a cost of 4 or less. Then, draw 1 card. [Trigger] K.O. up to 1 of your opponent's Characters with a cost of 4 or less."
+  }
+ },
+ {
+  "id": "OP10-112_r1",
+  "base_id": "OP10-112",
+  "category": "absent",
+  "path": "PRB02/characters/112-eustass-captain-kid-reprint.ts",
+  "base_path": "OP10/characters/112-eustass-captain-kid.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "[On Play] You may rest this Character: Trash up to 1 card from the top of your opponent's Life cards.\\n[End of Your Turn] If your opponent has 2 or less Life cards, draw 1 card and trash 1 card from your hand."
+  }
+ },
+ {
+  "id": "OP10-114_p1",
+  "base_id": "OP10-114",
+  "category": "identical",
+  "path": "PRB02/characters/114-x-drake-pirate-foil.ts",
+  "base_path": "OP10/characters/114-x-drake.ts",
+  "variant_text": {
+   "effect": "[Activate: Main] You may rest this Character: If the number of your Life cards is equal to or less than the number of your opponent's Life cards, rest up to 1 of your opponent's Characters with a cost of 4 or less."
+  },
+  "base_text": {
+   "effect": "[Activate: Main] You may rest this Character: If the number of your Life cards is equal to or less than the number of your opponent's Life cards, rest up to 1 of your opponent's Characters with a cost of 4 or less."
+  }
+ },
+ {
+  "id": "OP06-118_r2",
+  "base_id": "OP06-118",
+  "category": "absent",
+  "path": "PRB02/characters/118-roronoa-zoro-op06-118-reprint.ts",
+  "base_path": "OP06/characters/118-roronoa-zoro.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "[When Attacking][Once Per Turn](1)(You may rest the specified number of DON!! cards in your cost area.): Set this Character as active.\\n[Activate:Main][Once Per Turn](2)(You may rest the specified number of DON!! cards in your cost area.): Set this Character as active."
+  }
+ },
+ {
+  "id": "OP07-118_r1",
+  "base_id": "OP07-118",
+  "category": "formatting",
+  "path": "PRB02/characters/118-sabo-op07-118-reprint.ts",
+  "base_path": "OP07/characters/118-sabo.ts",
+  "variant_text": {
+   "effect": "[On Play] You may trash 1 card from your hand: K.O. up to 1 of your opponent's Characters with a cost of 5 or less and up to 1 of your opponent's Characters with a cost of 3 or less.Disclaimer: This card was reprinted from the original set with changes to the copyright information (Note: the original print did not include \\\"EN\\\" at the end of the copyright)."
+  },
+  "base_text": {
+   "effect": "[On Play] You may trash 1 card from your hand: K.O. up to 1 of your opponent's Characters with a cost of 5 or less and up to 1 of your opponent's Characters with a cost of 3 or less."
+  }
+ },
+ {
+  "id": "OP08-118_r1",
+  "base_id": "OP08-118",
+  "category": "sign",
+  "path": "PRB02/characters/118-silvers-rayleigh-op08-118-reprint.ts",
+  "base_path": "OP08/characters/118-silvers-rayleigh.ts",
+  "variant_text": {
+   "effect": "[On Play] Select up to 2 of your opponent's Characters, and give 1 Character 3000 power and the other 2000 power until the end of your opponent's next turn. Then, K.O. up to 1 of your opponent's Characters with 3000 power or less.Disclaimer: This card was reprinted from the original set with changes to the copyright information (Note: the original print did not include \\\"EN\\\" at the end of the copyright)."
+  },
+  "base_text": {
+   "effect": "[On Play] Select up to 2 of your opponent's Characters, and give 1 Character \u22123000 power and the other \u22122000 power until the end of your opponent's next turn. Then, K.O. up to 1 of your opponent's Characters with 3000 power or less."
+  }
+ },
+ {
+  "id": "OP07-119_r1",
+  "base_id": "OP07-119",
+  "category": "absent",
+  "path": "PRB02/characters/119-portgas-d-ace-op07-119-reprint.ts",
+  "base_path": "OP07/characters/119-portgas-d-ace.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "[On Play] Add up to 1 card from the top of your deck to the top of your Life cards. Then, if you have 2 or less Life cards, this Character gains [Rush] during this turn. (This card can attack on the turn in which it is played.)"
+  }
+ },
+ {
+  "id": "OP06-119_r1_9ikPecz",
+  "base_id": "OP06-119",
+  "category": "absent",
+  "path": "PRB02/characters/119-sanji-op06-119-reprint.ts",
+  "base_path": "OP06/characters/119-sanji.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "[On Play] Reveal 1 card from the top of your deck and play up to 1 Character with a cost of 9 or less other than [Sanji]. Then, place the rest at the bottom of your deck."
+  }
+ },
+ {
+  "id": "OP10-119_r1",
+  "base_id": "OP10-119",
+  "category": "absent",
+  "path": "PRB02/characters/119-trafalgar-law-op10-119-reprint.ts",
+  "base_path": "OP10/characters/119-trafalgar-law.ts",
+  "variant_text": {},
+  "base_text": {
+   "trigger": "onPlay"
+  }
+ },
+ {
+  "id": "EB01-009_p1",
+  "base_id": "EB01-009",
+  "category": "identical",
+  "path": "PRB02/events/009-just-shut-up-and-come-with-us-pirate-foil.ts",
+  "base_path": "EB01/events/009-just-shut-up-and-come-with-us.ts",
+  "variant_text": {
+   "effect": "[Counter] Look at 5 cards from the top of your deck and play up to 1 [Animal] type Character card with a cost of 3 or less. Then, place the rest at the bottom of your deck in any order."
+  },
+  "base_text": {
+   "effect": "[Counter] Look at 5 cards from the top of your deck and play up to 1 [Animal] type Character card with a cost of 3 or less. Then, place the rest at the bottom of your deck in any order."
+  }
+ },
+ {
+  "id": "OP04-016_r1",
+  "base_id": "OP04-016",
+  "category": "absent",
+  "path": "PRB02/events/016-bad-manners-kick-course-reprint.ts",
+  "base_path": "OP04/events/016-bad-manners-kick-course.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "[Counter] You may trash 1 card from your hand: Up to 1 of your Leader or Character cards gains +3000 power during this battle. [Trigger] Give up to 1 of your opponent's Leader or Character cards -3000 power during this turn."
+  }
+ },
+ {
+  "id": "OP07-017_p1",
+  "base_id": "OP07-017",
+  "category": "formatting",
+  "path": "PRB02/events/017-dragon-breath-pirate-foil.ts",
+  "base_path": "OP07/events/017-dragon-breath.ts",
+  "variant_text": {
+   "effect": "[Main] K.O. up to 1 of your opponent's Characters with 3000 power or less and up to 1 of your opponent's Stages with a cost of 1 or less.[Trigger] Activate this card's [Main] effect."
+  },
+  "base_text": {
+   "effect": "[Main] K.O. up to 1 of your opponent's Characters with 3000 power or less and up to 1 of your opponent's Stages with a cost of 1 or less. [Trigger] Activate this card's [Main] effect."
+  }
+ },
+ {
+  "id": "OP10-018_OO8g5lU",
+  "base_id": "OP10-018",
+  "category": "sign",
+  "path": "PRB02/events/018-ten-layer-igloo-pirate-foil.ts",
+  "base_path": "OP10/events/018-ten-layer-igloo.ts",
+  "variant_text": {
+   "effect": "[Counter] Up to 1 of your Leader or Character cards gains +3000 power during this battle. Then, give up to 1 of your opponent's Leader or Character cards 2000 power during this turn.[Trigger] Up to 1 of your Leader or Character cards gains +1000 power during this turn."
+  },
+  "base_text": {
+   "effect": "[Counter] Up to 1 of your Leader or Character cards gains +3000 power during this battle. Then, give up to 1 of your opponent's Leader or Character cards \u22122000 power during this turn."
+  }
+ },
+ {
+  "id": "OP09-020_r2",
+  "base_id": "OP09-020",
+  "category": "absent",
+  "path": "PRB02/events/020-come-on-we-ll-fight-you-manga.ts",
+  "base_path": "OP09/events/020-come-on-we-ll-fight-you.ts",
+  "variant_text": {},
+  "base_text": {
+   "trigger": "Draw 1 card."
+  }
+ },
+ {
+  "id": "OP05-037_r1",
+  "base_id": "OP05-037",
+  "category": "absent",
+  "path": "PRB02/events/037-because-the-side-of-justice-will-be-whichever-side-wins-reprint.ts",
+  "base_path": "OP05/events/037-because-the-side-of-justice-will-be-whichever-side-wins.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "[Counter] You may trash 1 card from your hand: Up to 1 of your Leader or Character cards gains +3000 power during this battle. [Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less."
+  }
+ },
+ {
+  "id": "EB01-038_p1",
+  "base_id": "EB01-038",
+  "category": "absent",
+  "path": "PRB02/events/038-oh-come-my-way-pirate-foil.ts",
+  "base_path": "EB01/events/038-oh-come-my-way.ts",
+  "variant_text": {},
+  "base_text": {
+   "trigger": "counter"
+  }
+ },
+ {
+  "id": "EB01-051_r1",
+  "base_id": "EB01-051",
+  "category": "absent",
+  "path": "PRB02/events/051-finger-pistol-reprint.ts",
+  "base_path": "EB01/events/051-finger-pistol.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "[Main] You may trash 2 cards from the top of your deck: K.O. up to 1 of your opponent's Characters with a cost of 5 or less.[Trigger] Activate this card's [Main] effect."
+  }
+ },
+ {
+  "id": "OP01-055_p1",
+  "base_id": "OP01-055",
+  "category": "identical",
+  "path": "PRB02/events/055-you-can-be-my-samurai-pirate-foil.ts",
+  "base_path": "OP01/events/055-you-can-be-my-samurai.ts",
+  "variant_text": {
+   "effect": "[Main] You may rest 2 of your Characters: Draw 2 cards."
+  },
+  "base_text": {
+   "effect": "[Main] You may rest 2 of your Characters: Draw 2 cards."
+  }
+ },
+ {
+  "id": "OP06-056_p4",
+  "base_id": "OP06-056",
+  "category": "identical",
+  "path": "PRB02/events/056-ama-no-murakumo-sword-pirate-foil.ts",
+  "base_path": "OP06/events/056-ama-no-murakumo-sword.ts",
+  "variant_text": {
+   "effect": "[Main] Place up to 1 of your opponent's Characters with a cost of 2 or less and up to 1 of your opponent's Characters with a cost of 1 or less at the bottom of the owner's deck in any order."
+  },
+  "base_text": {
+   "effect": "[Main] Place up to 1 of your opponent's Characters with a cost of 2 or less and up to 1 of your opponent's Characters with a cost of 1 or less at the bottom of the owner's deck in any order."
+  }
+ },
+ {
+  "id": "OP07-056_p1",
+  "base_id": "OP07-056",
+  "category": "formatting",
+  "path": "PRB02/events/056-slave-arrow-pirate-foil.ts",
+  "base_path": "OP07/events/056-slave-arrow.ts",
+  "variant_text": {
+   "effect": "[Counter] You may return 1 of your Characters with a cost of 2 or more to the owner's hand: Up to 1 of your Leader or Character cards gains +4000 power during this battle.[Trigger] Draw 2 cards and place 2 cards from your hand at the bottom of your deck in any order."
+  },
+  "base_text": {
+   "effect": "[Counter] You may return 1 of your Characters with a cost of 2 or more to the owner's hand: Up to 1 of your Leader or Character cards gains +4000 power during this battle. [Trigger] Draw 2 cards and place 2 cards from your hand at the bottom of your deck in any order."
+  }
+ },
+ {
+  "id": "OP09-057_r2",
+  "base_id": "OP09-057",
+  "category": "absent",
+  "path": "PRB02/events/057-cross-guild-manga.ts",
+  "base_path": "OP09/events/057-cross-guild.ts",
+  "variant_text": {},
+  "base_text": {
+   "trigger": "Activate this card's [Main] effect."
+  }
+ },
+ {
+  "id": "OP06-058_r1",
+  "base_id": "OP06-058",
+  "category": "keyword",
+  "path": "PRB02/events/058-gravity-blade-raging-tiger-reprint.ts",
+  "base_path": "OP06/events/058-gravity-blade-raging-tiger.ts",
+  "variant_text": {
+   "effect": "[Main] Place up to 2 Characters with a cost of 6 or less at the bottom of the owner's deck in any order.[Trigger] Place up to 1 Character with a cost of 5 or less at the bottom of the owner's deck.Disclaimer: This card was reprinted from the original set with changes to the copyright information (Note: the original print did not include \\\"EN\\\" at the end of the copyright)."
+  },
+  "base_text": {
+   "effect": "[Main] Place up to 2 Characters with a cost of 6 or less at the bottom of the owner's deck in any order."
+  }
+ },
+ {
+  "id": "OP06-059_p1",
+  "base_id": "OP06-059",
+  "category": "keyword",
+  "path": "PRB02/events/059-white-snake-pirate-foil.ts",
+  "base_path": "OP06/events/059-white-snake.ts",
+  "variant_text": {
+   "effect": "[Counter] Up to 1 of your Leader or Character cards gains +1000 power during this turn, and draw 1 card.[Trigger] Look at 5 cards from the top of your deck and place them at the top or bottom of your deck in any order."
+  },
+  "base_text": {
+   "effect": "[Counter] Up to 1 of your Leader or Character cards gains +1000 power during this turn, and draw 1 card."
+  }
+ },
+ {
+  "id": "EB01-060_p1",
+  "base_id": "EB01-060",
+  "category": "formatting",
+  "path": "PRB02/events/060-did-someone-say-kami-pirate-foil.ts",
+  "base_path": "EB01/events/060-did-someone-say-kami.ts",
+  "variant_text": {
+   "effect": "[Main] Play up to 1 [Enel] with a cost of 7 or less from your hand or trash. Then, trash cards from the top of your Life cards until you have 1 Life card.[Trigger] Draw 2 cards and trash 1 card from your hand."
+  },
+  "base_text": {
+   "effect": "[Main] Play up to 1 [Enel] with a cost of 7 or less from your hand or trash. Then, trash cards from the top of your Life cards until you have 1 Life card. [Trigger] Draw 2 cards and trash 1 card from your hand."
+  }
+ },
+ {
+  "id": "OP02-068_r1",
+  "base_id": "OP02-068",
+  "category": "absent",
+  "path": "PRB02/events/068-gum-gum-rain-reprint.ts",
+  "base_path": "OP02/events/068-gum-gum-rain.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "[Counter] You may trash 1 card from your hand: Up to 1 of your Leader or Character cards gains +3000 power during this battle. [Trigger] Return up to 1 Character with a cost of 2 or less to the owner's hand."
+  }
+ },
+ {
+  "id": "OP03-072_r1",
+  "base_id": "OP03-072",
+  "category": "absent",
+  "path": "PRB02/events/072-gum-gum-jet-gatling-reprint.ts",
+  "base_path": "OP03/events/072-gum-gum-jet-gatling.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "[Counter] You may trash 1 card from your hand: Up to 1 of your Leader or Character cards gains +3000 power during this battle. [Trigger] Add up to 1 DON!! card from your DON!! deck and set it as active."
+  }
+ },
+ {
+  "id": "OP08-076_p1",
+  "base_id": "OP08-076",
+  "category": "identical",
+  "path": "PRB02/events/076-it-s-to-die-for-pirate-foil.ts",
+  "base_path": "OP08/events/076-it-s-to-die-for.ts",
+  "variant_text": {
+   "effect": "[Main] Add up to 1 DON!! card from your DON!! deck and set it as active. Then, if your opponent has a Character with 6000 power or more, add up to 1 DON!! card from your DON!! deck and set it as active."
+  },
+  "base_text": {
+   "effect": "[Main] Add up to 1 DON!! card from your DON!! deck and set it as active. Then, if your opponent has a Character with 6000 power or more, add up to 1 DON!! card from your DON!! deck and set it as active."
+  }
+ },
+ {
+  "id": "OP07-076_p1",
+  "base_id": "OP07-076",
+  "category": "formatting",
+  "path": "PRB02/events/076-slow-slow-beam-sword-pirate-foil.ts",
+  "base_path": "OP07/events/076-slow-slow-beam-sword.ts",
+  "variant_text": {
+   "effect": "[Counter] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): Up to 1 of your Leader or Character cards gains +2000 power during this battle. Then, rest up to 1 of your opponent's Characters.[Trigger] Add up to 1 DON!! card from your DON!! deck and set it as active."
+  },
+  "base_text": {
+   "effect": "[Counter] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): Up to 1 of your Leader or Character cards gains +2000 power during this battle. Then, rest up to 1 of your opponent's Characters. [Trigger] Add up to 1 DON!! card from your DON!! deck and set it as active."
+  }
+ },
+ {
+  "id": "OP05-077_p1",
+  "base_id": "OP05-077",
+  "category": "formatting",
+  "path": "PRB02/events/077-gamma-knife-pirate-foil.ts",
+  "base_path": "OP05/events/077-gamma-knife.ts",
+  "variant_text": {
+   "effect": "[Main] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): Give up to 1 of your opponent's Characters -5000 power during this turn.[Trigger] Add up to 1 DON!! card from your DON!! deck and set it as active."
+  },
+  "base_text": {
+   "effect": "[Main] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): Give up to 1 of your opponent's Characters -5000 power during this turn. [Trigger] Add up to 1 DON!! card from your DON!! deck and set it as active."
+  }
+ },
+ {
+  "id": "OP09-077_p1",
+  "base_id": "OP09-077",
+  "category": "keyword",
+  "path": "PRB02/events/077-gum-gum-lightning-pirate-foil.ts",
+  "base_path": "OP09/events/077-gum-gum-lightning.ts",
+  "variant_text": {
+   "effect": "[Main] DON!! 2 (You may return the specified number of DON!! cards from your field to your DON!! deck.): K.O. up to 1 of your opponent's Characters with 6000 power or less.[Trigger] Add up to 1 DON!! card from your DON!! deck and set it as active."
+  },
+  "base_text": {
+   "effect": "[Main] DON!! 2 (You may return the specified number of DON!! cards from your field to your DON!! deck.): K.O. up to 1 of your opponent's Characters with 6000 power or less."
+  }
+ },
+ {
+  "id": "OP06-078_p1",
+  "base_id": "OP06-078",
+  "category": "absent",
+  "path": "PRB02/events/078-germa-66-pirate-foil.ts",
+  "base_path": "OP06/events/078-germa-66.ts",
+  "variant_text": {},
+  "base_text": {
+   "trigger": "Draw 1 card."
+  }
+ },
+ {
+  "id": "OP09-078_r1",
+  "base_id": "OP09-078",
+  "category": "absent",
+  "path": "PRB02/events/078-gum-gum-giant-reprint.ts",
+  "base_path": "OP09/events/078-gum-gum-giant.ts",
+  "variant_text": {},
+  "base_text": {
+   "trigger": "counter"
+  }
+ },
+ {
+  "id": "OP10-079_p1",
+  "base_id": "OP10-079",
+  "category": "keyword",
+  "path": "PRB02/events/079-god-thread-pirate-foil.ts",
+  "base_path": "OP10/events/079-god-thread.ts",
+  "variant_text": {
+   "effect": "[Main] K.O. up to 1 of your opponent's Characters with a cost 5 or less. Then, add up to 1 DON!! card from your DON!! deck and set it as active.[Trigger] Add up to 1 DON!! card from your DON!! deck and set it as active."
+  },
+  "base_text": {
+   "effect": "[Main] K.O. up to 1 of your opponent's Characters with a cost 5 or less. Then, add up to 1 DON!! card from your DON!! deck and set it as active."
+  }
+ },
+ {
+  "id": "OP09-079_p1",
+  "base_id": "OP09-079",
+  "category": "keyword",
+  "path": "PRB02/events/079-gum-gum-jump-rope-pirate-foil.ts",
+  "base_path": "OP09/events/079-gum-gum-jump-rope.ts",
+  "variant_text": {
+   "effect": "[Main] DON!! 2 (You may return the specified number of DON!! cards from your field to your DON!! deck.): Rest up to 1 of your opponent's Characters with a cost of 5 or less. Then, draw 1 card.[Trigger] Add up to 1 DON!! card from your DON!! deck and set it as active."
+  },
+  "base_text": {
+   "effect": "[Main] DON!! 2 (You may return the specified number of DON!! cards from your field to your DON!! deck.): Rest up to 1 of your opponent's Characters with a cost of 5 or less. Then, draw 1 card."
+  }
+ },
+ {
+  "id": "OP09-096_r1",
+  "base_id": "OP09-096",
+  "category": "absent",
+  "path": "PRB02/events/096-my-era-begins-reprint.ts",
+  "base_path": "OP09/events/096-my-era-begins.ts",
+  "variant_text": {},
+  "base_text": {
+   "trigger": "Activate this card's [Main] effect."
+  }
+ },
+ {
+  "id": "OP09-097_p1",
+  "base_id": "OP09-097",
+  "category": "sign",
+  "path": "PRB02/events/097-black-vortex-pirate-foil.ts",
+  "base_path": "OP09/events/097-black-vortex.ts",
+  "variant_text": {
+   "effect": "[Counter] Negate the effect of up to 1 of your opponent's Leader or Character cards and give that card 4000 power during this turn.[Trigger] Negate the effect of up to 1 of your opponent's Leader or Character cards during this turn."
+  },
+  "base_text": {
+   "effect": "[Counter] Negate the effect of up to 1 of your opponent's Leader or Character cards and give that card \u22124000 power during this turn."
+  }
+ },
+ {
+  "id": "OP03-097_r1",
+  "base_id": "OP03-097",
+  "category": "absent",
+  "path": "PRB02/events/097-six-king-pistol-reprint.ts",
+  "base_path": "OP03/events/097-six-king-pistol.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "[Counter] You may trash 1 card from your hand: Up to 1 of your Leader or Character cards gains +3000 power during this battle. [Trigger] Draw 1 card. Then, K.O. up to 1 of your opponent's Characters with a cost of 1 or less."
+  }
+ },
+ {
+  "id": "OP09-098_p1",
+  "base_id": "OP09-098",
+  "category": "keyword",
+  "path": "PRB02/events/098-black-hole-pirate-foil.ts",
+  "base_path": "OP09/events/098-black-hole.ts",
+  "variant_text": {
+   "effect": "[Main] If your Leader has the \\\"Blackbeard Pirates\\\" type, negate the effect of up to 1 of your opponent's Characters during this turn. Then, if that Character has a cost of 4 or less, K.O. it.[Trigger] Negate the effect of up to 1 of your opponent's Leader or Character cards during this turn."
+  },
+  "base_text": {
+   "trigger": "Negate the effect of up to 1 of your opponent's Leader or Character cards during this turn."
+  }
+ },
+ {
+  "id": "OP07-114_p1",
+  "base_id": "OP07-114",
+  "category": "formatting",
+  "path": "PRB02/events/114-he-possesses-the-world-s-most-brilliant-mind-pirate-foil.ts",
+  "base_path": "OP07/events/114-he-possesses-the-world-s-most-brilliant-mind.ts",
+  "variant_text": {
+   "effect": "[Main] Look at 5 cards from the top of your deck; reveal up to 1 [Egghead] type card other than [He Possesses the World's Most Brilliant Mind] and add it to your hand. Then, place the rest at the bottom of your deck in any order.[Trigger] Draw 1 card."
+  },
+  "base_text": {
+   "effect": "[Main] Look at 5 cards from the top of your deck; reveal up to 1 [Egghead] type card other than [He Possesses the World's Most Brilliant Mind] and add it to your hand. Then, place the rest at the bottom of your deck in any order. [Trigger] Draw 1 card."
+  }
+ },
+ {
+  "id": "OP06-115_r1",
+  "base_id": "OP06-115",
+  "category": "absent",
+  "path": "PRB02/events/115-you-re-the-one-who-should-disappear-reprint.ts",
+  "base_path": "OP06/events/115-you-re-the-one-who-should-disappear.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "[Counter] You may trash 1 card from your hand: Up to 1 of your Leader or Character cards gains +3000 power during this battle."
+  }
+ },
+ {
+  "id": "OP02-004_p2",
+  "base_id": "OP02-004",
+  "category": "identical",
+  "path": "OP04/characters/004-edward-newgate-sp.ts",
+  "base_path": "OP02/characters/004-edward-newgate.ts",
+  "variant_text": {
+   "effect": "[On Play] Up to 1 of your Leader gains +2000 power until the start of your next turn. Then, you cannot add Life cards to your hand using your own effects during this turn. [DON!! x2] [When Attacking] K.O. up to 1 of your opponent's Characters with 3000 power or less."
+  },
+  "base_text": {
+   "effect": "[On Play] Up to 1 of your Leader gains +2000 power until the start of your next turn. Then, you cannot add Life cards to your hand using your own effects during this turn. [DON!! x2] [When Attacking] K.O. up to 1 of your opponent's Characters with 3000 power or less."
+  }
+ },
+ {
+  "id": "OP03-006_OP04",
+  "base_id": "OP03-006",
+  "category": "identical",
+  "path": "OP04/characters/006-speed-jil-dash-pack.ts",
+  "base_path": "OP03/characters/006-speed-jil.ts",
+  "variant_text": {},
+  "base_text": {}
+ },
+ {
+  "id": "OP03-032_OP04",
+  "base_id": "OP03-032",
+  "category": "identical",
+  "path": "OP04/characters/032-buggy-dash-pack.ts",
+  "base_path": "OP03/characters/032-buggy.ts",
+  "variant_text": {},
+  "base_text": {}
+ },
+ {
+  "id": "OP01-047_p2",
+  "base_id": "OP01-047",
+  "category": "other",
+  "path": "OP04/characters/047-trafalgar-law-sp.ts",
+  "base_path": "OP01/characters/047-trafalgar-law.ts",
+  "variant_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.) [On Play] You may return 1 of your Characters to the owner's hand: Play up to 1 Character card with a cost of 3 or less from your hand."
+  },
+  "base_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.) [On Play] You may return 1 Character to your hand: Play up to 1 Character card with a cost of 3 or less from your hand.  This card has been officially errata'd."
+  }
+ },
+ {
+  "id": "OP03-050_OP04",
+  "base_id": "OP03-050",
+  "category": "identical",
+  "path": "OP04/characters/050-boodle-dash-pack.ts",
+  "base_path": "OP03/characters/050-boodle.ts",
+  "variant_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.) [On K.O.] You may trash 1 card from the top of your deck."
+  },
+  "base_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.) [On K.O.] You may trash 1 card from the top of your deck."
+  }
+ },
+ {
+  "id": "OP03-070_OP04",
+  "base_id": "OP03-070",
+  "category": "identical",
+  "path": "OP04/characters/070-monkey-d-luffy-dash-pack.ts",
+  "base_path": "OP03/characters/070-monkey-d-luffy.ts",
+  "variant_text": {
+   "effect": "[On Play] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.) You may trash 1 Character card with a cost of 5 from your hand: This Character gains [Rush] during this turn. (This card can attack on the turn in which it is played.)"
+  },
+  "base_text": {
+   "effect": "[On Play] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.) You may trash 1 Character card with a cost of 5 from your hand: This Character gains [Rush] during this turn. (This card can attack on the turn in which it is played.)"
+  }
+ },
+ {
+  "id": "OP01-078_p2",
+  "base_id": "OP01-078",
+  "category": "formatting",
+  "path": "OP04/characters/078-boa-hancock-sp.ts",
+  "base_path": "OP01/characters/078-boa-hancock.ts",
+  "variant_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.) [DON!! x1] [When Attacking] / [On Block] Draw 1 card if you have 5 or less cards in your hand."
+  },
+  "base_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.) [DON!! x1] [When Attacking]/[On Block] Draw 1 card if you have 5 or less cards in your hand."
+  }
+ },
+ {
+  "id": "OP03-081_OP04",
+  "base_id": "OP03-081",
+  "category": "identical",
+  "path": "OP04/characters/081-kalifa-dash-pack.ts",
+  "base_path": "OP03/characters/081-kalifa.ts",
+  "variant_text": {
+   "effect": "[On Play] Draw 2 cards and trash 2 cards from your hand. Then, give up to 1 of your opponent's Characters -2 cost during this turn."
+  },
+  "base_text": {
+   "effect": "[On Play] Draw 2 cards and trash 2 cards from your hand. Then, give up to 1 of your opponent's Characters -2 cost during this turn."
+  }
+ },
+ {
+  "id": "OP02-085_p2",
+  "base_id": "OP02-085",
+  "category": "identical",
+  "path": "OP04/characters/085-magellan-sp.ts",
+  "base_path": "OP02/characters/085-magellan.ts",
+  "variant_text": {
+   "effect": "[On Play] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): Your opponent returns 1 DON!! card from their field to their DON!! deck. [Opponent's Turn] When this Character is K.O.'d, your opponent returns 2 DON!! cards from their field to their DON!! deck."
+  },
+  "base_text": {
+   "effect": "[On Play] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): Your opponent returns 1 DON!! card from their field to their DON!! deck. [Opponent's Turn] When this Character is K.O.'d, your opponent returns 2 DON!! cards from their field to their DON!! deck."
+  }
+ },
+ {
+  "id": "OP02-099_p2",
+  "base_id": "OP02-099",
+  "category": "identical",
+  "path": "OP04/characters/099-sakazuki-sp.ts",
+  "base_path": "OP02/characters/099-sakazuki.ts",
+  "variant_text": {
+   "effect": "[On Play] You may trash 1 card from your hand: K.O. up to 1 of your opponent's Characters with a cost of 5 or less."
+  },
+  "base_text": {
+   "effect": "[On Play] You may trash 1 card from your hand: K.O. up to 1 of your opponent's Characters with a cost of 5 or less."
+  }
+ },
+ {
+  "id": "OP03-116_VrV0c8h",
+  "base_id": "OP03-116",
+  "category": "identical",
+  "path": "OP04/characters/116-shirahoshi-dash-pack.ts",
+  "base_path": "OP03/characters/116-shirahoshi.ts",
+  "variant_text": {
+   "effect": "[On Play] Draw 3 cards and trash 2 cards from your hand. [Trigger] Play this card."
+  },
+  "base_text": {
+   "effect": "[On Play] Draw 3 cards and trash 2 cards from your hand. [Trigger] Play this card."
+  }
+ },
+ {
+  "id": "ST01-012_p2",
+  "base_id": "ST01-012",
+  "category": "other",
+  "path": "OP05/characters/012-monkey-d-luffy.ts",
+  "base_path": "ST01/index.ts",
+  "variant_text": {
+   "effect": "[Rush] (This card can attack on the turn in which it is played.) [DON!! x2] [When Attacking] Your opponent cannot activate [Blocker] during this battle."
+  },
+  "base_text": {
+   "effect": "[Rush] (This card can attack on the turn in which it is played.) [DON!! x2] [When Attacking] Your opponent cannot activate [Blocker] during this battle.",
+   "trigger": "whenAttacking"
+  }
+ },
+ {
+  "id": "OP01-016_p2",
+  "base_id": "OP01-016",
+  "category": "keyword",
+  "path": "OP05/characters/016-nami-sp.ts",
+  "base_path": "OP01/characters/016-nami.ts",
+  "variant_text": {
+   "effect": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 [Straw Hat Crew] type card other than [Nami] and add it to your hand. Then, place the rest at the bottom of your deck in any order."
+  },
+  "base_text": {
+   "trigger": "onPlay"
+  }
+ },
+ {
+  "id": "OP04-044_p2",
+  "base_id": "OP04-044",
+  "category": "identical",
+  "path": "OP05/characters/044-kaido-sp.ts",
+  "base_path": "OP04/characters/044-kaido.ts",
+  "variant_text": {
+   "effect": "[On Play] Return up to 1 Character with a cost of 8 or less and up to 1 Character with a cost of 3 or less to the owner's hand."
+  },
+  "base_text": {
+   "effect": "[On Play] Return up to 1 Character with a cost of 8 or less and up to 1 Character with a cost of 3 or less to the owner's hand."
+  }
+ },
+ {
+  "id": "OP03-092_p2",
+  "base_id": "OP03-092",
+  "category": "absent",
+  "path": "OP05/characters/092-rob-lucci-sp.ts",
+  "base_path": "OP03/characters/092-rob-lucci.ts",
+  "variant_text": {},
+  "base_text": {
+   "trigger": "onPlay"
+  }
+ },
+ {
+  "id": "OP02-120_p2",
+  "base_id": "OP02-120",
+  "category": "identical",
+  "path": "OP05/characters/120-uta-sp.ts",
+  "base_path": "OP02/characters/120-uta.ts",
+  "variant_text": {
+   "effect": "[On Play] DON!! -2 (You may return the specified number of DON!! cards from your field to your DON!! deck.): Your Leader and all of your Characters gain +1000 power until the start of your next turn."
+  },
+  "base_text": {
+   "effect": "[On Play] DON!! -2 (You may return the specified number of DON!! cards from your field to your DON!! deck.): Your Leader and all of your Characters gain +1000 power until the start of your next turn."
+  }
+ },
+ {
+  "id": "OP01-121_p2",
+  "base_id": "OP01-121",
+  "category": "identical",
+  "path": "OP05/characters/121-yamato-sp.ts",
+  "base_path": "OP01/characters/121-yamato.ts",
+  "variant_text": {
+   "effect": "Also treat this card's name as [Kouzuki Oden] according to the rules. [Double Attack] (This card deals 2 damage.) [Banish] (When this card deals damage, the target card is trashed without activating its Trigger.)"
+  },
+  "base_text": {
+   "effect": "Also treat this card's name as [Kouzuki Oden] according to the rules. [Double Attack] (This card deals 2 damage.) [Banish] (When this card deals damage, the target card is trashed without activating its Trigger.)"
+  }
+ },
+ {
+  "id": "OP06-079_p2",
+  "base_id": "OP06-079",
+  "category": "absent",
+  "path": "PRB01/stages/079-kingdom-of-germa-jolly-roger-foil.ts",
+  "base_path": "OP06/stages/079-kingdom-of-germa.ts",
+  "variant_text": {},
+  "base_text": {
+   "trigger": "activateMain"
+  }
+ },
+ {
+  "id": "OP05-117_p2",
+  "base_id": "OP05-117",
+  "category": "identical",
+  "path": "PRB01/stages/117-upper-yard-jolly-roger-foil.ts",
+  "base_path": "OP05/stages/117-upper-yard.ts",
+  "variant_text": {
+   "effect": "[On Play] Look at the top 5 cards of your deck; reveal up to 1 [Sky Island] type card and add it to your hand. Then, place the rest at the bottom of your deck in any order."
+  },
+  "base_text": {
+   "effect": "[On Play] Look at the top 5 cards of your deck; reveal up to 1 [Sky Island] type card and add it to your hand. Then, place the rest at the bottom of your deck in any order."
+  }
+ },
+ {
+  "id": "OP06-003_p2",
+  "base_id": "OP06-003",
+  "category": "identical",
+  "path": "PRB01/characters/003-emporio-ivankov-jolly-roger-foil.ts",
+  "base_path": "OP06/characters/003-emporio-ivankov.ts",
+  "variant_text": {
+   "effect": "[On Play] Look at 3 cards from the top of your deck and play up to 1 [Revolutionary Army] type Character card with 5000 power or less. Then, place the rest at the bottom of your deck in any order."
+  },
+  "base_text": {
+   "effect": "[On Play] Look at 3 cards from the top of your deck and play up to 1 [Revolutionary Army] type Character card with 5000 power or less. Then, place the rest at the bottom of your deck in any order."
+  }
+ },
+ {
+  "id": "OP03-003_p4",
+  "base_id": "OP03-003",
+  "category": "absent",
+  "path": "PRB01/characters/003-izo-op03-003-jolly-roger-foil.ts",
+  "base_path": "OP03/characters/003-izo.ts",
+  "variant_text": {},
+  "base_text": {
+   "trigger": "onPlay"
+  }
+ },
+ {
+  "id": "OP02-004_r1",
+  "base_id": "OP02-004",
+  "category": "formatting",
+  "path": "PRB01/characters/004-edward-newgate-reprint.ts",
+  "base_path": "OP02/characters/004-edward-newgate.ts",
+  "variant_text": {
+   "effect": "[On Play] Up to 1 of your Leader gains +2000 power until the start of your next turn. Then, you cannot add Life cards to your hand using your own effects during this turn.[DON!! x2] [When Attacking] K.O. up to 1 of your opponent's Characters with 3000 power or less.Disclaimer: This card was reprinted from the original set with changes to the artist credit (note the lack of pen symbol next to the artist name)."
+  },
+  "base_text": {
+   "effect": "[On Play] Up to 1 of your Leader gains +2000 power until the start of your next turn. Then, you cannot add Life cards to your hand using your own effects during this turn. [DON!! x2] [When Attacking] K.O. up to 1 of your opponent's Characters with 3000 power or less."
+  }
+ },
+ {
+  "id": "ST04-005_p4",
+  "base_id": "ST04-005_p1",
+  "category": "identical",
+  "path": "PRB01/characters/005-queen-full-art.ts",
+  "base_path": "OP08/characters/005-queen-sp.ts",
+  "variant_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.) [On Play] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): Draw 2 cards and trash 1 card from your hand."
+  },
+  "base_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.) [On Play] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): Draw 2 cards and trash 1 card from your hand."
+  }
+ },
+ {
+  "id": "OP05-006_r1",
+  "base_id": "OP05-006",
+  "category": "formatting",
+  "path": "PRB01/characters/006-koala-reprint.ts",
+  "base_path": "OP05/characters/006-koala.ts",
+  "variant_text": {
+   "effect": "[On Play] If your Leader has the [Revolutionary Army] type, give up to 1 of your opponent's Characters -3000 power during this turn.Disclaimer: This card was reprinted from the original set with changes to the artist credit (note the lack of pen symbol next to the artist name)."
+  },
+  "base_text": {
+   "effect": "[On Play] If your Leader has the [Revolutionary Army] type, give up to 1 of your opponent's Characters -3000 power during this turn."
+  }
+ },
+ {
+  "id": "OP01-006_r1",
+  "base_id": "OP01-006",
+  "category": "formatting",
+  "path": "PRB01/characters/006-otama-reprint.ts",
+  "base_path": "OP01/characters/006-otama.ts",
+  "variant_text": {
+   "effect": "[On Play] Give up to 1 of your opponent's Characters -2000 power during this turn.Disclaimer: This card was reprinted from the original set with changes to the artist credit (note the lack of pen symbol next to the artist name)."
+  },
+  "base_text": {
+   "effect": "[On Play] Give up to 1 of your opponent's Characters -2000 power during this turn.  This card has been officially errata'd."
+  }
+ },
+ {
+  "id": "ST01-006_p6",
+  "base_id": "ST01-006",
+  "category": "identical",
+  "path": "PRB01/characters/006-tony-tony-chopper-st01-006-jolly-roger-foil.ts",
+  "base_path": "ST01/index.ts",
+  "variant_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)"
+  },
+  "base_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)"
+  }
+ },
+ {
+  "id": "OP05-007_r1",
+  "base_id": "OP05-007",
+  "category": "formatting",
+  "path": "PRB01/characters/007-sabo-op05-007-reprint.ts",
+  "base_path": "OP05/characters/007-sabo.ts",
+  "variant_text": {
+   "effect": "[On Play] K.O. up to 2 of your opponent's Characters with a total power of 4000 or less.Disclaimer: This card was reprinted from the original set with changes to the artist credit (note the lack of pen symbol next to the artist name)."
+  },
+  "base_text": {
+   "effect": "[On Play] K.O. up to 2 of your opponent's Characters with a total power of 4000 or less."
+  }
+ },
+ {
+  "id": "OP05-010_p3",
+  "base_id": "OP05-010",
+  "category": "identical",
+  "path": "PRB01/characters/010-nico-robin-full-art.ts",
+  "base_path": "OP05/characters/010-nico-robin.ts",
+  "variant_text": {
+   "effect": "[On Play] K.O. up to 1 of your opponent's Characters with 1000 power or less."
+  },
+  "base_text": {
+   "effect": "[On Play] K.O. up to 1 of your opponent's Characters with 1000 power or less."
+  }
+ },
+ {
+  "id": "ST10-010_p7",
+  "base_id": "ST10-010",
+  "category": "formatting",
+  "path": "PRB01/characters/010-trafalgar-law-st10-010-reprint.ts",
+  "base_path": "OP07/characters/010-trafalgar-law-tr.ts",
+  "variant_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)[On Play] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): If your opponent has 7 or more cards in their hand, trash 2 cards from your opponent's hand.Disclaimer: This card was reprinted from the original set with changes to the artist credit (note the lack of pen symbol next to the artist name)."
+  },
+  "base_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.) [On Play] DON!! \u22121 (You may return the specified number of DON!! cards from your field to your DON!! deck.): If your opponent has 7 or more cards in their hand, trash 2 cards from your opponent's hand."
+  }
+ },
+ {
+  "id": "OP02-013_r1",
+  "base_id": "OP02-013",
+  "category": "formatting",
+  "path": "PRB01/characters/013-portgas-d-ace-manga.ts",
+  "base_path": "OP02/characters/013-portgas-d-ace.ts",
+  "variant_text": {
+   "effect": "[On Play] Give up to 2 of your opponent's Characters -3000 power during this turn. Then, if your Leader's type includes \\\"Whitebeard Pirates\\\", this Character gains [Rush] during this turn. (This card can attack on the turn in which it is played.)Disclaimer: This card was reprinted from the original set without the original textured foil."
+  },
+  "base_text": {
+   "effect": "[On Play] Give up to 2 of your opponent's Characters -3000 power during this turn. Then, if your Leader's type includes \\\"Whitebeard Pirates\\\", this Character gains [Rush] during this turn. (This card can attack on the turn in which it is played.)"
+  }
+ },
+ {
+  "id": "OP05-015_p3",
+  "base_id": "OP05-015",
+  "category": "identical",
+  "path": "PRB01/characters/015-belo-betty-jolly-roger-foil.ts",
+  "base_path": "OP05/characters/015-belo-betty.ts",
+  "variant_text": {
+   "effect": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 [Revolutionary Army] type card other than [Belo Betty] and add it to your hand. Then, place the rest at the bottom of your deck in any order."
+  },
+  "base_text": {
+   "effect": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 [Revolutionary Army] type card other than [Belo Betty] and add it to your hand. Then, place the rest at the bottom of your deck in any order."
+  }
+ },
+ {
+  "id": "OP02-015_p3",
+  "base_id": "OP02-015",
+  "category": "identical",
+  "path": "PRB01/characters/015-makino-jolly-roger-foil.ts",
+  "base_path": "OP02/characters/015-makino.ts",
+  "variant_text": {
+   "effect": "[Activate:Main] You may rest this Character: Up to 1 of your red Characters with a cost of 1 gains +3000 power during this turn."
+  },
+  "base_text": {
+   "effect": "[Activate:Main] You may rest this Character: Up to 1 of your red Characters with a cost of 1 gains +3000 power during this turn."
+  }
+ },
+ {
+  "id": "OP01-016_p8",
+  "base_id": "OP01-016",
+  "category": "absent",
+  "path": "PRB01/characters/016-nami-op01-016-manga.ts",
+  "base_path": "OP01/characters/016-nami.ts",
+  "variant_text": {},
+  "base_text": {
+   "trigger": "onPlay"
+  }
+ },
+ {
+  "id": "OP02-018_p4",
+  "base_id": "OP02-018",
+  "category": "absent",
+  "path": "PRB01/characters/018-marco-jolly-roger-foil.ts",
+  "base_path": "OP02/characters/018-marco.ts",
+  "variant_text": {},
+  "base_text": {
+   "trigger": "onKo"
+  }
+ },
+ {
+  "id": "OP06-023_p2",
+  "base_id": "OP06-023",
+  "category": "keyword",
+  "path": "PRB01/characters/023-arlong-jolly-roger-foil.ts",
+  "base_path": "OP06/characters/023-arlong.ts",
+  "variant_text": {
+   "effect": "[On Play] You may trash 1 card from your hand: Up to 1 of your opponent's rested Leader cannot attack until the end of your opponent's next turn.[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less."
+  },
+  "base_text": {
+   "effect": "[On Play] You may trash 1 card from your hand: Up to 1 of your opponent's rested Leader cannot attack until the end of your opponent's next turn."
+  }
+ },
+ {
+  "id": "OP01-024_r1",
+  "base_id": "OP01-024",
+  "category": "absent",
+  "path": "PRB01/characters/024-monkey-d-luffy.ts",
+  "base_path": "OP01/characters/024-monkey-d-luffy.ts",
+  "variant_text": {},
+  "base_text": {
+   "trigger": "activateMain"
+  }
+ },
+ {
+  "id": "OP04-029_p2",
+  "base_id": "OP04-029",
+  "category": "identical",
+  "path": "PRB01/characters/029-dellinger-jolly-roger-foil.ts",
+  "base_path": "OP04/characters/029-dellinger.ts",
+  "variant_text": {
+   "effect": "[End of Your Turn] Set up to 1 of your DON!! cards as active."
+  },
+  "base_text": {
+   "effect": "[End of Your Turn] Set up to 1 of your DON!! cards as active."
+  }
+ },
+ {
+  "id": "OP04-031_r1",
+  "base_id": "OP04-031",
+  "category": "formatting",
+  "path": "PRB01/characters/031-donquixote-doflamingo-reprint.ts",
+  "base_path": "OP04/characters/031-donquixote-doflamingo.ts",
+  "variant_text": {
+   "effect": "[On Play] Up to a total of 3 of your opponent's rested Leader and Character cards will not become active in your opponent's next Refresh Phase.Disclaimer: This card was reprinted from the original set with changes to the artist credit (note the lack of pen symbol next to the artist name)."
+  },
+  "base_text": {
+   "effect": "[On Play] Up to a total of 3 of your opponent's rested Leader and Character cards will not become active in your opponent's next Refresh Phase."
+  }
+ },
+ {
+  "id": "OP04-032_p3_0Zy6GwW",
+  "base_id": "OP04-032",
+  "category": "identical",
+  "path": "PRB01/characters/032-baby-5-op04-032-jolly-roger-foil.ts",
+  "base_path": "OP04/characters/032-baby-5.ts",
+  "variant_text": {
+   "effect": "[End of Your Turn] You may trash this Character: Set up to 2 of your DON!! cards as active."
+  },
+  "base_text": {
+   "effect": "[End of Your Turn] You may trash this Character: Set up to 2 of your DON!! cards as active."
+  }
+ },
+ {
+  "id": "OP01-033_p3",
+  "base_id": "OP01-033",
+  "category": "formatting",
+  "path": "PRB01/characters/033-izo-op01-033-jolly-roger-foil.ts",
+  "base_path": "OP01/characters/033-izo.ts",
+  "variant_text": {
+   "effect": "[On Play] Rest up to 1 of your opponent's Characters with a cost of 4 or less."
+  },
+  "base_text": {
+   "effect": "[On Play] Rest up to 1 of your opponent's Characters with a cost of 4 or less.  This card has been officially errata'd."
+  }
+ },
+ {
+  "id": "OP05-034_p3",
+  "base_id": "OP05-034",
+  "category": "identical",
+  "path": "PRB01/characters/034-baby-5-op05-034-jolly-roger-foil.ts",
+  "base_path": "OP05/characters/034-baby-5.ts",
+  "variant_text": {
+   "effect": "[Activate:Main] (1) (You may rest the specified number of DON!! cards in your cost area.) You may rest this Character: Look at 5 cards from the top of your deck; reveal up to 1 [Donquixote Pirates] type card and add it to your hand. Then, place the rest at the bottom of your deck in any order."
+  },
+  "base_text": {
+   "effect": "[Activate:Main] (1) (You may rest the specified number of DON!! cards in your cost area.) You may rest this Character: Look at 5 cards from the top of your deck; reveal up to 1 [Donquixote Pirates] type card and add it to your hand. Then, place the rest at the bottom of your deck in any order."
+  }
+ },
+ {
+  "id": "OP06-035_r1",
+  "base_id": "OP06-035",
+  "category": "formatting",
+  "path": "PRB01/characters/035-hody-jones.ts",
+  "base_path": "OP06/characters/035-hody-jones.ts",
+  "variant_text": {
+   "effect": "[Rush] (This card can attack on the turn in which it is played.) [On Play] Rest up to a total of 2 of your opponent's Characters or DON!! cards. Then, add 1 card from the top of your Life cards to your hand."
+  },
+  "base_text": {
+   "effect": "[Rush] (This card can attack on the turn in which it is played.)\\n[On Play] Rest up to a total of 2 of your opponent's Characters or DON!! cards. Then, add 1 card from the top of your Life cards to your hand."
+  }
+ },
+ {
+  "id": "OP06-036_p3",
+  "base_id": "OP06-036",
+  "category": "identical",
+  "path": "PRB01/characters/036-ryuma-full-art.ts",
+  "base_path": "OP06/characters/036-ryuma.ts",
+  "variant_text": {
+   "effect": "[On Play] / [On K.O.] K.O. up to 1 of your opponent's rested Characters with a cost of 4 or less."
+  },
+  "base_text": {
+   "effect": "[On Play] / [On K.O.] K.O. up to 1 of your opponent's rested Characters with a cost of 4 or less."
+  }
+ },
+ {
+  "id": "OP01-041_p7",
+  "base_id": "OP01-041",
+  "category": "absent",
+  "path": "PRB01/characters/041-kouzuki-momonosuke-jolly-roger-foil.ts",
+  "base_path": "OP01/characters/041-kouzuki-momonosuke.ts",
+  "variant_text": {},
+  "base_text": {
+   "trigger": "activateMain"
+  }
+ },
+ {
+  "id": "OP05-043_r1",
+  "base_id": "OP05-043",
+  "category": "formatting",
+  "path": "PRB01/characters/043-ulti-reprint.ts",
+  "base_path": "OP05/characters/043-ulti.ts",
+  "variant_text": {
+   "effect": "[On Play] If your Leader is multicolored, look at 3 cards from the top of your deck and add up to 1 card to your hand. Then, place the rest at the top or bottom of the deck in any order.Disclaimer: This card was reprinted from the original set with changes to the artist credit (note the lack of pen symbol next to the artist name)."
+  },
+  "base_text": {
+   "effect": "[On Play] If your Leader is multicolored, look at 3 cards from the top of your deck and add up to 1 card to your hand. Then, place the rest at the top or bottom of the deck in any order."
+  }
+ },
+ {
+  "id": "OP04-044_r1",
+  "base_id": "OP04-044",
+  "category": "formatting",
+  "path": "PRB01/characters/044-kaido-op04-044-reprint.ts",
+  "base_path": "OP04/characters/044-kaido.ts",
+  "variant_text": {
+   "effect": "[On Play] Return up to 1 Character with a cost of 8 or less and up to 1 Character with a cost of 3 or less to the owner's hand.Disclaimer: This card was reprinted from the original set with changes to the artist credit (note the lack of pen symbol next to the artist name)."
+  },
+  "base_text": {
+   "effect": "[On Play] Return up to 1 Character with a cost of 8 or less and up to 1 Character with a cost of 3 or less to the owner's hand."
+  }
+ },
+ {
+  "id": "OP01-047_r1",
+  "base_id": "OP01-047",
+  "category": "other",
+  "path": "PRB01/characters/047-trafalgar-law.ts",
+  "base_path": "OP01/characters/047-trafalgar-law.ts",
+  "variant_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.) [On Play] You may return 1 of your Characters to the owner's hand: Play up to 1 Character card with a cost of 3 or less from your hand."
+  },
+  "base_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.) [On Play] You may return 1 Character to your hand: Play up to 1 Character card with a cost of 3 or less from your hand.  This card has been officially errata'd."
+  }
+ },
+ {
+  "id": "OP01-051_r1",
+  "base_id": "OP01-051",
+  "category": "absent",
+  "path": "PRB01/characters/051-eustass-captain-kid.ts",
+  "base_path": "OP01/characters/051-eustass-captain-kid.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "[DON!! x1] [Opponent's Turn] If this Character is rested, your opponent cannot attack any card other than the Character [Eustass\\\"Captain\\\"Kid]. [Activate:Main] [Once Per Turn] You may rest this Character: Play up to 1 Character card with a cost of 3 or less from your hand.  This card has been officially errata'd."
+  }
+ },
+ {
+  "id": "OP01-052_p4",
+  "base_id": "OP01-052",
+  "category": "identical",
+  "path": "PRB01/characters/052-raizo-full-art.ts",
+  "base_path": "OP01/characters/052-raizo.ts",
+  "variant_text": {
+   "effect": "[When Attacking] [Once Per Turn] If you have 2 or more rested Characters, draw 1 card."
+  },
+  "base_text": {
+   "effect": "[When Attacking] [Once Per Turn] If you have 2 or more rested Characters, draw 1 card."
+  }
+ },
+ {
+  "id": "OP03-060_p3",
+  "base_id": "OP03-060",
+  "category": "identical",
+  "path": "PRB01/characters/060-kalifa-full-art.ts",
+  "base_path": "OP03/characters/060-kalifa.ts",
+  "variant_text": {
+   "effect": "[When Attacking] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): Draw 2 cards and trash 1 card from your hand."
+  },
+  "base_text": {
+   "effect": "[When Attacking] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): Draw 2 cards and trash 1 card from your hand."
+  }
+ },
+ {
+  "id": "OP06-060_p2",
+  "base_id": "OP06-060",
+  "category": "identical",
+  "path": "PRB01/characters/060-vinsmoke-ichiji-op06-060-jolly-roger-foil.ts",
+  "base_path": "OP06/characters/060-vinsmoke-ichiji.ts",
+  "variant_text": {
+   "effect": "[Activate:Main] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.)You may trash this Character: If your Leader has the [GERMA 66] type, play up to 1 [Vinsmoke Ichiji] with a cost of 7 from your hand or trash."
+  },
+  "base_text": {
+   "effect": "[Activate:Main] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.)You may trash this Character: If your Leader has the [GERMA 66] type, play up to 1 [Vinsmoke Ichiji] with a cost of 7 from your hand or trash."
+  }
+ },
+ {
+  "id": "OP06-064_p2",
+  "base_id": "OP06-064",
+  "category": "formatting",
+  "path": "PRB01/characters/064-vinsmoke-niji-op06-064-jolly-roger-foil.ts",
+  "base_path": "OP06/characters/064-vinsmoke-niji.ts",
+  "variant_text": {
+   "effect": "[Activate:Main] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.)You may trash this Character: If your Leader has the [GERMA 66] type, play up to 1 [Vinsmoke Niji] with a cost of 5 from your hand or trash."
+  },
+  "base_text": {
+   "effect": "[Activate:Main] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.) You may trash this Character: If your Leader has the [GERMA 66] type, play up to 1 [Vinsmoke Niji] with a cost of 5 from your hand or trash."
+  }
+ },
+ {
+  "id": "OP06-065_p2",
+  "base_id": "OP06-065",
+  "category": "formatting",
+  "path": "PRB01/characters/065-vinsmoke-niji-op06-065-jolly-roger-foil.ts",
+  "base_path": "OP06/characters/065-vinsmoke-niji.ts",
+  "variant_text": {
+   "effect": "[On Play] If the number of DON!! cards on your field is equal to or less than the number on your opponent's field, choose one:\u2022 K.O. up to 1 of your opponent's Characters with a cost of 2 or less.\u2022 Return up to 1 of your opponent's Characters with a cost of 4 or less to the owner's hand."
+  },
+  "base_text": {
+   "effect": "[On Play] If the number of DON!! cards on your field is equal to or less than the number on your opponent's field, choose one:\\n\u2022 K.O. up to 1 of your opponent's Characters with a cost of 2 or less.\\n\u2022 Return up to 1 of your opponent's Characters with a cost of 4 or less to the owner's hand."
+  }
+ },
+ {
+  "id": "OP06-066_p2",
+  "base_id": "OP06-066",
+  "category": "identical",
+  "path": "PRB01/characters/066-vinsmoke-yonji-op06-066-jolly-roger-foil.ts",
+  "base_path": "OP06/characters/066-vinsmoke-yonji.ts",
+  "variant_text": {
+   "effect": "[Activate:Main] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.)You may trash this Character: If your Leader has the [GERMA 66] type, play up to 1 [Vinsmoke Yonji] with a cost of 4 from your hand or trash."
+  },
+  "base_text": {
+   "effect": "[Activate:Main] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.)You may trash this Character: If your Leader has the [GERMA 66] type, play up to 1 [Vinsmoke Yonji] with a cost of 4 from your hand or trash."
+  }
+ },
+ {
+  "id": "OP06-067_p2",
+  "base_id": "OP06-067",
+  "category": "formatting",
+  "path": "PRB01/characters/067-vinsmoke-yonji-op06-067-jolly-roger-foil.ts",
+  "base_path": "OP06/characters/067-vinsmoke-yonji.ts",
+  "variant_text": {
+   "effect": "If the number of DON!! cards on your field is equal to or less than the number on your opponent's field, this Character gains +1000 power.[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)"
+  },
+  "base_text": {
+   "effect": "If the number of DON!! cards on your field is equal to or less than the number on your opponent's field, this Character gains +1000 power.\\n[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)"
+  }
+ },
+ {
+  "id": "OP06-068_p2",
+  "base_id": "OP06-068",
+  "category": "identical",
+  "path": "PRB01/characters/068-vinsmoke-reiju-op06-068-jolly-roger-foil.ts",
+  "base_path": "OP06/characters/068-vinsmoke-reiju.ts",
+  "variant_text": {
+   "effect": "[Activate:Main] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.)You may trash this Character: If your Leader has the [GERMA 66] type, play up to 1 [Vinsmoke Reiju] with a cost of 4 from your hand or trash."
+  },
+  "base_text": {
+   "effect": "[Activate:Main] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.)You may trash this Character: If your Leader has the [GERMA 66] type, play up to 1 [Vinsmoke Reiju] with a cost of 4 from your hand or trash."
+  }
+ },
+ {
+  "id": "OP05-069_r1",
+  "base_id": "OP05-069",
+  "category": "formatting",
+  "path": "PRB01/characters/069-trafalgar-law-op05-069-manga.ts",
+  "base_path": "OP05/characters/069-trafalgar-law.ts",
+  "variant_text": {
+   "effect": "[When Attacking] If your opponent has more DON!! cards on their field than you, look at 5 cards from the top of your deck; reveal up to 1 [Heart Pirates] type card and add it to your hand. Then, place the rest at the bottom of your deck in any order.Disclaimer: This card was reprinted from the original set without the original textured foil."
+  },
+  "base_text": {
+   "effect": "[When Attacking] If your opponent has more DON!! cards on their field than you, look at 5 cards from the top of your deck; reveal up to 1 [Heart Pirates] type card and add it to your hand. Then, place the rest at the bottom of your deck in any order."
+  }
+ },
+ {
+  "id": "OP06-069_r1",
+  "base_id": "OP06-069",
+  "category": "identical",
+  "path": "PRB01/characters/069-vinsmoke-reiju.ts",
+  "base_path": "OP06/characters/069-vinsmoke-reiju.ts",
+  "variant_text": {
+   "effect": "[On Play] If the number of DON!! cards on your field is equal to or less than the number on your opponent's field and you have 5 or less cards in your hand, draw 2 cards."
+  },
+  "base_text": {
+   "effect": "[On Play] If the number of DON!! cards on your field is equal to or less than the number on your opponent's field and you have 5 or less cards in your hand, draw 2 cards."
+  }
+ },
+ {
+  "id": "OP01-070_r1",
+  "base_id": "OP01-070",
+  "category": "formatting",
+  "path": "PRB01/characters/070-dracule-mihawk-op01-070-reprint.ts",
+  "base_path": "OP01/characters/070-dracule-mihawk.ts",
+  "variant_text": {
+   "effect": "[On Play] Place up to 1 Character with a cost of 7 or less at the bottom of the owner's deck.Disclaimer: This card was reprinted from the original set with changes to the artist credit (note the lack of pen symbol next to the artist name)."
+  },
+  "base_text": {
+   "effect": "[On Play] Place up to 1 Character with a cost of 7 or less at the bottom of the owner's deck.  This card has been officially errata'd."
+  }
+ },
+ {
+  "id": "OP05-073_p2_BpYvfDX",
+  "base_id": "OP05-073",
+  "category": "formatting",
+  "path": "PRB01/characters/073-miss-doublefinger-zala-full-art.ts",
+  "base_path": "OP05/characters/073-miss-doublefinger-zala.ts",
+  "variant_text": {
+   "effect": "[On Play] You may trash 1 card from your hand: Add up to 1 DON!! card from your DON!! deck and rest it.[Trigger] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): Play this card."
+  },
+  "base_text": {
+   "effect": "[On Play] You may trash 1 card from your hand: Add up to 1 DON!! card from your DON!! deck and rest it. [Trigger] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): Play this card."
+  }
+ },
+ {
+  "id": "OP05-074_r1",
+  "base_id": "OP05-074",
+  "category": "formatting",
+  "path": "PRB01/characters/074-eustass-captain-kid-reprint.ts",
+  "base_path": "OP05/characters/074-eustass-captain-kid.ts",
+  "variant_text": {
+   "effect": "[Blocker][Your Turn][Once Per Turn] When a DON!! card on your field is returned to your DON!! deck, add up to 1 DON!! card from your DON!! deck and set it as active.Disclaimer: This card was reprinted from the original set with changes to the artist credit (note the lack of pen symbol next to the artist name)."
+  },
+  "base_text": {
+   "effect": "[Blocker] [Your Turn][Once Per Turn] When a DON!! card on your field is returned to your DON!! deck, add up to 1 DON!! card from your DON!! deck and set it as active."
+  }
+ },
+ {
+  "id": "OP01-078_r3",
+  "base_id": "OP01-078",
+  "category": "formatting",
+  "path": "PRB01/characters/078-boa-hancock-op01-078-reprint.ts",
+  "base_path": "OP01/characters/078-boa-hancock.ts",
+  "variant_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)[DON!! x1] [When Attacking]/[On Block] Draw 1 card if you have 5 or less cards in your hand.Disclaimer: This card was reprinted from the original set with changes to the artist credit (note the lack of pen symbol next to the artist name)."
+  },
+  "base_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.) [DON!! x1] [When Attacking]/[On Block] Draw 1 card if you have 5 or less cards in your hand."
+  }
+ },
+ {
+  "id": "OP03-079_p3",
+  "base_id": "OP03-079",
+  "category": "identical",
+  "path": "PRB01/characters/079-vergo-jolly-roger-foil.ts",
+  "base_path": "OP03/characters/079-vergo.ts",
+  "variant_text": {
+   "effect": "[DON!! x1] This Character cannot be K.O.'d in battle."
+  },
+  "base_text": {
+   "effect": "[DON!! x1] This Character cannot be K.O.'d in battle."
+  }
+ },
+ {
+  "id": "OP05-081_p2",
+  "base_id": "OP05-081",
+  "category": "identical",
+  "path": "PRB01/characters/081-one-legged-toy-soldier-jolly-roger-foil.ts",
+  "base_path": "OP05/characters/081-one-legged-toy-soldier.ts",
+  "variant_text": {
+   "effect": "[Activate:Main] You may trash this Character: Give up to 1 of your opponent's Characters -3 cost during this turn."
+  },
+  "base_text": {
+   "effect": "[Activate:Main] You may trash this Character: Give up to 1 of your opponent's Characters -3 cost during this turn."
+  }
+ },
+ {
+  "id": "OP05-082_p2",
+  "base_id": "OP05-082",
+  "category": "identical",
+  "path": "PRB01/characters/082-shirahoshi-op05-082-jolly-roger-foil.ts",
+  "base_path": "OP05/characters/082-shirahoshi.ts",
+  "variant_text": {
+   "effect": "[Activate:Main] You may rest this Character and place 2 cards from your trash at the bottom of your deck in any order: If your opponent has 6 or more cards in their hand, your opponent trashes 1 card from their hand."
+  },
+  "base_text": {
+   "effect": "[Activate:Main] You may rest this Character and place 2 cards from your trash at the bottom of your deck in any order: If your opponent has 6 or more cards in their hand, your opponent trashes 1 card from their hand."
+  }
+ },
+ {
+  "id": "OP04-083_r1",
+  "base_id": "OP04-083",
+  "category": "formatting",
+  "path": "PRB01/characters/083-sabo-op04-083-manga.ts",
+  "base_path": "OP04/characters/083-sabo.ts",
+  "variant_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)[On Play] None of your Characters can be K.O.'d by effects until the start of your next turn. Then, draw 2 cards and trash 2 cards from your hand.Disclaimer: This card was reprinted from the original set without the original textured foil."
+  },
+  "base_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.) [On Play] None of your Characters can be K.O.'d by effects until the start of your next turn. Then, draw 2 cards and trash 2 cards from your hand."
+  }
+ },
+ {
+  "id": "OP06-086_p3",
+  "base_id": "OP06-086",
+  "category": "identical",
+  "path": "PRB01/characters/086-gecko-moria.ts",
+  "base_path": "OP06/characters/086-gecko-moria.ts",
+  "variant_text": {
+   "effect": "[On Play] Choose up to 1 Character card with a cost of 4 or less and up to 1 Character card with a cost of 2 or less from your trash. Play 1 card and play the other card rested."
+  },
+  "base_text": {
+   "effect": "[On Play] Choose up to 1 Character card with a cost of 4 or less and up to 1 Character card with a cost of 2 or less from your trash. Play 1 card and play the other card rested."
+  }
+ },
+ {
+  "id": "OP04-089_r1_nUjTF12",
+  "base_id": "OP04-089",
+  "category": "formatting",
+  "path": "PRB01/characters/089-bartolomeo-op04-089-reprint.ts",
+  "base_path": "OP04/characters/089-bartolomeo.ts",
+  "variant_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)Disclaimer: This card was reprinted from the original set with changes to the artist credit (note the lack of pen symbol next to the artist name)."
+  },
+  "base_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)"
+  }
+ },
+ {
+  "id": "OP03-089_r2",
+  "base_id": "OP03-089",
+  "category": "formatting",
+  "path": "PRB01/characters/089-brannew-reprint.ts",
+  "base_path": "OP03/characters/089-brannew.ts",
+  "variant_text": {
+   "effect": "[On Play] Look at 3 cards from the top of your deck; reveal up to 1 [Navy] type card other than [Brannew] and add it to your hand. Then, trash the rest.Disclaimer: This card was reprinted from the original set with changes to the artist credit (note the lack of pen symbol next to the artist name)."
+  },
+  "base_text": {
+   "effect": "[On Play] Look at 3 cards from the top of your deck; reveal up to 1 [Navy] type card other than [Brannew] and add it to your hand. Then, trash the rest."
+  }
+ },
+ {
+  "id": "OP06-091_p2",
+  "base_id": "OP06-091",
+  "category": "identical",
+  "path": "PRB01/characters/091-victoria-cindry-jolly-roger-foil.ts",
+  "base_path": "OP06/characters/091-victoria-cindry.ts",
+  "variant_text": {
+   "effect": "[On Play] If your Leader has the [Thriller Bark Pirates] type, trash 5 cards from the top of your deck."
+  },
+  "base_text": {
+   "effect": "[On Play] If your Leader has the [Thriller Bark Pirates] type, trash 5 cards from the top of your deck."
+  }
+ },
+ {
+  "id": "OP02-096_r1",
+  "base_id": "OP02-096",
+  "category": "formatting",
+  "path": "PRB01/characters/096-kuzan-op02-096-reprint.ts",
+  "base_path": "OP02/characters/096-kuzan.ts",
+  "variant_text": {
+   "effect": "[On Play] Draw 1 card.[When Attacking] Give up to 1 of your opponent's Characters -4 cost during this turn.Disclaimer: This card was reprinted from the original set with changes to the artist credit (note the lack of pen symbol next to the artist name)."
+  },
+  "base_text": {
+   "effect": "[On Play] Draw 1 card. [When Attacking] Give up to 1 of your opponent's Characters -4 cost during this turn."
+  }
+ },
+ {
+  "id": "OP02-099_r1",
+  "base_id": "OP02-099",
+  "category": "formatting",
+  "path": "PRB01/characters/099-sakazuki-reprint.ts",
+  "base_path": "OP02/characters/099-sakazuki.ts",
+  "variant_text": {
+   "effect": "[On Play] You may trash 1 card from your hand: K.O. up to 1 of your opponent's Characters with a cost of 5 or less.Disclaimer: This card was reprinted from the original set with changes to the artist credit (note the lack of pen symbol next to the artist name)."
+  },
+  "base_text": {
+   "effect": "[On Play] You may trash 1 card from your hand: K.O. up to 1 of your opponent's Characters with a cost of 5 or less."
+  }
+ },
+ {
+  "id": "OP04-100_r1",
+  "base_id": "OP04-100",
+  "category": "formatting",
+  "path": "PRB01/characters/100-capone-gang-bege-op04-100-reprint.ts",
+  "base_path": "OP04/characters/100-capone-gang-bege.ts",
+  "variant_text": {
+   "effect": "[Trigger] Up to 1 of your opponent's Leader or Character cards cannot attack during this turn.Disclaimer: This card was reprinted from the original set with changes to the artist credit (note the lack of pen symbol next to the artist name)."
+  },
+  "base_text": {
+   "effect": "[Trigger] Up to 1 of your opponent's Leader or Character cards cannot attack during this turn."
+  }
+ },
+ {
+  "id": "OP06-100_p2",
+  "base_id": "OP06-100",
+  "category": "keyword",
+  "path": "PRB01/characters/100-inuarashi-jolly-roger-foil.ts",
+  "base_path": "OP06/characters/100-inuarashi.ts",
+  "variant_text": {
+   "effect": "[DON!! x2][When Attacking] You may trash 1 card from your hand: K.O. up to 1 of your opponent's Characters with a cost equal to or less than the number of your opponent's Life cards.[Trigger] If your opponent has 3 or less Life cards, play this card."
+  },
+  "base_text": {
+   "effect": "[DON!! x2][When Attacking] You may trash 1 card from your hand: K.O. up to 1 of your opponent's Characters with a cost equal to or less than the number of your opponent's Life cards."
+  }
+ },
+ {
+  "id": "OP04-104_r1",
+  "base_id": "OP04-104",
+  "category": "formatting",
+  "path": "PRB01/characters/104-sanji-reprint.ts",
+  "base_path": "OP04/characters/104-sanji.ts",
+  "variant_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)[Trigger] You may trash 1 card from your hand: Play this card.Disclaimer: This card was reprinted from the original set with changes to the artist credit (note the lack of pen symbol next to the artist name)."
+  },
+  "base_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.) [Trigger] You may trash 1 card from your hand: Play this card."
+  }
+ },
+ {
+  "id": "OP05-105_p2",
+  "base_id": "OP05-105",
+  "category": "identical",
+  "path": "PRB01/characters/105-satori-jolly-roger-foil.ts",
+  "base_path": "OP05/characters/105-satori.ts",
+  "variant_text": {
+   "effect": "[Trigger] You may trash 1 card from your hand: Play this card."
+  },
+  "base_text": {
+   "effect": "[Trigger] You may trash 1 card from your hand: Play this card."
+  }
+ },
+ {
+  "id": "OP06-106_r1",
+  "base_id": "OP06-106",
+  "category": "identical",
+  "path": "PRB01/characters/106-kouzuki-hiyori.ts",
+  "base_path": "OP06/characters/106-kouzuki-hiyori.ts",
+  "variant_text": {
+   "effect": "[On Play] You may add 1 card from the top or bottom of your Life cards to your hand: Add up to 1 card from your hand to the top of your Life cards."
+  },
+  "base_text": {
+   "effect": "[On Play] You may add 1 card from the top or bottom of your Life cards to your hand: Add up to 1 card from your hand to the top of your Life cards."
+  }
+ },
+ {
+  "id": "OP02-106_p4",
+  "base_id": "OP02-106",
+  "category": "identical",
+  "path": "PRB01/characters/106-tsuru-jolly-roger-foil.ts",
+  "base_path": "OP02/characters/106-tsuru.ts",
+  "variant_text": {
+   "effect": "[On Play] Give up to 1 of your opponent's Characters -2 cost during this turn."
+  },
+  "base_text": {
+   "effect": "[On Play] Give up to 1 of your opponent's Characters -2 cost during this turn."
+  }
+ },
+ {
+  "id": "OP03-108_p7",
+  "base_id": "OP03-108",
+  "category": "formatting",
+  "path": "PRB01/characters/108-charlotte-cracker-reprint.ts",
+  "base_path": "OP03/characters/108-charlotte-cracker.ts",
+  "variant_text": {
+   "effect": "[DON!! x1] If you have less Life cards than your opponent, this Character gains [Double Attack] and +1000 power. (This card deals 2 damage.)[Trigger] You may trash 1 card from your hand: Play this card.Disclaimer: This card was reprinted from the original set with changes to the artist credit (note the lack of pen symbol next to the artist name)."
+  },
+  "base_text": {
+   "effect": "[DON!! x1] If you have less Life cards than your opponent, this Character gains [Double Attack] and +1000 power. (This card deals 2 damage.) [Trigger] You may trash 1 card from your hand: Play this card."
+  }
+ },
+ {
+  "id": "OP03-110_p4",
+  "base_id": "OP03-110",
+  "category": "identical",
+  "path": "PRB01/characters/110-charlotte-smoothie-full-art.ts",
+  "base_path": "OP03/characters/110-charlotte-smoothie.ts",
+  "variant_text": {
+   "effect": "[When Attacking] You may add 1 card from the top or bottom of your Life cards to your hand: This Character gains +2000 power during this battle."
+  },
+  "base_text": {
+   "effect": "[When Attacking] You may add 1 card from the top or bottom of your Life cards to your hand: This Character gains +2000 power during this battle."
+  }
+ },
+ {
+  "id": "OP06-110_p3",
+  "base_id": "OP06-110",
+  "category": "keyword",
+  "path": "PRB01/characters/110-nekomamushi-jolly-roger-foil.ts",
+  "base_path": "OP06/characters/110-nekomamushi.ts",
+  "variant_text": {
+   "effect": "[DON!! x2] This Character can also attack your opponent's active Characters.[Trigger] If your opponent has 3 or less Life cards, play this card."
+  },
+  "base_text": {
+   "effect": "[DON!! x2] This Character can also attack your opponent's active Characters."
+  }
+ },
+ {
+  "id": "OP04-112_r1",
+  "base_id": "OP04-112",
+  "category": "formatting",
+  "path": "PRB01/characters/112-yamato-op04-112-reprint.ts",
+  "base_path": "OP04/characters/112-yamato.ts",
+  "variant_text": {
+   "effect": "[On Play] K.O. up to 1 of your opponent's Characters with a cost equal to or less than the total of your and your opponent's Life cards. Then, if you have 1 or less Life cards, add up to 1 card from the top of your deck to the top of your Life cards.Disclaimer: This card was reprinted from the original set with changes to the artist credit (note the lack of pen symbol next to the artist name)."
+  },
+  "base_text": {
+   "effect": "[On Play] K.O. up to 1 of your opponent's Characters with a cost equal to or less than the total of your and your opponent's Life cards. Then, if you have 1 or less Life cards, add up to 1 card from the top of your deck to the top of your Life cards."
+  }
+ },
+ {
+  "id": "OP03-113_r1",
+  "base_id": "OP03-113",
+  "category": "formatting",
+  "path": "PRB01/characters/113-charlotte-perospero-reprint.ts",
+  "base_path": "OP03/characters/113-charlotte-perospero.ts",
+  "variant_text": {
+   "effect": "[On K.O.] Look at 3 cards from the top of your deck; reveal up to 1 [Big Mom Pirates] type card and add it to your hand. Then, place the rest at the bottom of your deck in any order.[Trigger] You may trash 1 card from your hand: Play this card.Disclaimer: This card was reprinted from the original set with changes to the artist credit (note the lack of pen symbol next to the artist name)."
+  },
+  "base_text": {
+   "effect": "[On K.O.] Look at 3 cards from the top of your deck; reveal up to 1 {Big Mom Pirates} type card and add it to your hand. Then, place the rest at the bottom of your deck in any order. [Trigger] You may trash 1 card from your hand: Play this card."
+  }
+ },
+ {
+  "id": "OP02-114_r3",
+  "base_id": "OP02-114",
+  "category": "formatting",
+  "path": "PRB01/characters/114-borsalino-reprint.ts",
+  "base_path": "OP02/characters/114-borsalino.ts",
+  "variant_text": {
+   "effect": "[Opponent's Turn] This Character gains +1000 power and cannot be K.O.'d by effects.[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)Disclaimer: This card was reprinted from the original set with changes to the artist credit (note the lack of pen symbol next to the artist name)."
+  },
+  "base_text": {
+   "effect": "[Opponent's Turn] This Character gains +1000 power and cannot be K.O.'d by effects. [Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)"
+  }
+ },
+ {
+  "id": "OP06-114_p2",
+  "base_id": "OP06-114",
+  "category": "identical",
+  "path": "PRB01/characters/114-wyper-jolly-roger-foil.ts",
+  "base_path": "OP06/characters/114-wyper.ts",
+  "variant_text": {
+   "effect": "[On Play] You may place 1 Stage with a cost of 1 at the bottom of the owner's deck: Look at 5 cards from the top of your deck; reveal up to 1 [Upper Yard] or [Shandian Warrior] type card and add it to your hand. Then, place the rest at the bottom of your deck in any order."
+  },
+  "base_text": {
+   "effect": "[On Play] You may place 1 Stage with a cost of 1 at the bottom of the owner's deck: Look at 5 cards from the top of your deck; reveal up to 1 [Upper Yard] or [Shandian Warrior] type card and add it to your hand. Then, place the rest at the bottom of your deck in any order."
+  }
+ },
+ {
+  "id": "OP03-116_p5",
+  "base_id": "OP03-116",
+  "category": "formatting",
+  "path": "PRB01/characters/116-shirahoshi-op03-116-jolly-roger-foil.ts",
+  "base_path": "OP03/characters/116-shirahoshi.ts",
+  "variant_text": {
+   "effect": "[On Play] Draw 3 cards and trash 2 cards from your hand.[Trigger] Play this card."
+  },
+  "base_text": {
+   "effect": "[On Play] Draw 3 cards and trash 2 cards from your hand. [Trigger] Play this card."
+  }
+ },
+ {
+  "id": "OP05-118_r1",
+  "base_id": "OP05-118",
+  "category": "formatting",
+  "path": "PRB01/characters/118-kaido-op05-118-reprint.ts",
+  "base_path": "OP05/characters/118-kaido.ts",
+  "variant_text": {
+   "effect": "[On Play] Draw 4 cards if your opponent has 3 or less Life cards.Disclaimer: This card was reprinted from the original set with changes to the artist credit (note the lack of pen symbol next to the artist name)."
+  },
+  "base_text": {
+   "effect": "[On Play] Draw 4 cards if your opponent has 3 or less Life cards."
+  }
+ },
+ {
+  "id": "OP06-118_r1",
+  "base_id": "OP06-118",
+  "category": "formatting",
+  "path": "PRB01/characters/118-roronoa-zoro-manga.ts",
+  "base_path": "OP06/characters/118-roronoa-zoro.ts",
+  "variant_text": {
+   "effect": "[When Attacking][Once Per Turn](1)(You may rest the specified number of DON!! cards in your cost area.): Set this Character as active.[Activate:Main][Once Per Turn](2)(You may rest the specified number of DON!! cards in your cost area.): Set this Character as active.Disclaimer: This card was reprinted from the original set without the original textured foil."
+  },
+  "base_text": {
+   "effect": "[When Attacking][Once Per Turn](1)(You may rest the specified number of DON!! cards in your cost area.): Set this Character as active.\\n[Activate:Main][Once Per Turn](2)(You may rest the specified number of DON!! cards in your cost area.): Set this Character as active."
+  }
+ },
+ {
+  "id": "OP05-119_r1",
+  "base_id": "OP05-119",
+  "category": "formatting",
+  "path": "PRB01/characters/119-monkey-d-luffy-op05-119-reprint.ts",
+  "base_path": "OP05/characters/119-monkey-d-luffy.ts",
+  "variant_text": {
+   "effect": "[On Play] DON!! -10: Place all of your Characters except this Character at the bottom of your deck in any order. Then, take an extra turn after this one.[Activate:Main][Once Per Turn] (1): Add up to 1 DON!! card from your DON!! deck and set it as active.Disclaimer: This card was reprinted from the original set with changes to the artist credit (note the lack of pen symbol next to the artist name)."
+  },
+  "base_text": {
+   "effect": "[On Play] DON!! -10: Place all of your Characters except this Character at the bottom of your deck in any order. Then, take an extra turn after this one. [Activate:Main][Once Per Turn] (1): Add up to 1 DON!! card from your DON!! deck and set it as active."
+  }
+ },
+ {
+  "id": "OP01-120_p7",
+  "base_id": "OP01-120",
+  "category": "formatting",
+  "path": "PRB01/characters/120-shanks-op01-120-reprint.ts",
+  "base_path": "OP01/characters/120-shanks.ts",
+  "variant_text": {
+   "effect": "[Rush] (This card can attack on the turn in which it is played.)[When Attacking] Your opponent cannot activate a [Blocker] Character that has 2000 or less power during this battle.Disclaimer: This card was reprinted from the original set with changes to the artist credit (note the lack of pen symbol next to the artist name)."
+  },
+  "base_text": {
+   "effect": "[Rush] (This card can attack on the turn in which it is played.) [When Attacking] Your opponent cannot activate a [Blocker] Character that has 2000 or less power during this battle."
+  }
+ },
+ {
+  "id": "OP02-121_r1",
+  "base_id": "OP02-121",
+  "category": "formatting",
+  "path": "PRB01/characters/121-kuzan-op02-121-reprint.ts",
+  "base_path": "OP02/characters/121-kuzan.ts",
+  "variant_text": {
+   "effect": "[Your Turn] Give all of your opponent's Characters -5 cost.[On Play] K.O. up to 1 of your opponent's Characters with a cost of 0.Disclaimer: This card was reprinted from the original set with changes to the artist credit (note the lack of pen symbol next to the artist name)."
+  },
+  "base_text": {
+   "effect": "[Your Turn] Give all of your opponent's Characters -5 cost. [On Play] K.O. up to 1 of your opponent's Characters with a cost of 0."
+  }
+ },
+ {
+  "id": "OP01-121_p7",
+  "base_id": "OP01-121",
+  "category": "formatting",
+  "path": "PRB01/characters/121-yamato-op01-121-reprint.ts",
+  "base_path": "OP01/characters/121-yamato.ts",
+  "variant_text": {
+   "effect": "Also treat this card's name as [Kouzuki Oden] according to the rules.[Double Attack] (This card deals 2 damage.)[Banish] (When this card deals damage, the target card is trashed without activating its Trigger.)Disclaimer: This card was reprinted from the original set with an additional security stamp on the bottom-left corner (note that this difference is not visible in official sample images)."
+  },
+  "base_text": {
+   "effect": "Also treat this card's name as [Kouzuki Oden] according to the rules. [Double Attack] (This card deals 2 damage.) [Banish] (When this card deals damage, the target card is trashed without activating its Trigger.)"
+  }
+ },
+ {
+  "id": "OP03-122_r1",
+  "base_id": "OP03-122",
+  "category": "formatting",
+  "path": "PRB01/characters/122-sogeking-manga.ts",
+  "base_path": "OP03/characters/122-sogeking.ts",
+  "variant_text": {
+   "effect": "Also treat this card's name as [Usopp] according to the rules.[On Play] Return up to 1 Character with a cost of 6 or less to the owner's hand. Then, draw 2 cards and trash 2 cards from your hand.Disclaimer: This card was reprinted from the original set without the original textured foil."
+  },
+  "base_text": {
+   "effect": "Also treat this card's name as [Usopp] according to the rules. [On Play] Return up to 1 Character with a cost of 6 or less to the owner's hand. Then, draw 2 cards and trash 2 cards from your hand."
+  }
+ },
+ {
+  "id": "OP03-123_r1",
+  "base_id": "OP03-123",
+  "category": "formatting",
+  "path": "PRB01/characters/123-charlotte-katakuri-reprint.ts",
+  "base_path": "OP03/characters/123-charlotte-katakuri.ts",
+  "variant_text": {
+   "effect": "[On Play] Add up to 1 Character with a cost of 8 or less to the top or bottom of the owner's Life cards face-up.Disclaimer: This card was reprinted from the original set with changes to the artist credit (note the lack of pen symbol next to the artist name)."
+  },
+  "base_text": {
+   "effect": "[On Play] Add up to 1 Character with a cost of 8 or less to the top or bottom of the owner's Life cards face-up."
+  }
+ },
+ {
+  "id": "ST01-014_p2",
+  "base_id": "ST01-014",
+  "category": "other",
+  "path": "PRB01/events/014-guard-point-jolly-roger-foil.ts",
+  "base_path": "ST01/index.ts",
+  "variant_text": {
+   "effect": "[Counter] Up to 1 of your Leader or Character cards gains +3000 power during this battle.[Trigger] Up to 1 of your Leader or Character cards gains +1000 power during this turn."
+  },
+  "base_text": {
+   "trigger": "[Trigger] Up to 1 of your Leader or Character cards gains +1000 power during this turn.",
+   "effect": "[Counter] Up to 1 of your Leader or Character cards gains +3000 power during this battle."
+  }
+ },
+ {
+  "id": "OP01-029_p2",
+  "base_id": "OP01-029",
+  "category": "formatting",
+  "path": "PRB01/events/029-radical-beam-jolly-roger-foil.ts",
+  "base_path": "OP01/events/029-radical-beam.ts",
+  "variant_text": {
+   "effect": "[Counter] Up to 1 of your Leader or Character cards gains +2000 power during this battle. Then, if you have 2 or less Life cards, that card gains an additional +2000 power.This card has been officially errata'd."
+  },
+  "base_text": {
+   "effect": "[Counter] Up to 1 of your Leader or Character cards gains +2000 power during this battle. Then, if you have 2 or less Life cards, that card gains an additional +2000 power.  This card has been officially errata'd."
+  }
+ },
+ {
+  "id": "OP04-036_p2",
+  "base_id": "OP04-036",
+  "category": "formatting",
+  "path": "PRB01/events/036-donquixote-family-jolly-roger-foil.ts",
+  "base_path": "OP04/events/036-donquixote-family.ts",
+  "variant_text": {
+   "effect": "[Counter] Look at 5 cards from the top of your deck; reveal up to 1 [Donquixote Pirates] type card and add it to your hand. Then, place the rest at the bottom of your deck in any order.[Trigger] Activate this card's [Counter] effect."
+  },
+  "base_text": {
+   "effect": "[Counter] Look at 5 cards from the top of your deck; reveal up to 1 [Donquixote Pirates] type card and add it to your hand. Then, place the rest at the bottom of your deck in any order. [Trigger] Activate this card's [Counter] effect."
+  }
+ },
+ {
+  "id": "OP06-038_p2",
+  "base_id": "OP06-038",
+  "category": "keyword",
+  "path": "PRB01/events/038-the-billion-fold-world-trichiliocosm-jolly-roger-foil.ts",
+  "base_path": "OP06/events/038-the-billion-fold-world-trichiliocosm.ts",
+  "variant_text": {
+   "effect": "[Counter] Up to 1 of your Leader or Character cards gains +2000 power during this battle. Then, if you have 8 or more rested cards, that card gains an additional +2000 power during this battle.[Trigger] K.O. up to 1 of your opponent's rested Characters with a cost of 3 or less."
+  },
+  "base_text": {
+   "effect": "[Counter] Up to 1 of your Leader or Character cards gains +2000 power during this battle. Then, if you have 8 or more rested cards, that card gains an additional +2000 power during this battle."
+  }
+ },
+ {
+  "id": "OP03-055_p2",
+  "base_id": "OP03-055",
+  "category": "formatting",
+  "path": "PRB01/events/055-gum-gum-giant-gavel-jolly-roger-foil.ts",
+  "base_path": "OP03/events/055-gum-gum-giant-gavel.ts",
+  "variant_text": {
+   "effect": "[Counter] You may trash 1 card from your hand: Up to 1 of your Leader gains +4000 power during this battle. Then, you may trash 2 cards from the top of your deck.[Trigger] Return up to 1 Character with a cost of 4 or less to the owner's hand."
+  },
+  "base_text": {
+   "effect": "[Counter] You may trash 1 card from your hand: Up to 1 of your Leader gains +4000 power during this battle. Then, you may trash 2 cards from the top of your deck. [Trigger] Return up to 1 Character with a cost of 4 or less to the owner's hand."
+  }
+ },
+ {
+  "id": "OP06-056_p2",
+  "base_id": "OP06-056",
+  "category": "identical",
+  "path": "PRB01/events/056-ama-no-murakumo-sword-jolly-roger-foil.ts",
+  "base_path": "OP06/events/056-ama-no-murakumo-sword.ts",
+  "variant_text": {
+   "effect": "[Main] Place up to 1 of your opponent's Characters with a cost of 2 or less and up to 1 of your opponent's Characters with a cost of 1 or less at the bottom of the owner's deck in any order."
+  },
+  "base_text": {
+   "effect": "[Main] Place up to 1 of your opponent's Characters with a cost of 2 or less and up to 1 of your opponent's Characters with a cost of 1 or less at the bottom of the owner's deck in any order."
+  }
+ },
+ {
+  "id": "OP04-056_p2_6KicMKv",
+  "base_id": "OP04-056",
+  "category": "formatting",
+  "path": "PRB01/events/056-gum-gum-red-roc-jolly-roger-foil.ts",
+  "base_path": "OP04/events/056-gum-gum-red-roc.ts",
+  "variant_text": {
+   "effect": "[Main] Place up to 1 Character at the bottom of the owner's deck.[Trigger] Place up to 1 Character with a cost of 4 or less at the bottom of the owner's deck."
+  },
+  "base_text": {
+   "effect": "[Main] Place up to 1 Character at the bottom of the owner's deck. [Trigger] Place up to 1 Character with a cost of 4 or less at the bottom of the owner's deck."
+  }
+ },
+ {
+  "id": "OP03-056_p2",
+  "base_id": "OP03-056",
+  "category": "formatting",
+  "path": "PRB01/events/056-sanji-s-pilaf-jolly-roger-foil.ts",
+  "base_path": "OP03/events/056-sanji-s-pilaf.ts",
+  "variant_text": {
+   "effect": "[Main] Draw 2 cards.[Trigger] Activate this card's [Main] effect."
+  },
+  "base_text": {
+   "effect": "[Main] Draw 2 cards. [Trigger] Activate this card's [Main] effect."
+  }
+ },
+ {
+  "id": "OP05-057_p2",
+  "base_id": "OP05-057",
+  "category": "formatting",
+  "path": "PRB01/events/057-hound-blaze-jolly-roger-foil.ts",
+  "base_path": "OP05/events/057-hound-blaze.ts",
+  "variant_text": {
+   "effect": "[Main] Up to 1 of your Leader or Character cards gains +3000 power during this turn. Then, place up to 1 Character with a cost of 2 or less at the bottom of the owner's deck.[Trigger] Return up to 1 Character with a cost of 3 or less to the owner's hand."
+  },
+  "base_text": {
+   "effect": "[Main] Up to 1 of your Leader or Character cards gains +3000 power during this turn. Then, place up to 1 Character with a cost of 2 or less at the bottom of the owner's deck. [Trigger] Return up to 1 Character with a cost of 3 or less to the owner's hand."
+  }
+ },
+ {
+  "id": "OP03-057_p2",
+  "base_id": "OP03-057",
+  "category": "formatting",
+  "path": "PRB01/events/057-three-thousand-worlds-jolly-roger-foil.ts",
+  "base_path": "OP03/events/057-three-thousand-worlds.ts",
+  "variant_text": {
+   "effect": "[Main] Place up to 1 Character with a cost of 5 or less at the bottom of the owner's deck.[Trigger] Place up to 1 Character with a cost of 3 or less at the bottom of the owner's deck."
+  },
+  "base_text": {
+   "effect": "[Main] Place up to 1 Character with a cost of 5 or less at the bottom of the owner's deck. [Trigger] Place up to 1 Character with a cost of 3 or less at the bottom of the owner's deck."
+  }
+ },
+ {
+  "id": "OP02-089_p2",
+  "base_id": "OP02-089",
+  "category": "formatting",
+  "path": "PRB01/events/089-judgment-of-hell-jolly-roger-foil.ts",
+  "base_path": "OP02/events/089-judgment-of-hell.ts",
+  "variant_text": {
+   "effect": "[Counter] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): Give up to a total of 2 of your opponent's Leader or Character cards -3000 power during this turn.[Trigger] If your opponent has 6 or more DON!! cards on their field, your opponent returns 1 DON!! card from their field to their DON!! deck."
+  },
+  "base_text": {
+   "effect": "[Counter] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): Give up to a total of 2 of your opponent's Leader or Character cards -3000 power during this turn. [Trigger] If your opponent has 6 or more DON!! cards on their field, your opponent returns 1 DON!! card from their field to their DON!! deck."
+  }
+ },
+ {
+  "id": "OP03-094_p2",
+  "base_id": "OP03-094",
+  "category": "absent",
+  "path": "PRB01/events/094-air-door-jolly-roger-foil.ts",
+  "base_path": "OP03/events/094-air-door.ts",
+  "variant_text": {},
+  "base_text": {
+   "trigger": "main"
+  }
+ },
+ {
+  "id": "OP04-095_p2",
+  "base_id": "OP04-095",
+  "category": "formatting",
+  "path": "PRB01/events/095-barrier-jolly-roger-foil.ts",
+  "base_path": "OP04/events/095-barrier.ts",
+  "variant_text": {
+   "effect": "[Counter] Up to 1 of your Leader or Character cards gains +2000 power during this battle. Then, if you have 15 or more cards in your trash, that card gains an additional +2000 power during this battle.[Trigger] Draw 2 cards and trash 1 card from your hand."
+  },
+  "base_text": {
+   "effect": "[Counter] Up to 1 of your Leader or Character cards gains +2000 power during this battle. Then, if you have 15 or more cards in your trash, that card gains an additional +2000 power during this battle. [Trigger] Draw 2 cards and trash 1 card from your hand."
+  }
+ },
+ {
+  "id": "OP05-114_p2",
+  "base_id": "OP05-114",
+  "category": "formatting",
+  "path": "PRB01/events/114-el-thor-jolly-roger-foil.ts",
+  "base_path": "OP05/events/114-el-thor.ts",
+  "variant_text": {
+   "effect": "[Counter] Up to 1 of your Leader or Character cards gains +2000 power during this battle. Then, if your opponent has 2 or less Life cards, that card gains an additional +2000 power during this battle.[Trigger] K.O. up to 1 of your opponent's Characters with a cost equal to or less than the number of your opponent's Life Cards."
+  },
+  "base_text": {
+   "effect": "[Counter] Up to 1 of your Leader or Character cards gains +2000 power during this battle. Then, if your opponent has 2 or less Life cards, that card gains an additional +2000 power during this battle. [Trigger] K.O. up to 1 of your opponent's Characters with a cost equal to or less than the number of your opponent's Life Cards."
+  }
+ },
+ {
+  "id": "OP05-115_p2",
+  "base_id": "OP05-115",
+  "category": "formatting",
+  "path": "PRB01/events/115-two-hundred-million-volts-amaru-jolly-roger-foil.ts",
+  "base_path": "OP05/events/115-two-hundred-million-volts-amaru.ts",
+  "variant_text": {
+   "effect": "[Main] Up to 1 of your Leader or Character cards gains +3000 power during this turn. Then, if you have 1 or less Life cards, rest up to 1 of your opponent's Characters with a cost of 4 or less.[Trigger] You may trash 2 cards from your hand: Add up to 1 card from the top of your deck to the top of your Life cards."
+  },
+  "base_text": {
+   "effect": "[Main] Up to 1 of your Leader or Character cards gains +3000 power during this turn. Then, if you have 1 or less Life cards, rest up to 1 of your opponent's Characters with a cost of 4 or less. [Trigger] You may trash 2 cards from your hand: Add up to 1 card from the top of your deck to the top of your Life cards."
+  }
+ },
+ {
+  "id": "OP02-117_p6",
+  "base_id": "OP02-117",
+  "category": "formatting",
+  "path": "PRB01/events/117-ice-age-textured-foil.ts",
+  "base_path": "OP02/events/117-ice-age.ts",
+  "variant_text": {
+   "effect": "[Main] Give up to 1 of your opponent's Characters -5 cost during this turn.[Trigger] K.O. up to 1 of your opponent's Characters with a cost of 3 or less."
+  },
+  "base_text": {
+   "effect": "[Main] Give up to 1 of your opponent's Characters -5 cost during this turn. [Trigger] K.O. up to 1 of your opponent's Characters with a cost of 3 or less."
+  }
+ },
+ {
+  "id": "OP03-121_p3",
+  "base_id": "OP03-121",
+  "category": "formatting",
+  "path": "PRB01/events/121-thunder-bolt-jolly-roger-foil.ts",
+  "base_path": "OP03/events/121-thunder-bolt.ts",
+  "variant_text": {
+   "effect": "[Main] You may trash 1 card from the top of your Life cards: K.O. up to 1 of your opponent's Characters with a cost of 5 or less.[Trigger] K.O. up to 1 of your opponent's Characters with a cost of 5 or less."
+  },
+  "base_text": {
+   "effect": "[Main] You may trash 1 card from the top of your Life cards: K.O. up to 1 of your opponent's Characters with a cost of 5 or less. [Trigger] K.O. up to 1 of your opponent's Characters with a cost of 5 or less."
+  }
+ },
+ {
+  "id": "PRB02-006_p2",
+  "base_id": "PRB02-006",
+  "category": "identical",
+  "path": "OP14EB04/characters/006-roronoa-zoro-prb02-006-sp.ts",
+  "base_path": "PRB02/characters/006-roronoa-zoro-prb02-006.ts",
+  "variant_text": {
+   "effect": "[Opponent's Turn] If this Character would be rested by your opponent's Character's effect, you may rest 1 of your other Characters instead.[Blocker]"
+  },
+  "base_text": {
+   "effect": "[Opponent's Turn] If this Character would be rested by your opponent's Character's effect, you may rest 1 of your other Characters instead.[Blocker]"
+  }
+ },
+ {
+  "id": "EB01-023_p1",
+  "base_id": "EB01-023",
+  "category": "identical",
+  "path": "OP14EB04/characters/023-edward-weevil-eb01-023-sp.ts",
+  "base_path": "EB01/characters/023-edward-weevil.ts",
+  "variant_text": {
+   "effect": "[On Play] Draw 1 card."
+  },
+  "base_text": {
+   "effect": "[On Play] Draw 1 card."
+  }
+ },
+ {
+  "id": "OP12-030_p2",
+  "base_id": "OP12-030",
+  "category": "formatting",
+  "path": "OP14EB04/characters/030-dracule-mihawk-op12-030-sp.ts",
+  "base_path": "OP12/characters/030-dracule-mihawk.ts",
+  "variant_text": {
+   "effect": "[Blocker][On Play] Set up to 4 of your DON!! cards as active. Then, you cannot play Character cards with a base cost of 7 or more during this turn."
+  },
+  "base_text": {
+   "effect": "[Blocker]\\n[On Play] Set up to 4 of your DON!! cards as active. Then, you cannot play Character cards with a base cost of 7 or more during this turn."
+  }
+ },
+ {
+  "id": "OP07-046_p2",
+  "base_id": "OP07-046",
+  "category": "formatting",
+  "path": "OP14EB04/characters/046-sengoku-op07-046-sp.ts",
+  "base_path": "OP07/characters/046-sengoku.ts",
+  "variant_text": {
+   "effect": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 {The Seven Warlords of the Sea} type card and add it to your hand. Then, place the rest at the bottom of your deck in any order."
+  },
+  "base_text": {
+   "effect": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 [The Seven Warlords of the Sea] type card and add it to your hand. Then, place the rest at the bottom of your deck in any order."
+  }
+ },
+ {
+  "id": "OP09-051_p4",
+  "base_id": "OP09-051",
+  "category": "identical",
+  "path": "OP14EB04/characters/051-buggy-op09-051-sp-gold.ts",
+  "base_path": "OP09/characters/051-buggy.ts",
+  "variant_text": {
+   "effect": "[On Play] Place up to 1 of your opponent's Characters at the bottom of the owner's deck. Then, if you do not have 5 Characters with a cost of 5 or more, place this Character at the bottom of the owner's deck."
+  },
+  "base_text": {
+   "effect": "[On Play] Place up to 1 of your opponent's Characters at the bottom of the owner's deck. Then, if you do not have 5 Characters with a cost of 5 or more, place this Character at the bottom of the owner's deck."
+  }
+ },
+ {
+  "id": "OP10-065_p1",
+  "base_id": "OP10-065",
+  "category": "absent",
+  "path": "OP14EB04/characters/065-sugar-op10-065-sp.ts",
+  "base_path": "OP10/characters/065-sugar.ts",
+  "variant_text": {},
+  "base_text": {
+   "trigger": "activateMain"
+  }
+ },
+ {
+  "id": "OP06-093_p5",
+  "base_id": "OP06-093",
+  "category": "sign",
+  "path": "OP14EB04/characters/093-perona-op06-093-sp.ts",
+  "base_path": "OP06/characters/093-perona.ts",
+  "variant_text": {
+   "effect": "[On Play] If your opponent has 5 or more cards in their hand, choose one:\u2022 Your opponent trashes 1 card from their hand.\u2022 Give up to 1 of your opponent's Characters 3 cost during this turn."
+  },
+  "base_text": {
+   "effect": "[On Play] If your opponent has 5 or more cards in their hand, choose one:\\n\u2022 Your opponent trashes 1 card from their hand.\\n\u2022 Give up to 1 of your opponent's Characters -3 cost during this turn."
+  }
+ },
+ {
+  "id": "OP12-108_upbOn8S",
+  "base_id": "OP12-108",
+  "category": "identical",
+  "path": "OP14EB04/characters/108-donquixote-rosinante-op12-108.ts",
+  "base_path": "OP12/characters/108-donquixote-rosinante.ts",
+  "variant_text": {
+   "effect": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 [Trafalgar Law] and add it to your hand. Then, place the rest at the bottom of your deck in any order."
+  },
+  "base_text": {
+   "effect": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 [Trafalgar Law] and add it to your hand. Then, place the rest at the bottom of your deck in any order."
+  }
+ },
+ {
+  "id": "EB01-001_p2",
+  "base_id": "EB01-001",
+  "category": "absent",
+  "path": "EB02/leaders/001-kouzuki-oden.ts",
+  "base_path": "EB01/leaders/001-kouzuki-oden.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "All of your [Land of Wano] type Character cards without a Counter have a +1000 Counter, according to the rules.[DON!! x1] [When Attacking] If you have a [Land of Wano] type Character with a cost of 5 or more, this Leader gains +1000 power until the start of your next turn."
+  }
+ },
+ {
+  "id": "OP07-001_aTrOjD9",
+  "base_id": "OP07-001",
+  "category": "formatting",
+  "path": "EB02/leaders/001-monkey-d-dragon.ts",
+  "base_path": "OP07/leaders/001-monkey-d-dragon.ts",
+  "variant_text": {
+   "effect": "[Activate: Main] [Once Per Turn] Give up to 2 total of your currently given DON!! cards to 1 of your Characters."
+  },
+  "base_text": {
+   "effect": "[Activate:Main][Once Per Turn]Give up to 2 total of your currently given DON!! cards to 1 of your Characters."
+  }
+ },
+ {
+  "id": "OP05-001_aimdTZC",
+  "base_id": "OP05-001",
+  "category": "sign",
+  "path": "EB02/leaders/001-sabo.ts",
+  "base_path": "OP05/leaders/001-sabo.ts",
+  "variant_text": {
+   "effect": "[DON!! x1] [Opponent's Turn] [Once Per Turn] If your Character with 5000 power or more would be K.O.'d, you may give that Character 1000 power during this turn instead of that Character being K.O.'d."
+  },
+  "base_text": {
+   "effect": "[DON!! x1][Opponent's Turn][Once Per Turn] If your Character with 5000 power or more would be K.O.'d, you may give that Character -1000 power during this turn instead of that Character being K.O.'d."
+  }
+ },
+ {
+  "id": "OP08-001_txo981N",
+  "base_id": "OP08-001",
+  "category": "absent",
+  "path": "EB02/leaders/001-tony-tony-chopper.ts",
+  "base_path": "OP08/leaders/001-tony-tony-chopper.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "[Activate:Main] [Once Per Turn] Give up to 3 of your [Animal] or [Drum Kingdom] type Characters up to 1 rested DON!! card each."
+  }
+ },
+ {
+  "id": "OP06-001_LGQjHEA",
+  "base_id": "OP06-001",
+  "category": "absent",
+  "path": "EB02/leaders/001-uta.ts",
+  "base_path": "OP06/leaders/001-uta.ts",
+  "variant_text": {},
+  "base_text": {
+   "trigger": "whenAttacking"
+  }
+ },
+ {
+  "id": "OP05-002_nKgWASn",
+  "base_id": "OP05-002",
+  "category": "absent",
+  "path": "EB02/leaders/002-belo-betty.ts",
+  "base_path": "OP05/leaders/002-belo-betty.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "[Activate:Main][Once Per Turn] You may trash 1 [Revolutionary Army] type card from your hand: Up to 3 of your [Revolutionary Army] type Characters or Characters with a [Trigger] gain +3000 power during this turn."
+  }
+ },
+ {
+  "id": "OP08-002_Kf4kRhq",
+  "base_id": "OP08-002",
+  "category": "sign",
+  "path": "EB02/leaders/002-marco.ts",
+  "base_path": "OP08/leaders/002-marco.ts",
+  "variant_text": {
+   "effect": "[DON!! x1] [Activate: Main] [Once Per Turn] Draw 1 card and place 1 card from your hand at the top or bottom of your deck. Then, give up to 1 of your opponent's Characters 2000 power during this turn."
+  },
+  "base_text": {
+   "effect": "[DON!! x1] [Activate: Main] [Once Per Turn] Draw 1 card and place 1 card from your hand at the top or bottom of your deck. Then, give up to 1 of your opponent's Characters -2000 power during this turn."
+  }
+ },
+ {
+  "id": "OP07-019_5dJaBbJ",
+  "base_id": "OP07-019",
+  "category": "formatting",
+  "path": "EB02/leaders/019-jewelry-bonney.ts",
+  "base_path": "OP07/leaders/019-jewelry-bonney.ts",
+  "variant_text": {
+   "effect": "[On Your Opponent's Attack] [Once Per Turn] 1 (You may rest the specified number of DON!! cards in your cost area.): Rest up to 1 of your opponent's Leader or Character cards."
+  },
+  "base_text": {
+   "effect": "[On Your Opponent's Attack] [Once Per Turn] (1) (You may rest the specified number of DON!! cards in your cost area.): Rest up to 1 of your opponent's Leader or Character cards."
+  }
+ },
+ {
+  "id": "OP06-020_4ite5RZ",
+  "base_id": "OP06-020",
+  "category": "formatting",
+  "path": "EB02/leaders/020-hody-jones.ts",
+  "base_path": "OP06/leaders/020-hody-jones.ts",
+  "variant_text": {
+   "effect": "[Activate: Main] You may rest this Leader: Rest up to 1 of your opponent's DON!! cards or Characters with a cost of 3 or less. Then, you cannot add Life cards to your hand using your own effects during this turn."
+  },
+  "base_text": {
+   "effect": "[Activate:Main] You may rest this Leader: Rest up to 1 of your opponent's DON!! cards or Characters with a cost of 3 or less. Then, you cannot add Life cards to your hand using your own effects during this turn."
+  }
+ },
+ {
+  "id": "OP08-021_bfZmE7y",
+  "base_id": "OP08-021",
+  "category": "absent",
+  "path": "EB02/leaders/021-carrot.ts",
+  "base_path": "OP08/leaders/021-carrot.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "[Activate:Main] [Once Per Turn] If you have a [Minks] type Character, rest up to 1 of your opponent's Characters with a cost of 5 or less."
+  }
+ },
+ {
+  "id": "EB01-021_p2",
+  "base_id": "EB01-021",
+  "category": "absent",
+  "path": "EB02/leaders/021-hannyabal.ts",
+  "base_path": "EB01/leaders/021-hannyabal.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "[End of Your Turn] You may return 1 of your [Impel Down] type Characters with a cost of 2 or more to the owner's hand: Add up to 1 DON!! card from your DON!! deck and set it as active."
+  }
+ },
+ {
+  "id": "OP06-021_PsM3gfh",
+  "base_id": "OP06-021",
+  "category": "sign",
+  "path": "EB02/leaders/021-perona.ts",
+  "base_path": "OP06/leaders/021-perona.ts",
+  "variant_text": {
+   "effect": "[Activate: Main] [Once Per Turn] Choose one:\\n\u2022 Rest up to 1 of your opponent's Characters with a cost of 4 or less.\\n\u2022 Give up to 1 of your opponent's Characters 1 cost during this turn."
+  },
+  "base_text": {
+   "effect": "[Activate:Main] [Once Per Turn] Choose one:\\n\u2022 Rest up to 1 of your opponent's Characters with a cost of 4 or less.\\n\u2022 Give up to 1 of your opponent's Characters -1 cost during this turn."
+  }
+ },
+ {
+  "id": "OP05-022_Aqd5X1p",
+  "base_id": "OP05-022",
+  "category": "formatting",
+  "path": "EB02/leaders/022-donquixote-rosinante.ts",
+  "base_path": "OP05/leaders/022-donquixote-rosinante.ts",
+  "variant_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\\n[End of Your Turn] If you have 6 or less cards in your hand, set this Leader as active."
+  },
+  "base_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.) [End of Your Turn] If you have 6 or less cards in your hand, set this Leader as active."
+  }
+ },
+ {
+  "id": "OP06-022_HNfIWVa",
+  "base_id": "OP06-022",
+  "category": "formatting",
+  "path": "EB02/leaders/022-yamato.ts",
+  "base_path": "OP06/leaders/022-yamato.ts",
+  "variant_text": {
+   "effect": "[Double Attack] (This card deals 2 damage.)\\n[Activate: Main] [Once Per Turn] If your opponent has 3 or less Life cards, give up to 2 rested DON!! cards to 1 of your Characters."
+  },
+  "base_text": {
+   "effect": "[Double Attack] (This card deals 2 damage.)\\n[Activate:Main] [Once Per Turn] If your opponent has 3 or less Life cards, give up to 2 rested DON!! cards to 1 of your Characters."
+  }
+ },
+ {
+  "id": "OP07-038_BsQgtR0",
+  "base_id": "OP07-038",
+  "category": "identical",
+  "path": "EB02/leaders/038-boa-hancock.ts",
+  "base_path": "OP07/leaders/038-boa-hancock.ts",
+  "variant_text": {
+   "effect": "[Your Turn] [Once Per Turn] This effect can be activated when a Character is removed from the field by your effect. If you have 5 or less cards in your hand, draw 1 card."
+  },
+  "base_text": {
+   "effect": "[Your Turn] [Once Per Turn] This effect can be activated when a Character is removed from the field by your effect. If you have 5 or less cards in your hand, draw 1 card."
+  }
+ },
+ {
+  "id": "EB01-040_p2",
+  "base_id": "EB01-040",
+  "category": "formatting",
+  "path": "EB02/leaders/040-kyros.ts",
+  "base_path": "EB01/leaders/040-kyros.ts",
+  "variant_text": {
+   "effect": "[Activate: Main] [Once Per Turn] You may turn 1 card from the top of your Life cards face-up: K.O. up to 1 of your opponent's Characters with a cost of 0."
+  },
+  "base_text": {
+   "effect": "[Activate:Main] [Once Per Turn] You may turn 1 card from the top of your Life cards face-up: K.O. up to 1 of your opponent's Characters with a cost of 0."
+  }
+ },
+ {
+  "id": "OP06-042_nOFeCZe",
+  "base_id": "OP06-042",
+  "category": "identical",
+  "path": "EB02/leaders/042-vinsmoke-reiju.ts",
+  "base_path": "OP06/leaders/042-vinsmoke-reiju.ts",
+  "variant_text": {
+   "effect": "[Your Turn] [Once Per Turn] When a DON!! card on your field is returned to your DON!! deck, draw 1 card."
+  },
+  "base_text": {
+   "effect": "[Your Turn] [Once Per Turn] When a DON!! card on your field is returned to your DON!! deck, draw 1 card."
+  }
+ },
+ {
+  "id": "OP08-057_c2YBDAN",
+  "base_id": "OP08-057",
+  "category": "sign",
+  "path": "EB02/leaders/057-king.ts",
+  "base_path": "OP08/leaders/057-king.ts",
+  "variant_text": {
+   "effect": "[Activate: Main] [Once Per Turn] DON!! 2 (You may return the specified number of DON!! cards from your field to your DON!! deck.): Choose one:\\n\u2022 If you have 5 or less cards in your hand, draw 1 card.\\n\u2022 Give up to 1 of your opponent's Characters 2 cost during this turn."
+  },
+  "base_text": {
+   "effect": "[Activate:Main] [Once Per Turn] DON!! \u22122 (You may return the specified number of DON!! cards from your field to your DON!! deck.): Choose one: \u2022 If you have 5 or less cards in your hand, draw 1 card. \u2022 Give up to 1 of your opponent's Characters \u22122 cost during this turn."
+  }
+ },
+ {
+  "id": "OP08-058_ebjAGog",
+  "base_id": "OP08-058",
+  "category": "identical",
+  "path": "EB02/leaders/058-charlotte-pudding.ts",
+  "base_path": "OP08/leaders/058-charlotte-pudding.ts",
+  "variant_text": {
+   "effect": "[When Attacking] You may turn 2 cards from the top of your Life cards face-up: Add up to 1 DON!! card from your DON!! deck and rest it."
+  },
+  "base_text": {
+   "effect": "[When Attacking] You may turn 2 cards from the top of your Life cards face-up: Add up to 1 DON!! card from your DON!! deck and rest it."
+  }
+ },
+ {
+  "id": "OP07-059_KlofiS1",
+  "base_id": "OP07-059",
+  "category": "sign",
+  "path": "EB02/leaders/059-foxy.ts",
+  "base_path": "OP07/leaders/059-foxy.ts",
+  "variant_text": {
+   "effect": "[When Attacking] DON!! 3 (You may return the specified number of DON!! cards from your field to your DON!! deck.): If you have 3 or more \\\"Foxy Pirates\\\" type Characters, select your opponent's rested Leader and up to 1 Character card. The selected cards will not become active in your opponent's next Refresh Phase."
+  },
+  "base_text": {
+   "effect": "[When Attacking] DON!! -3 (You may return the specified number of DON!! cards from your field to your DON!! deck.): If you have 3 or more [Foxy Pirates] type Characters, select your opponent's rested Leader and up to 1 Character card. The selected cards will not become active in your opponent's next Refresh Phase."
+  }
+ },
+ {
+  "id": "OP05-060_6hn9zJx",
+  "base_id": "OP05-060",
+  "category": "formatting",
+  "path": "EB02/leaders/060-monkey-d-luffy.ts",
+  "base_path": "OP05/leaders/060-monkey-d-luffy.ts",
+  "variant_text": {
+   "effect": "[Activate: Main] [Once Per Turn] You may add 1 card from the top of your Life cards to your hand: If you have 0 or 3 or more DON!! cards on your field, add up to 1 DON!! card from your DON!! deck and set it as active."
+  },
+  "base_text": {
+   "effect": "[Activate:Main][Once Per Turn] You may add 1 card from the top of your Life cards to your hand: If you have 0 or 3 or more DON!! cards on your field, add up to 1 DON!! card from your DON!! deck and set it as active."
+  }
+ },
+ {
+  "id": "OP07-079_q0dAX55",
+  "base_id": "OP07-079",
+  "category": "sign",
+  "path": "EB02/leaders/079-rob-lucci.ts",
+  "base_path": "OP07/leaders/079-rob-lucci.ts",
+  "variant_text": {
+   "effect": "[When Attacking] You may trash 2 cards from the top of your deck: Give up to 1 of your opponent's Characters 1 cost during this turn."
+  },
+  "base_text": {
+   "effect": "[When Attacking] You may trash 2 cards from the top of your deck: Give up to 1 of your opponent's Characters -1 cost during this turn."
+  }
+ },
+ {
+  "id": "OP06-080_nwlMmW7",
+  "base_id": "OP06-080",
+  "category": "absent",
+  "path": "EB02/leaders/080-gecko-moria.ts",
+  "base_path": "OP06/leaders/080-gecko-moria.ts",
+  "variant_text": {},
+  "base_text": {
+   "trigger": "whenAttacking"
+  }
+ },
+ {
+  "id": "OP07-097_8KRI3qq",
+  "base_id": "OP07-097",
+  "category": "absent",
+  "path": "EB02/leaders/097-vegapunk.ts",
+  "base_path": "OP07/leaders/097-vegapunk.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "This Leader cannot attack. [Activate: Main][Once Per Turn] (1) (You may rest the specified number of DON!! cards in your cost area.): Select up to 1 [Egghead] type card with a cost of 5 or less from your hand and play it or add it to the top of your Life cards face-up."
+  }
+ },
+ {
+  "id": "OP05-098_H7ASBF6",
+  "base_id": "OP05-098",
+  "category": "formatting",
+  "path": "EB02/leaders/098-enel.ts",
+  "base_path": "OP05/leaders/098-enel.ts",
+  "variant_text": {
+   "effect": "[Opponent's Turn] [Once Per Turn] When your number of Life cards becomes 0, add 1 card from the top of your deck to the top of your Life cards. Then, trash 1 card from your hand."
+  },
+  "base_text": {
+   "effect": "[Opponent's Turn][Once Per Turn] When your number of Life cards becomes 0, add 1 card from the top of your deck to the top of your Life cards. Then, trash 1 card from your hand."
+  }
+ },
+ {
+  "id": "OP08-098_ImACvUZ",
+  "base_id": "OP08-098",
+  "category": "absent",
+  "path": "EB02/leaders/098-kalgara.ts",
+  "base_path": "OP08/leaders/098-kalgara.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "[DON!! x1] [When Attacking] Play up to 1 {Shandian Warrior} type Character card from your hand with a cost equal to or less than the number of DON!! cards on your field. If you do, add 1 card from the top of your Life cards to your hand."
+  }
+ },
+ {
+  "id": "OP07-015_p2",
+  "base_id": "OP07-015",
+  "category": "formatting",
+  "path": "OP09/characters/015-monkey-d-dragon-sp.ts",
+  "base_path": "OP07/characters/015-monkey-d-dragon.ts",
+  "variant_text": {
+   "effect": "[Rush] (This card can attack on the turn in which it is played.)\\n[On Play] Give up to 2 rested DON!! cards to your Leader or 1 of your Characters."
+  },
+  "base_text": {
+   "effect": "[Rush](This card can attack on the turn in which it is played.) [On Play] Give up to 2 rested DON!! cards to your Leader or 1 of your Characters."
+  }
+ },
+ {
+  "id": "OP07-051_p3",
+  "base_id": "OP07-051",
+  "category": "identical",
+  "path": "OP09/characters/051-boa-hancock-sp.ts",
+  "base_path": "OP07/characters/051-boa-hancock.ts",
+  "variant_text": {
+   "effect": "[On Play] Up to 1 of your opponent's Characters other than [Monkey.D.Luffy] cannot attack until the end of your opponent's next turn. Then, place up to 1 Character with a cost of 1 or less at the bottom of the owner's deck."
+  },
+  "base_text": {
+   "effect": "[On Play] Up to 1 of your opponent's Characters other than [Monkey.D.Luffy] cannot attack until the end of your opponent's next turn. Then, place up to 1 Character with a cost of 1 or less at the bottom of the owner's deck."
+  }
+ },
+ {
+  "id": "OP05-067_p4",
+  "base_id": "OP05-067",
+  "category": "identical",
+  "path": "OP09/characters/067-zoro-juurou-sp.ts",
+  "base_path": "OP05/characters/067-zoro-juurou.ts",
+  "variant_text": {
+   "effect": "[When Attacking] If you have 3 or less Life cards, add up to 1 DON!! card from your DON!! deck and set it as active."
+  },
+  "base_text": {
+   "effect": "[When Attacking] If you have 3 or less Life cards, add up to 1 DON!! card from your DON!! deck and set it as active."
+  }
+ },
+ {
+  "id": "OP05-093_p2",
+  "base_id": "OP05-093",
+  "category": "identical",
+  "path": "OP09/characters/093-rob-lucci-sp.ts",
+  "base_path": "OP05/characters/093-rob-lucci.ts",
+  "variant_text": {
+   "effect": "[On Play] You may place 3 cards from your trash at the bottom of your deck in any order: K.O. up to 1 of your opponent's Characters with a cost of 2 or less and up to 1 of your opponent's Characters with a cost of 1 or less."
+  },
+  "base_text": {
+   "effect": "[On Play] You may place 3 cards from your trash at the bottom of your deck in any order: K.O. up to 1 of your opponent's Characters with a cost of 2 or less and up to 1 of your opponent's Characters with a cost of 1 or less."
+  }
+ },
+ {
+  "id": "OP08-106_p2",
+  "base_id": "OP08-106",
+  "category": "other",
+  "path": "OP09/characters/106-nami-sp.ts",
+  "base_path": "OP08/characters/106-nami.ts",
+  "variant_text": {
+   "effect": "[On Play] You may trash 1 card with a [Trigger] from your hand: K.O. up to 1 of your opponent's Characters with a cost of 5 or less. Then, if you have 3 or less cards in your hand, draw 1 card."
+  },
+  "base_text": {
+   "effect": "[On Play] You may trash 1 card with a [Trigger] from your hand: K.O. up to 1 of your opponent's Characters with a cost of 5 or less. Then, if you have 3 or less cards in your hand, draw 1 card. [Trigger] Activate this card's [On Play] effect."
+  }
+ },
+ {
+  "id": "OP04-119_p2",
+  "base_id": "OP04-119",
+  "category": "formatting",
+  "path": "OP09/characters/119-donquixote-rosinante-sp.ts",
+  "base_path": "OP04/characters/119-donquixote-rosinante.ts",
+  "variant_text": {
+   "effect": "[Opponent's Turn] If this Character is rested, your active Characters with a base cost of 5 cannot be K.O.'d by effects.\\n[On Play] You may rest this Character: Play up to 1 green Character card with a cost of 5 from your hand."
+  },
+  "base_text": {
+   "effect": "[Opponent's Turn] If this Character is rested, your active Characters with a base cost of 5 cannot be K.O.'d by effects. [On Play] You may rest this Character: Play up to 1 green Character card with a cost of 5 from your hand."
+  }
+ },
+ {
+  "id": "OP05-119_p6",
+  "base_id": "OP05-119",
+  "category": "sign",
+  "path": "OP09/characters/119-monkey-d-luffy-wanted-poster.ts",
+  "base_path": "OP05/characters/119-monkey-d-luffy.ts",
+  "variant_text": {
+   "effect": "[On Play] DON!! 10: Place all of your Characters except this Character at the bottom of your deck in any order. Then, take an extra turn after this one.\\n[Activate: Main] [Once Per Turn] You may rest 1 of your DON!! cards: Add up to 1 DON!! card from your DON!! deck and set it as active."
+  },
+  "base_text": {
+   "effect": "[On Play] DON!! -10: Place all of your Characters except this Character at the bottom of your deck in any order. Then, take an extra turn after this one. [Activate:Main][Once Per Turn] (1): Add up to 1 DON!! card from your DON!! deck and set it as active."
+  }
+ },
+ {
+  "id": "OP05-006_whMIxAV",
+  "base_id": "OP05-006",
+  "category": "identical",
+  "path": "EB03/characters/006-koala-op05-006.ts",
+  "base_path": "OP05/characters/006-koala.ts",
+  "variant_text": {
+   "effect": "[On Play] If your Leader has the [Revolutionary Army] type, give up to 1 of your opponent's Characters -3000 power during this turn."
+  },
+  "base_text": {
+   "effect": "[On Play] If your Leader has the [Revolutionary Army] type, give up to 1 of your opponent's Characters -3000 power during this turn."
+  }
+ },
+ {
+  "id": "EB02-026_SNA7j6H",
+  "base_id": "EB02-026",
+  "category": "identical",
+  "path": "EB03/characters/026-nefeltari-vivi-eb02-026.ts",
+  "base_path": "EB02/characters/026-nefeltari-vivi.ts",
+  "variant_text": {
+   "effect": "[On Play] If your Leader is multicolored and you have 5 or less cards in your hand, draw 2 cards."
+  },
+  "base_text": {
+   "effect": "[On Play] If your Leader is multicolored and you have 5 or less cards in your hand, draw 2 cards."
+  }
+ },
+ {
+  "id": "OP09-034_fp3lu9K",
+  "base_id": "OP09-034",
+  "category": "absent",
+  "path": "EB03/characters/034-perona-op09-034.ts",
+  "base_path": "OP09/characters/034-perona.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 [Dracule Mihawk] or {Thriller Bark Pirates} type card and add it to your hand. Then, place the rest at the bottom of your deck in any order and trash 1 card from your hand."
+  }
+ },
+ {
+  "id": "ST01-007_p3",
+  "base_id": "ST01-007",
+  "category": "other",
+  "path": "OP06/characters/007-nami-tr.ts",
+  "base_path": "ST01/index.ts",
+  "variant_text": {
+   "effect": "[Activate: Main] [Once Per Turn] Give up to 1 rested DON!! card to your Leader or 1 of your Characters."
+  },
+  "base_text": {
+   "effect": "[Activate: Main] [Once Per Turn] Give up to 1 rested DON!! card to your Leader or 1 of your Characters.",
+   "trigger": "activateMain"
+  }
+ },
+ {
+  "id": "OP03-008_p1",
+  "base_id": "OP03-008",
+  "category": "absent",
+  "path": "OP06/characters/008-buggy-sp.ts",
+  "base_path": "OP03/characters/008-buggy.ts",
+  "variant_text": {},
+  "base_text": {
+   "trigger": "onPlay"
+  }
+ },
+ {
+  "id": "OP04-024_p2",
+  "base_id": "OP04-024",
+  "category": "formatting",
+  "path": "OP06/characters/024-sugar-sp.ts",
+  "base_path": "OP04/characters/024-sugar.ts",
+  "variant_text": {
+   "effect": "[Opponent's Turn][Once Per Turn] When your opponent plays a Character, if your Leader has the [Donquixote Pirates] type, rest up to 1 of your opponent's Characters. Then, rest this Character.\\n[On Play] Rest up to 1 of your opponent's Characters with a cost of 4 or less."
+  },
+  "base_text": {
+   "effect": "[Opponent's Turn] [Once Per Turn] When your opponent plays a Character, if your Leader has the [Donquixote Pirates] type, rest up to 1 of your opponent's Characters. Then, rest this Character. [On Play] Rest up to 1 of your opponent's Characters with a cost of 4 or less."
+  }
+ },
+ {
+  "id": "OP05-051_p2",
+  "base_id": "OP05-051",
+  "category": "identical",
+  "path": "OP06/characters/051-borsalino-sp.ts",
+  "base_path": "OP05/characters/051-borsalino.ts",
+  "variant_text": {
+   "effect": "[On Play] Place up to 1 Character with a cost of 4 or less at the bottom of the owner's deck."
+  },
+  "base_text": {
+   "effect": "[On Play] Place up to 1 Character with a cost of 4 or less at the bottom of the owner's deck."
+  }
+ },
+ {
+  "id": "OP04-064_p2",
+  "base_id": "OP04-064",
+  "category": "sign",
+  "path": "OP06/characters/064-ms-all-sunday-sp.ts",
+  "base_path": "OP04/characters/064-ms-all-sunday.ts",
+  "variant_text": {
+   "effect": "[On Play] Add up to 1 DON!! card from your DON!! deck and rest it. Then, if you have 6 or more DON!! cards on your field, draw 1 card."
+  },
+  "base_text": {
+   "effect": "[On Play] Add up to 1 DON!! card from your DON!! deck and rest it. Then, if you have 6 or more DON!! cards on your field, draw 1 card. [Trigger] DON!! -2 (You may return the specified number of DON!! cards from your field to your DON!! deck.): Play this card."
+  }
+ },
+ {
+  "id": "OP05-091_p2",
+  "base_id": "OP05-091",
+  "category": "other",
+  "path": "OP06/characters/091-rebecca-sp.ts",
+  "base_path": "OP05/characters/091-rebecca.ts",
+  "variant_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\\n[On Play] Add up to 1 black Character card with a cost of 3 to 7 other than [Rebecca] from your trash to your hand. Then, play up to 1 black Character card with a cost of 3 or less from your hand rested."
+  },
+  "base_text": {
+   "effect": "[Blocker] [On Play] Add up to 1 black Character card with a cost of 3 to 7 other than [Rebecca] from your trash to your hand. Then, play up to 1 black Character card with a cost of 3 or less from your hand rested."
+  }
+ },
+ {
+  "id": "OP03-114_p2",
+  "base_id": "OP03-114",
+  "category": "formatting",
+  "path": "OP06/characters/114-charlotte-linlin-sp.ts",
+  "base_path": "OP03/characters/114-charlotte-linlin.ts",
+  "variant_text": {
+   "effect": "[On Play] If your Leader has the [Big Mom Pirates] type, add up to 1 card from the top of your deck to the top of your Life cards. Then, trash up to 1 card from the top of your opponent's Life cards."
+  },
+  "base_text": {
+   "effect": "[On Play] If your Leader has the {Big Mom Pirates} type, add up to 1 card from the top of your deck to the top of your Life cards. Then, trash up to 1 card from the top of your opponent's Life cards."
+  }
+ },
+ {
+  "id": "OP02-013_p3",
+  "base_id": "OP02-013",
+  "category": "sign",
+  "path": "OP08/characters/013-portgas-d-ace-sp.ts",
+  "base_path": "OP02/characters/013-portgas-d-ace.ts",
+  "variant_text": {
+   "effect": "[On Play] Give up to 2 of your opponent's Characters 3000 power during this turn. Then, if your Leader's type includes \\\"Whitebeard Piratess\\\", this Character gains [Rush] during this turn. (This card can attack on the turn in which it is played.)"
+  },
+  "base_text": {
+   "effect": "[On Play] Give up to 2 of your opponent's Characters -3000 power during this turn. Then, if your Leader's type includes \\\"Whitebeard Pirates\\\", this Character gains [Rush] during this turn. (This card can attack on the turn in which it is played.)"
+  }
+ },
+ {
+  "id": "OP07-109_p2",
+  "base_id": "OP07-109",
+  "category": "other",
+  "path": "OP08/characters/109-monkey-d-luffy-sp.ts",
+  "base_path": "OP07/characters/109-monkey-d-luffy.ts",
+  "variant_text": {
+   "effect": "[Activate:Main] You may trash this Character: If you have 2 or less Life cards; K.O. up to 1 of your opponent's Characters with a cost of 4 or less. Then, draw 1 card. [Trigger] K.O. up to 1 of your opponent's Characters with a cost of 4 or less."
+  },
+  "base_text": {
+   "effect": "[Activate: Main] You may trash this Character: If you have 2 or less Life cards, K.O. up to 1 of your opponent's Characters with a cost of 4 or less. Then, draw 1 card. [Trigger] K.O. up to 1 of your opponent's Characters with a cost of 4 or less."
+  }
+ },
+ {
+  "id": "OP03-112_p4",
+  "base_id": "OP03-112",
+  "category": "formatting",
+  "path": "OP08/characters/112-charlotte-pudding-sp.ts",
+  "base_path": "OP03/characters/112-charlotte-pudding.ts",
+  "variant_text": {
+   "effect": "[On Play] Look at 4 cards from the top of your deck; reveal up to 1 [Sanji] or [Big Mom Pirates] type card other than [Charlotte Pudding] and add it to your hand. Then, place the rest at the bottom of your deck in any order."
+  },
+  "base_text": {
+   "effect": "[On Play] Look at 4 cards from the top of your deck; reveal up to 1 [Sanji] or {Big Mom Pirates} type card other than [Charlotte Pudding] and add it to your hand. Then, place the rest at the bottom of your deck in any order."
+  }
+ },
+ {
+  "id": "ST18-004_p2_Tt367h1",
+  "base_id": "ST18-004",
+  "category": "absent",
+  "path": "OP12/characters/004-zoro-juurou-sp.ts",
+  "base_path": "OP09/characters/004-zoro-juurou-st18-004.ts",
+  "variant_text": {},
+  "base_text": {
+   "trigger": "onPlay"
+  }
+ },
+ {
+  "id": "OP09-013_p2_jLoDhNS",
+  "base_id": "OP09-013",
+  "category": "sign",
+  "path": "OP12/characters/013-yasopp-sp.ts",
+  "base_path": "OP09/characters/013-yasopp.ts",
+  "variant_text": {
+   "effect": "[On Play] Up to 1 of your Leader gains +1000 power until the end of your opponent's next turn.\\n[DON!! x1] [When Attacking] Give up to 1 of your opponent's Characters 1000 power during this turn."
+  },
+  "base_text": {
+   "effect": "[On Play] Up to 1 of your Leader gains +1000 power until the end of your opponent's next turn.\\n[DON!! x1] [When Attacking] Give up to 1 of your opponent's Characters \u22121000 power during this turn."
+  }
+ },
+ {
+  "id": "OP09-037_p2_9ZL08cD",
+  "base_id": "OP09-037",
+  "category": "absent",
+  "path": "OP12/characters/037-lim-sp.ts",
+  "base_path": "OP09/characters/037-lim.ts",
+  "variant_text": {},
+  "base_text": {
+   "trigger": "onPlay"
+  }
+ },
+ {
+  "id": "OP06-050_p2_QrK318i",
+  "base_id": "OP06-050",
+  "category": "absent",
+  "path": "OP12/characters/050-tashigi-sp.ts",
+  "base_path": "OP06/characters/050-tashigi.ts",
+  "variant_text": {},
+  "base_text": {
+   "trigger": "onPlay"
+  }
+ },
+ {
+  "id": "OP10-063_p3",
+  "base_id": "OP10-063",
+  "category": "absent",
+  "path": "OP12/characters/063-vinsmoke-sanji-tr.ts",
+  "base_path": "OP10/characters/063-vinsmoke-sanji.ts",
+  "variant_text": {},
+  "base_text": {
+   "trigger": "onPlay"
+  }
+ },
+ {
+  "id": "OP10-082_p2_0rQ9fvR",
+  "base_id": "OP10-082",
+  "category": "absent",
+  "path": "OP12/characters/082-kuzan-sp.ts",
+  "base_path": "OP10/characters/082-kuzan.ts",
+  "variant_text": {},
+  "base_text": {
+   "trigger": "activateMain"
+  }
+ },
+ {
+  "id": "OP09-093_p5_esui2Sk",
+  "base_id": "OP09-093",
+  "category": "identical",
+  "path": "OP12/characters/093-marshall-d-teach-sp-gold.ts",
+  "base_path": "OP09/characters/093-marshall-d-teach.ts",
+  "variant_text": {
+   "effect": "[Blocker]\\n[Activate: Main] [Once Per Turn] If your Leader has the \\\"Blackbeard Pirates\\\" type and this Character was played on this turn, negate the effect of up to 1 of your opponent's Leader during this turn. Then, negate the effect of up to 1 of your opponent's Characters and that Character cannot attack until the end of your opponent's next turn."
+  },
+  "base_text": {
+   "effect": "[Blocker]\\n[Activate: Main] [Once Per Turn] If your Leader has the \\\"Blackbeard Pirates\\\" type and this Character was played on this turn, negate the effect of up to 1 of your opponent's Leader during this turn. Then, negate the effect of up to 1 of your opponent's Characters and that Character cannot attack until the end of your opponent's next turn."
+  }
+ },
+ {
+  "id": "OP07-021_p2",
+  "base_id": "OP07-021",
+  "category": "formatting",
+  "path": "OP10/characters/021-urouge-sp.ts",
+  "base_path": "OP07/characters/021-urouge.ts",
+  "variant_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\\n[End of Your Turn] Set up to 1 of your DON!! cards as active."
+  },
+  "base_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.) [End of Your Turn] Set up to 1 of your DON!! cards as active."
+  }
+ },
+ {
+  "id": "OP08-052_p2",
+  "base_id": "OP08-052",
+  "category": "absent",
+  "path": "OP10/characters/052-portgas-d-ace-tr.ts",
+  "base_path": "OP08/characters/052-portgas-d-ace.ts",
+  "variant_text": {},
+  "base_text": {
+   "trigger": "onPlay"
+  }
+ },
+ {
+  "id": "EB01-056_p2",
+  "base_id": "EB01-056",
+  "category": "formatting",
+  "path": "OP10/characters/056-charlotte-flampe-sp.ts",
+  "base_path": "EB01/characters/056-charlotte-flampe.ts",
+  "variant_text": {
+   "effect": "[On Play] You may add 1 card from the top or bottom of your Life cards to your hand: Draw 1 card."
+  },
+  "base_text": {
+   "effect": "[On Play]You may add 1 card from the top or bottom of your Life cards to your hand: Draw 1 card."
+  }
+ },
+ {
+  "id": "OP03-003_p1",
+  "base_id": "OP03-003",
+  "category": "absent",
+  "path": "OP07/characters/003-izo-sp.ts",
+  "base_path": "OP03/characters/003-izo.ts",
+  "variant_text": {},
+  "base_text": {
+   "trigger": "onPlay"
+  }
+ },
+ {
+  "id": "OP01-035_p2",
+  "base_id": "OP01-035",
+  "category": "formatting",
+  "path": "OP07/characters/035-okiku-sp.ts",
+  "base_path": "OP01/characters/035-okiku.ts",
+  "variant_text": {
+   "effect": "[DON!! x1][When Attacking][Once Per Turn] Rest up to 1 of your opponent's Characters with a cost of 5 or less."
+  },
+  "base_text": {
+   "effect": "[DON!! x1] [When Attacking] [Once Per Turn] Rest up to 1 of your opponent's Characters with a cost of 5 or less.  This card has been officially errata'd."
+  }
+ },
+ {
+  "id": "OP01-073_p2",
+  "base_id": "OP01-073",
+  "category": "identical",
+  "path": "OP07/characters/073-donquixote-doflamingo-sp.ts",
+  "base_path": "OP01/characters/073-donquixote-doflamingo.ts",
+  "variant_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.) [On Play] Look at 5 cards from the top of your deck and place them at the top or bottom of the deck in any order."
+  },
+  "base_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.) [On Play] Look at 5 cards from the top of your deck and place them at the top or bottom of the deck in any order."
+  }
+ },
+ {
+  "id": "OP05-074_p3",
+  "base_id": "OP05-074",
+  "category": "other",
+  "path": "OP07/characters/074-eustass-captain-kid-sp.ts",
+  "base_path": "OP05/characters/074-eustass-captain-kid.ts",
+  "variant_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.) [Your Turn] [Once Per Turn] When a DON!! card on your field is returned to your DON!! deck, add up to 1 DON!! card from your DON!! deck and set it as active."
+  },
+  "base_text": {
+   "effect": "[Blocker] [Your Turn][Once Per Turn] When a DON!! card on your field is returned to your DON!! deck, add up to 1 DON!! card from your DON!! deck and set it as active."
+  }
+ },
+ {
+  "id": "OP03-078_p2",
+  "base_id": "OP03-078",
+  "category": "formatting",
+  "path": "OP07/characters/078-issho-sp.ts",
+  "base_path": "OP03/characters/078-issho.ts",
+  "variant_text": {
+   "effect": "[DON!! x1][Your Turn] Give all of your opponent's Characters -3 cost. [On Play] If your opponent has 6 or more cards in their hand, trash 2 cards from your opponent's hand."
+  },
+  "base_text": {
+   "effect": "[DON!! x1] [Your Turn] Give all of your opponent's Characters -3 cost. [On Play] If your opponent has 6 or more cards in their hand, trash 2 cards from your opponent's hand."
+  }
+ },
+ {
+  "id": "OP06-101_p2",
+  "base_id": "OP06-101",
+  "category": "keyword",
+  "path": "OP07/characters/101-o-nami-sp.ts",
+  "base_path": "OP06/characters/101-o-nami.ts",
+  "variant_text": {
+   "effect": "[On Play] Up to 1 of your Leader or Character cards gains [Banish] during this turn. (When this card deals damage, the target card is trashed without activating its Trigger.) [Trigger] K.O. up to 1 of your opponent's Characters with a cost of 5 or less."
+  },
+  "base_text": {
+   "effect": "[On Play] Up to 1 of your Leader or Character cards gains [Banish] during this turn.\\n(When this card deals damage, the target card is trashed without activating its Trigger.)"
+  }
+ },
+ {
+  "id": "OP09-004_p6_GBo9322",
+  "base_id": "OP09-004",
+  "category": "sign",
+  "path": "OP13/characters/004-shanks-op09-004-sp-silver.ts",
+  "base_path": "OP09/characters/004-shanks.ts",
+  "variant_text": {
+   "effect": "Give all of your opponent's Characters 1000 power.[Rush] (This card can attack on the turn in which it is played.)"
+  },
+  "base_text": {
+   "effect": "Give all of your opponent's Characters \u22121000 power.\\n[Rush] (This card can attack on the turn in which it is played.)"
+  }
+ },
+ {
+  "id": "OP09-009_p3_b28gAmg",
+  "base_id": "OP09-009",
+  "category": "identical",
+  "path": "OP13/characters/009-benn-beckman-sp.ts",
+  "base_path": "OP09/characters/009-benn-beckman.ts",
+  "variant_text": {
+   "effect": "[On Play] Trash up to 1 of your opponent's Characters with 6000 power or less."
+  },
+  "base_text": {
+   "effect": "[On Play] Trash up to 1 of your opponent's Characters with 6000 power or less."
+  }
+ },
+ {
+  "id": "EB02-028_p1_3NnbyQE",
+  "base_id": "EB02-028",
+  "category": "absent",
+  "path": "OP13/characters/028-portgas-d-ace-eb02-028-sp.ts",
+  "base_path": "EB02/characters/028-portgas-d-ace.ts",
+  "variant_text": {},
+  "base_text": {
+   "trigger": "onPlay"
+  }
+ },
+ {
+  "id": "OP10-030_p2_60fEVos",
+  "base_id": "OP10-030",
+  "category": "formatting",
+  "path": "OP13/characters/030-smoker-op10-030-sp.ts",
+  "base_path": "OP10/characters/030-smoker.ts",
+  "variant_text": {
+   "effect": "[Banish] (When this card deals damage, the target card is trashed without activating its Trigger.)[Activate: Main] Set up to 1 of your DON!! cards as active. Then, you cannot set DON!! cards as active using Character effects during this turn."
+  },
+  "base_text": {
+   "effect": "[Banish] (When this card deals damage, the target card is trashed without activating its Trigger.)\\n[Activate: Main] Set up to 1 of your DON!! cards as active. Then, you cannot set DON!! cards as active using Character effects during this turn."
+  }
+ },
+ {
+  "id": "OP11-058_p1_pUjWFdt",
+  "base_id": "OP11-058",
+  "category": "formatting",
+  "path": "OP13/characters/058-monkey-d-luffy-op11-058-tr.ts",
+  "base_path": "OP11/characters/058-monkey-d-luffy.ts",
+  "variant_text": {
+   "effect": "If you have 5 or more cards in your hand, this Character cannot attack.[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)"
+  },
+  "base_text": {
+   "effect": "If you have 5 or more cards in your hand, this Character cannot attack.\\n[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)"
+  }
+ },
+ {
+  "id": "OP07-111_p2_IJQHDKC",
+  "base_id": "OP07-111",
+  "category": "formatting",
+  "path": "OP13/characters/111-lilith-op07-111-sp.ts",
+  "base_path": "OP07/characters/111-lilith.ts",
+  "variant_text": {
+   "effect": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 [Egghead] type card other than [Lilith] and add it to your hand. Then, place the rest at the bottom of your deck in any order.[Trigger] If your Leader is [Vegapunk], play this card."
+  },
+  "base_text": {
+   "effect": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 [Egghead] type card other than [Lilith] and add it to your hand. Then, place the rest at the bottom of your deck in any order. [Trigger] If your Leader is [Vegapunk], play this card."
+  }
+ },
+ {
+  "id": "OP09-118_p3_o06WnCc",
+  "base_id": "OP09-118",
+  "category": "formatting",
+  "path": "OP13/characters/118-gol-d-roger-op09-118-sp-wanted-poster.ts",
+  "base_path": "OP09/characters/118-gol-d-roger.ts",
+  "variant_text": {
+   "effect": "[Rush] (This card can attack on the turn in which it is played.)When your opponent activates [Blocker], if either you or your opponent has 0 Life cards, you win the game."
+  },
+  "base_text": {
+   "effect": "[Rush] (This card can attack on the turn in which it is played.)\\nWhen your opponent activates [Blocker], if either you or your opponent has 0 Life cards, you win the game."
+  }
+ },
+ {
+  "id": "OP07-118_p2_PCjCKMT",
+  "base_id": "OP07-118",
+  "category": "identical",
+  "path": "OP13/characters/118-sabo-op07-118-sp.ts",
+  "base_path": "OP07/characters/118-sabo.ts",
+  "variant_text": {
+   "effect": "[On Play] You may trash 1 card from your hand: K.O. up to 1 of your opponent's Characters with a cost of 5 or less and up to 1 of your opponent's Characters with a cost of 3 or less."
+  },
+  "base_text": {
+   "effect": "[On Play] You may trash 1 card from your hand: K.O. up to 1 of your opponent's Characters with a cost of 5 or less and up to 1 of your opponent's Characters with a cost of 3 or less."
+  }
+ },
+ {
+  "id": "OP09-119_p3_lTadu1b",
+  "base_id": "OP09-119",
+  "category": "identical",
+  "path": "OP13/characters/119-monkey-d-luffy-op09-119-sp.ts",
+  "base_path": "OP09/characters/119-monkey-d-luffy.ts",
+  "variant_text": {
+   "effect": "[On Play] You may return 1 or more DON!! cards from your field to your DON!! deck: Draw 1 card and this Character gains [Rush] during this turn."
+  },
+  "base_text": {
+   "effect": "[On Play] You may return 1 or more DON!! cards from your field to your DON!! deck: Draw 1 card and this Character gains [Rush] during this turn."
+  }
+ },
+ {
+  "id": "OP09-005_p1",
+  "base_id": "OP09-005",
+  "category": "identical",
+  "path": "OP11/characters/005-silvers-rayleigh-sp.ts",
+  "base_path": "OP09/characters/005-silvers-rayleigh.ts",
+  "variant_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\\n[On Play] If your opponent has 2 or more Characters with a base power of 5000 or more, draw 2 cards and trash 1 card from your hand."
+  },
+  "base_text": {
+   "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\\n[On Play] If your opponent has 2 or more Characters with a base power of 5000 or more, draw 2 cards and trash 1 card from your hand."
+  }
+ },
+ {
+  "id": "OP09-015_p1",
+  "base_id": "OP09-015",
+  "category": "absent",
+  "path": "OP11/characters/015-lucky-roux-tr.ts",
+  "base_path": "OP09/characters/015-lucky-roux.ts",
+  "variant_text": {},
+  "base_text": {
+   "trigger": "onKo"
+  }
+ },
+ {
+  "id": "EB01-057_p2",
+  "base_id": "EB01-057",
+  "category": "identical",
+  "path": "OP11/characters/057-shirahoshi-sp.ts",
+  "base_path": "EB01/characters/057-shirahoshi.ts",
+  "variant_text": {
+   "effect": "When this Character is K.O.'d by your opponent's effect, add up to 1 card from the top of your deck to the top of your Life cards.[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)"
+  },
+  "base_text": {
+   "effect": "When this Character is K.O.'d by your opponent's effect, add up to 1 card from the top of your deck to the top of your Life cards.[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)"
+  }
+ },
+ {
+  "id": "OP07-085_p2",
+  "base_id": "OP07-085",
+  "category": "formatting",
+  "path": "OP11/characters/085-stussy-sp.ts",
+  "base_path": "OP07/characters/085-stussy.ts",
+  "variant_text": {
+   "effect": "[On Play]You may trash 1 of your Characters: K.O. up to 1 of your opponent's Characters."
+  },
+  "base_text": {
+   "effect": "[On Play] You may trash 1 of your Characters: K.O. up to 1 of your opponent's Characters."
+  }
+ },
+ {
+  "id": "OP05-119_p7",
+  "base_id": "OP05-119",
+  "category": "formatting",
+  "path": "OP11/characters/119-monkey-d-luffy-sp.ts",
+  "base_path": "OP05/characters/119-monkey-d-luffy.ts",
+  "variant_text": {
+   "effect": "[On Play] DON!! -10: Place all of your Characters except this Character at the bottom of your deck in any order. Then, take an extra turn after this one.\\n[Activate:Main][Once Per Turn] (1): Add up to 1 DON!! card from your DON!! deck and set it as active."
+  },
+  "base_text": {
+   "effect": "[On Play] DON!! -10: Place all of your Characters except this Character at the bottom of your deck in any order. Then, take an extra turn after this one. [Activate:Main][Once Per Turn] (1): Add up to 1 DON!! card from your DON!! deck and set it as active."
+  }
+ },
+ {
+  "id": "OP06-119_p2",
+  "base_id": "OP06-119",
+  "category": "identical",
+  "path": "OP11/characters/119-sanji-sp.ts",
+  "base_path": "OP06/characters/119-sanji.ts",
+  "variant_text": {
+   "effect": "[On Play] Reveal 1 card from the top of your deck and play up to 1 Character with a cost of 9 or less other than [Sanji]. Then, place the rest at the bottom of your deck."
+  },
+  "base_text": {
+   "effect": "[On Play] Reveal 1 card from the top of your deck and play up to 1 Character with a cost of 9 or less other than [Sanji]. Then, place the rest at the bottom of your deck."
+  }
+ },
+ {
+  "id": "ST04-003_p1",
+  "base_id": "ST04-003",
+  "category": "identical",
+  "path": "OP03/characters/003-kaido-wanted-poster.ts",
+  "base_path": "PRB01/characters/003-kaido.ts",
+  "variant_text": {
+   "effect": "[On Play] DON!! -5 (You may return the specified number of DON!! cards from your field to your DON!! deck.): K.O. up to 1 of your opponent's Characters with a cost of 6 or less. This Character gains [Rush] during this turn. (This card can attack on the turn in which it is played.)"
+  },
+  "base_text": {
+   "effect": "[On Play] DON!! -5 (You may return the specified number of DON!! cards from your field to your DON!! deck.): K.O. up to 1 of your opponent's Characters with a cost of 6 or less. This Character gains [Rush] during this turn. (This card can attack on the turn in which it is played.)"
+  }
+ },
+ {
+  "id": "ST01-012_p1",
+  "base_id": "ST01-012",
+  "category": "other",
+  "path": "OP03/characters/012-monkey-d-luffy-wanted-poster.ts",
+  "base_path": "ST01/index.ts",
+  "variant_text": {
+   "effect": "[Rush] (This card can attack on the turn in which it is played.) [DON!! x2] [When Attacking] Your opponent cannot activate [Blocker] during this battle."
+  },
+  "base_text": {
+   "effect": "[Rush] (This card can attack on the turn in which it is played.) [DON!! x2] [When Attacking] Your opponent cannot activate [Blocker] during this battle.",
+   "trigger": "whenAttacking"
+  }
+ },
+ {
+  "id": "OP01-051_p2",
+  "base_id": "OP01-051",
+  "category": "absent",
+  "path": "OP03/characters/051-eustass-captain-kid-wanted-poster.ts",
+  "base_path": "OP01/characters/051-eustass-captain-kid.ts",
+  "variant_text": {},
+  "base_text": {
+   "effect": "[DON!! x1] [Opponent's Turn] If this Character is rested, your opponent cannot attack any card other than the Character [Eustass\\\"Captain\\\"Kid]. [Activate:Main] [Once Per Turn] You may rest this Character: Play up to 1 Character card with a cost of 3 or less from your hand.  This card has been officially errata'd."
+  }
+ }
+]

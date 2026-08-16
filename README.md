@@ -39,19 +39,58 @@ python3 tools/coverage_report.py --exclude-promos
 
 ## Card encoding backlog
 
-Measured 2026-08-16 over 2,282 card definitions:
+Re-measured 2026-08-16 over 2,282 card definitions, after correcting two classification
+bugs in `coverage_report.py`:
 
 | State | Count |
 |---|---|
-| Encoded (executable) | 1,771 |
-| **Gap** (printed effect, no encoding) | **331** |
-| Vanilla (no printed effect — correctly unencoded) | 180 |
+| Encoded (executable) | 2,080 |
+| — declared on the card | 1,771 |
+| — inherited by spread from a base printing | 309 |
+| **Gap** (printed effect, no encoding) | **0** |
+| Vanilla (no printed effect — correctly unencoded) | 202 |
 
-Of the 331 gaps, 206 are in promo sets PRB01/PRB02. Excluding those, **125 cards** across
-mainline OP/EB sets need encoding. Sets **OP15, OP16 and OP17 are absent entirely** (~400 cards)
-— and those are the ones that decide the current SC meta.
+**There is no encoding backlog in the existing sets.** The previously reported 331 gaps
+were entirely a measurement artifact, and they reconcile exactly:
 
-Raw data: [`data/card-coverage.json`](data/card-coverage.json).
+- **309** are alternate-art printings declared as `{ ...baseCard, id: "..._p2" }`. They
+  execute the base card's encoding. The old check regexed each file for a literal
+  `effects: {` and never followed the spread.
+- **22** have no printed effect at all. The importer writes a null effect as
+  `effect: "NULL"` or `effect: ""` rather than omitting the key, and the old check treated
+  a present-but-null key as evidence of printed text.
+
+309 + 22 = 331. The mainline figure reconciles the same way: 103 + 22 = 125.
+
+The real gap is unchanged and unaffected: sets **OP15, OP16 and OP17 are absent entirely**
+(~400 cards) — and those are the ones that decide the current SC meta.
+
+Raw data: [`data/card-coverage.json`](data/card-coverage.json). Audit the spread resolution
+with `python3 tools/coverage_report.py --show-inherited`.
+
+## Variant/base text integrity
+
+Alternate-art printings inherit the base card's `effects` but carry their own copy of the
+printed text. Nothing enforces that the two agree, and 39 of 315 do not
+([`data/variant-audit.json`](data/variant-audit.json), regenerate with
+`python3 tools/variant_audit.py`):
+
+| Category | Count | Meaning |
+|---|---|---|
+| identical / absent / formatting | 276 | fine |
+| **sign** | **16** | a `−` is missing from a debuff |
+| **keyword** | **12** | one side has a bracketed keyword clause the other lacks |
+| other | 11 | mostly errata wording — review individually |
+
+In all 16 sign cases the base is correct and the variant's text has lost the minus, e.g.
+`OP09-004_p6` reads "Give all of your opponent's Characters 1000 power" where the base reads
+"−1000 power". **Gameplay today is correct**, because the engine executes the base's encoding
+and only the display text is wrong.
+
+It matters anyway: the plan is to LLM-author encodings for OP15–OP17 from printed text. Any
+process that reads variant text as ground truth will encode a buff where a debuff belongs.
+`OP02-013_p3` additionally misspells the trait as `"Whitebeard Piratess"`, which is the exact
+trait the Ace archetype keys on.
 
 ## Throughput
 

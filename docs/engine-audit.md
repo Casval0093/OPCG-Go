@@ -35,14 +35,49 @@ MOOgiwara is not competitive. Rejected.
 
 | Gap | Size |
 |---|---|
-| Cards with printed effects but no encoding | **331** (206 of them in promo sets PRB01/PRB02) |
-| Same, excluding promos | **125** across mainline OP/EB |
+| Cards with printed effects but no encoding | **0** — see correction below |
 | Sets OP15, OP16, OP17 | **absent entirely**, ~400 cards |
 | Search AI | none — best policy is a static heuristic |
 | Simplified Chinese layer | i18n structure exists, only `en` populated |
 
-180 further cards are unencoded but genuinely vanilla, which is correct. Regenerate this table
-with `python3 tools/coverage_report.py`.
+202 cards are unencoded but genuinely vanilla, which is correct. Regenerate with
+`python3 tools/coverage_report.py`.
+
+### Correction, 2026-08-16 — the 331/125 gap figures were wrong
+
+This audit originally reported 331 unencoded cards (125 excluding promos) and made them the
+third priority of the project. That number was an artifact of `coverage_report.py`, not a
+property of the corpus. Both causes are now fixed in the tool:
+
+1. **Spread inheritance was not followed.** Alternate-art printings are declared as
+   `{ ...op01Nami016, id: "OP01-016_p2", ... }` and execute the base card's encoding. The
+   check regexed each file for a literal `effects: {`, so every such printing looked
+   unencoded. **309 cards**, 103 of them mainline.
+2. **A null printed effect was read as printed text.** The importer emits `effect: "NULL"`
+   or `effect: ""` instead of omitting the key; the check tested only for the key's
+   presence. **22 cards**, all mainline, all genuinely vanilla.
+
+309 + 22 = 331, and 103 + 22 = 125. Both reported figures reconcile exactly to zero real work.
+
+**Consequence for the plan:** the "fill the 125 mainline gaps" work item does not exist.
+The engine's coverage of existing sets is complete. The only encoding work outstanding is
+OP15–OP17, which is a data-acquisition problem before it is an encoding problem.
+
+### Variant/base text integrity — a real defect the gap count was hiding
+
+Spread printings inherit the base's `effects` while keeping their own printed text, and
+nothing checks that the two agree. `tools/variant_audit.py` compares all 315:
+
+| Category | Count |
+|---|---|
+| identical / absent / formatting-only | 276 |
+| **sign** — a `−` missing from a debuff | **16** |
+| **keyword** — a bracketed keyword clause on one side only | **12** |
+| other — mostly errata wording | 11 |
+
+The engine runs the base's encoding, so play is correct today and no test fails. The risk is
+downstream: the OP15–OP17 plan is to author encodings from printed text, and 16 cards' text
+says "give 3000 power" where the card gives −3000. Verify against the base, not the variant.
 
 ## Throughput — the hard constraint on Tier 3
 
