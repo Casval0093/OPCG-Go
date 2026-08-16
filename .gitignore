@@ -8,3 +8,4 @@ __pycache__/
 .venv/
 data/qa-cache/
 .claude/worktrees/
+sim/results/

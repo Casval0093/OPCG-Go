@@ -35,6 +35,20 @@ games. If you write something implying otherwise, you are wrong. The engine does
 ## Hard-won facts — do not re-derive these
 
 - **An OPTCG deck is 50 cards** + 1 leader + 10 DON!!. (An earlier draft said 51. It was wrong.)
+- **A timed-out round is a DOUBLE LOSS, not a draw** — 官方公认赛赛事守则 V1.6.0 §II: *"该对战结果
+  为双方败北"*. Failing to close inside 30 minutes is a loss on your record. Extra turns (+3 / +2)
+  and the Life→deck→猜拳 tiebreak apply **only in finals and elimination**, never in Swiss.
+  The simulator scores `win | loss | timeout` for this reason. See `docs/simulation.md`.
+- **`MatchConfig.firstPlayer` is silently discarded by the engine.** It sets the initial
+  `activeSeat` only; the 猜拳 setup roll (Comprehensive Rules 5-2-1) overwrites it, and
+  `runBotMatch` consumes that command from its prompt queue before any strategy sees it. Forcing
+  it both ways gives byte-identical results, and **north led all 120 test games**. Control turn
+  order by **seat assignment** instead — north leads, so seat the deck north to put it on the play.
+- **The `valueRanked` bot exaggerates the first-player advantage by roughly an order of magnitude**
+  — a measured **54.5-point** play/draw gap on an ST01 mirror, where reality is a few points. Any
+  matchup number from this policy measures the bot, not the deck. This is the calibration evidence
+  `docs/engine-audit.md` names as the trigger for Option A/B over Option C. Re-check on a real
+  Block 2+ deck before generalising.
 - **There is no sideboard in Constructed.** The deck is locked for the whole event; only Sealed
   permits a side deck (official Tournament Rules Manual / Floor Rule). Every tech slot is a
   permanent tax paid in every matchup, so slot decisions are `Σ share × ΔWR` across the *whole*
