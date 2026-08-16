@@ -1,12 +1,20 @@
 # Python dependencies for tools/.
 #
-# Only tools/ev_analysis.py needs anything outside the stdlib:
-#   numpy  - required; the script exits on ImportError without it
-#   scipy  - optional; without it the Nash equilibrium solve is silently skipped
+#   ev_analysis.py    numpy  - required; the script exits on ImportError without it
+#                     scipy  - optional; without it the Nash equilibrium solve is
+#                              SILENTLY skipped, so an unpinned environment produces a
+#                              shorter but plausible report rather than an error
+#   parse_rulings.py  pypdf  - required; reads the official SC Q&A PDFs, which carry a
+#                              real text layer, so no OCR dependency is involved
 #
 # coverage_report.py, variant_audit.py and import_cards.py are stdlib-only by
 # design (import_cards.py fetches over urllib so it runs on a bare interpreter).
 #
 #   python3 -m venv .venv && ./.venv/bin/pip install -r requirements.txt
+#
+# macOS note: python.org builds ship without root certificates, so import_cards.py
+# fails with CERTIFICATE_VERIFY_FAILED until you run, once:
+#   "/Applications/Python 3.13/Install Certificates.command"
 numpy==2.5.2
 scipy==1.18.0
+pypdf==6.16.1

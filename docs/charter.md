@@ -78,6 +78,12 @@ shares from Limitless, the matchup matrix from an EN ladder — so the "correcte
 sources" half of the ground-truth decision is **still outstanding**, and the covered-field and
 share-weighted EV numbers remain EN proxies. Parity closes the legality question, not the field one.
 
+**Partially closed 2026-08-17: SC-native *rules* are now sourced, SC-native *field data* is not.**
+Ping supplied the official SC Q&A PDFs, parsed to `data/rulings-sc.json` — 1,358 rulings, official
+and SC-native, the strongest source in the project. That serves the engine-conformance validation
+layer and card-effect encoding. It says nothing about what decks people bring to a 店赛 in China,
+which is the gap that still matters for share-weighting.
+
 ## Open inputs needed
 
 1. **Target event and date** (店赛 / 标准对战会 / 旗舰赛), and whether it is Bo1 or Bo3 — *now the
@@ -92,7 +98,16 @@ share-weighted EV numbers remain EN proxies. Parity closes the legality question
 
 ## References
 
-- [Comprehensive Rules PDF](https://asia-en.onepiece-cardgame.com/pdf/rule_comprehensive.pdf) — engine conformance target
+- [**SC official rules & Q&A**](https://www.onepiece-cardgame.cn/rules) — where SC rule and ruling
+  updates land (Ping, 2026-08-17). The page is a JS SPA, but it is backed by a JSON API
+  (`webadmin.windoent.com/op-public/rules/rulesinfo/webList`) and the PDFs are on a static host, so
+  acquisition is automated: `tools/parse_rulings.py --check` / `--fetch`. Seven official documents,
+  four of them Q&A tables → `data/rulings-sc.json`.
+- **SC Comprehensive Rules `综合规则 Ver.1.2.0`** — via the API above. **This supersedes the EN PDF
+  below as the engine-conformance target**, being both official and SC-native.
+- **SC tournament rules `官方公认赛赛事守则 V1.6.0`** — via the API above. The regional authority for
+  format questions; the no-side-deck rule was originally verified against the EN manual.
+- [Comprehensive Rules PDF (EN)](https://asia-en.onepiece-cardgame.com/pdf/rule_comprehensive.pdf) — the EN equivalent, kept for cross-checking
 - [Limitless One Piece](https://onepiece.limitlesstcg.com/) — tournament data backbone
 - [tcg-engines](https://github.com/TheCardGoat/tcg-engines) — forked engine base
 - [vegapull-records](https://github.com/Coko7/vegapull-records) — card data (stale: EN cut Apr 2025)

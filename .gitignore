@@ -6,3 +6,5 @@ dist/
 __pycache__/
 .cache/
 .venv/
+data/qa-cache/
+.claude/worktrees/

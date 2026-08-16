@@ -93,6 +93,41 @@ games. If you write something implying otherwise, you are wrong. The engine does
 - **Aggregator card IDs are not trustworthy, not just aggregator card text.** Re-verifying OP17
   §5 against Limitless found an error in **every** row, including a wrong ID: the card the doc
   filed as `OP17-009` Rakuyo is actually `OP17-016`; `OP17-009` is Haruta, a different card.
+- **Official SC rulings are now in the repo: `data/rulings-sc.json`, 1,358 rulings over 893 cards**
+  (61 OP15 cards, 51 OP16 cards, plus 53 core-rules answers under `card_id: "GENERAL"`). Source:
+  the Q&A PDFs from <https://www.onepiece-cardgame.cn/rules>, given by Ping 2026-08-17. Rebuild with
+  `tools/parse_rulings.py`; read one card with `--card OP16-001`. **These are the specification for
+  effect edge cases — consult before encoding any card.** They are also SC-native and *official*,
+  which is a stronger source than anything else in this project.
+- **`OP16-001` Ace's 8000 threshold binds to BOTH clauses — ruling #961.** A 7000-power Whitebeard
+  Pirates Character does **not** gain [Rush] (不能). The English text is ambiguous; the ruling is
+  not. Ace grants [Rush] to *8000-or-more* bodies, not to Whitebeard bodies. Do not build the deck
+  on the trait alone.
+- **"Power N" in card text means EXACTLY N** — rulings #962/#963 on `OP16-002` and `OP16-003`.
+  Not ≤N-1, not ≥N+1. Encode as `eq`, not `gte`, unless a ruling says otherwise.
+- **SC rulings acquisition is fully automated — no browser needed.** `onepiece-cardgame.cn/rules`
+  is a JS SPA whose HTML is an empty shell, but it is backed by a plain JSON API and the PDFs sit
+  on an ordinary static host:
+  - list: `https://webadmin.windoent.com/op-public/rules/rulesinfo/webList`
+  - pdfs: `https://source.windoent.com/OnePiecePc/Pdf/...`
+
+  ```bash
+  ./.venv/bin/python tools/parse_rulings.py --check   # exit 1 if anything was republished
+  ./.venv/bin/python tools/parse_rulings.py --fetch    # download current PDFs and rebuild
+  ```
+  `--check` diffs each document's `updateTime` against the `sources` block of the last build. That
+  is the hook for catching the **OPC17 QA** when OP17 lands. Track `updateTime` from the API, not
+  the date shown on the page — they differ (the booster QA shows 2026-01-30 on the page and
+  `2026-05-25` in the API).
+- **The API lists seven official SC documents, not the four Ping downloaded.** Four are Q&A tables
+  (1,358 rulings); three are prose rulebooks that parse to 0 rulings, correctly:
+  - **`综合规则 Ver.1.2.0`** — the **SC Comprehensive Rules**. This is the engine-conformance target
+    the charter names, now available SC-native instead of only in EN.
+  - **`官方公认赛赛事守则 V1.6.0`** — SC official tournament rules. The authority for format
+    questions (no side deck, Bo1, timing) in the region actually being played.
+  - `官方规则指导手册 Ver.1.11` — rules guide manual.
+
+  All seven are cached to `data/qa-cache/` (gitignored) by `--fetch`.
 - **python.org Python on macOS ships without root certificates.** `import_cards.py` dies with
   `CERTIFICATE_VERIFY_FAILED` until `/Applications/Python 3.13/Install Certificates.command`
   is run once. Not a repo bug; it bites every fresh machine.

@@ -31,15 +31,32 @@ whose real development happens privately and lands in weekly bulk syncs (last pu
    check `onepiece.limitlesstcg.com/cards/<ID>` — its `robots.txt` permits fetch.
    *(The variant/base-text hazard in `CLAUDE.md` does not apply here: this dataset has **0**
    alternate-art printings. Verified.)*
-3. **Match the engine's existing shape exactly.** Reference: `OP14-062` Gladius at
+3. **Check `data/rulings-sc.json` before encoding any card. This is mandatory, not advisory.**
+   1,358 official Simplified Chinese rulings covering 893 cards — **61 OP15 cards and 51 OP16
+   cards**, i.e. the ones in this plan. Rulings are the *specification* for the edge cases the DSL
+   has to get right: what a threshold means, which of two simultaneous effects resolves first,
+   whether a qualifier binds to one clause or both.
+   ```bash
+   ./.venv/bin/python tools/parse_rulings.py --card OP16-001
+   ```
+   Two already found, both of which change an encoding:
+   - **`OP16-001` Ace** — "8000 power or more" binds to **both** the Monkey.D.Luffy clause and the
+     Whitebeard Pirates clause. A 7000-power Whitebeard Character does **not** gain [Rush]
+     (ruling #961: 不能). The English printed text is genuinely ambiguous; the ruling is not.
+   - **`OP16-002` / `OP16-003`** — "a Character card with 8000 power" means **exactly 8000**, not
+     ≤7000 and not ≥9000 (rulings #962, #963). That is `eq`, not `gte`. Assume this reading for
+     every "power N" phrasing unless a ruling says otherwise.
+   Rulings under `card_id: "GENERAL"` are core-rules answers (e.g. a Character whose power drops to
+   0 or less **stays on the field**) — read them once before starting.
+4. **Match the engine's existing shape exactly.** Reference: `OP14-062` Gladius at
    `vendor/tcg-engines/submodules/one-piece/packages/cards/src/cards/OP14EB04/characters/062-gladius.ts`.
    Use the engine's existing DSL primitives. Do not invent new effect verbs; if an effect cannot be
    expressed, report it rather than approximating silently.
-4. **Every encoded effect gets a test** that asserts observable game state via `OnePieceTestEngine`,
+5. **Every encoded effect gets a test** that asserts observable game state via `OnePieceTestEngine`,
    following `packages/engine/tests/cards/OP13/004-shanks-op09-004-sp-silver.test.ts`.
    A test that only asserts the card was constructed is not a test.
-5. **The engine's own 2631 tests must keep passing** after every task.
-6. **Never approximate an effect to make a test pass.** An unencodable effect is a reported
+6. **The engine's own 2631 tests must keep passing** after every task.
+7. **Never approximate an effect to make a test pass.** An unencodable effect is a reported
    finding, not a silent simplification.
 
 ## Data
