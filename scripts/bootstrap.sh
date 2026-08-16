@@ -7,7 +7,13 @@ mkdir -p "$ROOT/vendor"
 cd "$ROOT/vendor/tcg-engines/submodules/one-piece"
 corepack enable && corepack prepare pnpm@10.33.0 --activate
 pnpm install --ignore-scripts
-"$ROOT/.venv/bin/python" "$ROOT/tools/graft_cards.py"   # copy cards/OP15|OP16 into the vendored engine
-"$ROOT/.venv/bin/python" "$ROOT/tools/patch_engine.py"
-cd packages/engine && ./node_modules/.bin/vp test run   # expect 2631 pass in ~60s
+# Both of these are stdlib-only on purpose, so bootstrap works on a clean clone before anyone has
+# made a venv. Prefer the venv when it exists so a contributor's pinned interpreter wins.
+PY="$ROOT/.venv/bin/python"
+[ -x "$PY" ] || PY="$(command -v python3)"
+[ -n "$PY" ] || { echo "no python3 found; install Python 3 and re-run" >&2; exit 1; }
+
+"$PY" "$ROOT/tools/graft_cards.py"   # copy cards/OP15|OP16 into the vendored engine
+"$PY" "$ROOT/tools/patch_engine.py"  # local engine fixes; vendor/ is gitignored so they re-apply
+cd packages/engine && ./node_modules/.bin/vp test run   # expect 2632 pass in ~80s
 echo "Bootstrap OK."
