@@ -21,6 +21,7 @@ Determine and field the highest-EV deck in the SC format, continuously, across s
 | Effect encoding | Adopt the engine's existing compositional DSL; LLM-author the gaps with generated tests |
 | Persistence & compute | This repo; heavy self-play on user hardware |
 | Objective function | Field-weighted expected match win rate vs the real SC field, split by play/draw |
+| Role of that objective | **Diagnostic, not selective** (2026-08-17). It forecasts the field and arms a tripwire; it does not choose the archetype. Tripwire is qualitative: structural deficiency is decisional, a points gap is not. See `CLAUDE.md`. |
 | Validation | Per-card assertion tests → Comprehensive Rules conformance → meta calibration |
 | Deck constraints | No preference constraints; budget cap on acquisition (ceiling TBD) |
 

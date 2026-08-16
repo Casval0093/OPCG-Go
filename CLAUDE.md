@@ -30,6 +30,7 @@ games. If you write something implying otherwise, you are wrong. The engine does
 | Validation | 3 layers: per-card assertion tests → Comprehensive Rules conformance → meta calibration |
 | Budget | **No ceiling.** Cost is out of the objective function. |
 | Chosen archetypes | **Ace (`OP16-001`) primary, Mihawk (`OP14-020`) secondary** — owner preference, see caveat below |
+| Role of the EV tooling | **Not deck selection.** Ping accepted this 2026-08-17. See below. |
 
 ## Hard-won facts — do not re-derive these
 
@@ -69,10 +70,40 @@ games. If you write something implying otherwise, you are wrong. The engine does
 - **`OP17-005`'s effect: `docs/research-findings.md` is correct, the aggregator was wrong.**
   A WebSearch summary claimed an On Play that sets your own single-colour Leader's base power
   to 8000. Ping checked Limitless and rejected it. Do not reintroduce that clause.
-- **Do not re-measure throughput until the benchmark deck is fixed** (Ping's call, 2026-08-16).
-  `bench/throughput.test.ts` uses a 4-card deck; a re-measure on that deck would just reproduce
-  a number we already know is unrepresentative. Fix the deck to a real 50-card list first, then
-  measure once.
+- **The benchmark deck is fixed and the re-measure is done (2026-08-17). Do not redo it.**
+  `bench/throughput.test.ts` now runs the 4-card synthetic deck and the engine's real 50-card
+  ST01 deck back to back. **Realism ratio 1.79x per game, 0.97x per command.** The audit's
+  assumed 2–5x roughly holds in magnitude but its mechanism was wrong: per-command cost is flat,
+  and the whole slowdown is game length (94.6 cmds/game vs 51.1). Effect resolution is not the
+  bottleneck — state transitions are. See `docs/engine-audit.md`.
+- **The engine has no OP15/OP16/OP17 — only OP01–OP14, EB01–04, PRB01–02, ST01, DON.**
+  This blocks more than it looks. The B/Y Teach list cannot be built in the engine (10 of 14
+  slots plus leader `OP16-080` are missing), so "benchmark on the Teach deck" was never
+  available — having cards in `data/cards-OP16-en.json` is not the same as having them in
+  `@tcg/op-cards`. **`OP14-020` Mihawk IS in the engine; `OP16-001` Ace is not** — the secondary
+  archetype is the simulable one today.
+
+## What the EV tooling is for — decided 2026-08-17
+
+The charter says "field the highest-EV deck." The archetype is nonetheless locked to Ace at
+**0.87% field share** on owner preference, and `ev_analysis.py` says Nami is the EV pick at 55.22%.
+Those did not compose into a decision procedure. Ping resolved it: **the EV tooling does not pick
+the deck.** It has two narrower jobs.
+
+1. **Field forecasting** — what will Ping actually face, so flex slots, mulligans and tech choices
+   can be tuned to it.
+2. **Tripwire** — the condition under which Ace is abandoned despite preference.
+
+The tripwire is **qualitative, not numeric — Ping's call, 2026-08-17.** He has not set a points
+threshold and may not. The standing criterion is: **a structural deficiency is decisional; a points
+gap is not.** So do not escalate "Ace is N points behind" no matter how large N is. Escalate when
+the deck's plan is broken at the mechanism level — its enablers do not turn on against the real
+field, its core loop is answered by something ubiquitous, a key piece is banned or rotated.
+
+Rationale, and it is sound: this is Ping's first competitive deck, pilot skill is the binding
+constraint, Ace is tempo (near the most pilotable thing in the format) while the decks the numbers
+favour — Teach, Big Mom — are the hardest to pilot in the set. The EV table ranks decks *as played
+by experts*. Reps on one deck beat a theoretical edge that gets misplayed.
 
 ## Repo map
 
@@ -120,9 +151,10 @@ python3 tools/coverage_report.py --exclude-promos # encoding backlog
    (The "fill the 125 mainline gaps" item that used to sit here has been deleted — that backlog
    was a measurement bug and is 0.)
 4. **Pick the Tier-3 lever** — recommendation is Tier 2.5 now, learned value net next, Rust port only
-   if calibration proves heuristic play distorts matchups. Note the audit's throughput table is
-   derived from a 4-card test deck; it self-notes real decks run 2–5x slower but does not carry
-   that multiplier into the options, so Option C's "runs today on 2 cores" is optimistic.
+   if calibration proves heuristic play distorts matchups. The multiplier is now measured, not
+   assumed: Option C's "runs today on 2 cores" is optimistic by ~3.4x (1.85x game length hitting
+   both decisions/game and rollout length), and that is a lower bound since ST01 is a starter deck.
+   Option A's framing needs revising — the cost is state transitions, not effect resolution.
 
 ## Open questions only Ping can answer
 

@@ -99,19 +99,53 @@ floor is the immutable-state engine core itself, so there is no cheap fix.
 | 200 rollouts/decision | ~0.4 h | ~5,600 core-hours (**7 days on 32 cores**) |
 | Heuristic only, no search | 0.28 s | ~1.1 core-hours |
 
-These numbers use a **4-card test deck**. Real 51-card decks with live effects will be 2–5x slower.
+These numbers use a **4-card test deck**. Real 50-card decks were assumed to be 2–5x slower.
 
 **Tier 3 as specified is off by roughly two orders of magnitude on this engine.** The open decision
 is which lever to pull, not whether.
 
-> **Decision, 2026-08-16 — do not re-measure until the benchmark deck is fixed.** The table
-> above is derived from a 4-card test deck, and the note under it (real decks run 2–5x slower)
-> is not carried into the options below, so Option C's "runs today on 2 cores" is optimistic by
-> that factor. Re-running the benchmark as-is would only reproduce a number already known to be
-> unrepresentative. `bench/throughput.test.ts` must first be pointed at a real 50-card list —
-> the Teach reference deck in `docs/research-findings.md` §7 is the obvious candidate, since
-> every one of its cards is now in `data/cards-OP16-en.json`. Then measure once, and re-derive
-> the options table from that.
+### The realism multiplier, measured — 2026-08-17
+
+The 2–5x assumption above was never measured. It is now. `bench/throughput.test.ts` runs two decks
+back to back under identical match settings, varying only the deck:
+
+| Deck | distinct | games/s | cmds/s | cmds/game | decided |
+|---|---|---|---|---|---|
+| synthetic 4-card | 4 | 4.09 | 209 | 51.1 | 100/100 |
+| **ST01 real 50-card** | 16 | 2.29 | 217 | 94.6 | 100/100 |
+
+**Realism ratio: 1.79x slower per game, 0.97x per command.**
+
+The magnitude roughly survives; **the stated mechanism does not.** The assumption was that live
+effects make commands expensive. They do not — per-command cost is flat, and the real deck is
+marginally *faster* per command (217 vs 209). The entire slowdown is **game length**: 94.6 commands
+per game against 51.1, a 1.85x ratio that fully accounts for the 1.79x games/s gap.
+
+For MCTS sizing this compounds, because game length hits both terms — a longer game has more
+decisions, and each rollout from a decision runs longer. Assuming both scale linearly with length,
+cost per game scales ~1.85² ≈ **3.4x**, which lands inside the old 2–5x band. So the options table
+above is roughly right by accident, and Option C's "runs today on 2 cores" is optimistic by ~3.4x,
+not by an unknown factor.
+
+The lever choice shifts. Cost is not in effect resolution, so "compile the effect DSL to native"
+buys less than Option A implies; the target is raw state-transition throughput, which is the
+immutable-state core the audit already named as the floor.
+
+**Two caveats, both pushing the same direction.** ST01 is a *starter* deck — simpler curve and
+simpler effects than a meta list — so 1.79x is a **lower bound**. And absolute games/s here is from
+a different host than the 2.80 baseline above; 4.09 vs 2.80 is a machine difference, not a change in
+the engine. Only the within-run ratio is meaningful.
+
+> **Why not the Teach list.** The 2026-08-16 decision named the B/Y Teach deck in
+> `docs/research-findings.md` §7 as the benchmark target, on the grounds that every card is in
+> `data/cards-OP16-en.json`. That conflates imported JSON with engine-executable definitions. The
+> benchmark imports from `@tcg/op-cards`, and **the engine has no OP15/OP16/OP17** — it ships
+> OP01–OP14, EB01–EB04, PRB01–02, ST01, DON. Ten of Teach's fourteen slots and its leader
+> (`OP16-080`) do not exist. The Teach benchmark is blocked behind the OP15/16 encoding work, not
+> available now. ST01 is used instead because the engine ships and maintains it, so it cannot rot.
+>
+> Related asymmetry worth noting: **`OP14-020` Mihawk is in the engine; `OP16-001` Ace is not.**
+> The secondary archetype is the one that is simulable today.
 
 ## Options to close the gap
 

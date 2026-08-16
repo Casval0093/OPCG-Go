@@ -10,8 +10,8 @@ Goal: determine and field the highest-EV deck in the SC format, continuously, ac
 |---|---|
 | Engine audit | **done** — see [`docs/engine-audit.md`](docs/engine-audit.md) |
 | Competitive research | **done** — see [`docs/research-findings.md`](docs/research-findings.md) |
-| Card encoding backlog | scoped — 331 gaps + ~400 new cards for OP15–17 |
-| Search AI | blocked on throughput decision |
+| Card encoding backlog | **0 gaps in existing sets** (the 331 figure was a measurement bug); OP15–17 outstanding |
+| Search AI | blocked on the Tier-3 lever choice |
 | Chosen archetypes | Ace (`OP16-001`) primary, Mihawk (`OP14-020`) secondary |
 
 ## Approach
@@ -149,6 +149,21 @@ Single-core, `valueRanked` mirror match, 100/100 games decided:
 The per-step full-state JSON serialization is only 26% of runtime, so there is no cheap fix —
 the immutable-state core is the floor. This puts full-strength ISMCTS roughly two orders of
 magnitude out of reach on the current engine. See the audit for the options.
+
+**Deck realism, measured 2026-08-17** — same host, same match settings, deck is the only variable:
+
+| Deck | distinct | games/s | cmds/s | cmds/game |
+|---|---|---|---|---|
+| synthetic 4-card | 4 | 4.09 | 209 | 51.1 |
+| ST01 real 50-card | 16 | 2.29 | 217 | 94.6 |
+
+**1.79x slower per game, 0.97x per command.** The audit assumed 2–5x and attributed it to live
+effects; that mechanism is wrong. Per-command cost is flat — the real deck is marginally *faster*
+per command. The slowdown is entirely game length. Optimisation should target state transitions,
+not effect resolution. ST01 is a starter deck, so 1.79x is a lower bound.
+
+Absolute games/s above is not comparable across hosts (4.09 vs the 2.80 baseline is a different
+machine, not a change in the engine). Only the within-run ratio is meaningful.
 
 Reproduce with [`bench/throughput.test.ts`](bench/throughput.test.ts) (drop into
 `packages/engine/tests/cards/` in the vendored engine).
