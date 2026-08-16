@@ -10,8 +10,9 @@ Goal: determine and field the highest-EV deck in the SC format, continuously, ac
 |---|---|
 | Engine audit | **done** — see [`docs/engine-audit.md`](docs/engine-audit.md) |
 | Competitive research | **done** — see [`docs/research-findings.md`](docs/research-findings.md) |
-| Card encoding backlog | **0 gaps in existing sets** (the 331 figure was a measurement bug); OP15–17 outstanding |
-| Search AI | blocked on the Tier-3 lever choice |
+| Card encoding backlog | **0 gaps in existing sets** (the 331 figure was a measurement bug); OP15/16 *shells* generated, effects outstanding |
+| Simulation harness | **working** — real Block 2+ decks run end to end. See [`docs/simulation.md`](docs/simulation.md) |
+| Search AI | not started; the Tier-3 lever needs re-deciding (see below) |
 | Chosen archetypes | Ace (`OP16-001`) primary, Mihawk (`OP14-020`) secondary |
 
 ## Approach
@@ -168,10 +169,51 @@ machine, not a change in the engine). Only the within-run ratio is meaningful.
 Reproduce with [`bench/throughput.test.ts`](bench/throughput.test.ts) (drop into
 `packages/engine/tests/cards/` in the vendored engine).
 
+## Simulation
+
+Working as of 2026-08-17. Mirror matches on real Block 2+ decks complete 400/400.
+
+```bash
+./scripts/simulate.sh --games 400                                    # ST01 mirror, smoke test
+./scripts/simulate.sh --a A.json --b OPP.json --games 2000           # a matchup
+./scripts/simulate.sh --a A.json --compare A-tech.json --b OPP.json  # a tech-slot A/B
+./scripts/simulate.sh --dump-catalog                                 # engine card catalog -> JSON
+./scripts/simulate.sh --diag-prompts                                 # bot prompt diagnostics
+```
+
+Built from the **SC rulebooks**, which changed the design. Per 官方公认赛赛事守则 V1.6.0 §II, a round
+that hits time with no winner is **双方败北 — both players lose**, not a draw. So outcomes are
+`win | loss | timeout` and a timeout counts against both decks; a win rate over decided games only
+would flatter slow decks. Extra turns and the Life→deck→猜拳 tiebreak apply *only* in elimination,
+never in Swiss.
+
+**Getting here required fixing an engine bug.** The bot abandoned **88% of games** on Block 2+ decks
+with `illegal-command`. Cause: `resolveBotPromptCommand` handles four of six prompt `ChoiceKind`s
+and falls through to a single `optionId`, which cannot express an ordering — so **`orderCards`
+failed 17/17**. The ~8-line fix is in [`tools/patch_engine.py`](tools/patch_engine.py), re-applied
+by bootstrap since `vendor/` is gitignored. A/B on the same seeds: **3/20 → 20/20** games completed.
+It belongs upstream; `tcg-engines` is MIT and the bug is theirs.
+
+That reframes the audit: its four options are all *throughput* levers, and throughput was never the
+binding constraint. Policy legality was.
+
+| Deck | completion | play/draw gap |
+|---|---|---|
+| ST01 starter (Block 1) | 100% | 54.5 pts |
+| Block 2+ vanilla control (no effects) | 100% | 26.7 pts |
+| **Block 2+ real cards, patched** | **100%** | **8.5 pts** |
+
+Only the last is plausible — real first-player advantage is a few points. **Do not calibrate on
+ST01:** the gap tracks how much interaction a deck has, and a degenerate deck gives degenerate
+calibration. Statistical design uses common random numbers so a 1–2 card swap is measured against
+identical shuffles; the null test (identical decks) returns exactly 0.00 pts with 0/100 discordant
+pairs.
+
 ## Layout
 
 ```
-docs/     charter, engine audit, research findings
+docs/     charter, engine audit, research findings, simulation
+sim/      simulation harness, decks, engine card catalog
 tools/    analysis scripts
 bench/    throughput benchmarks
 data/     generated datasets
