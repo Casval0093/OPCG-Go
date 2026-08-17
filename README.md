@@ -41,7 +41,8 @@ python3 -m venv .venv && ./.venv/bin/pip install -r requirements.txt
 
 `ev_analysis.py` needs numpy and it exits without it; scipy is optional and only
 gates the Nash solve. The other three tools are stdlib-only and run on a bare
-`python3`. `bootstrap.sh` needs node + corepack, and ends with 2631 passing tests.
+`python3`. `bootstrap.sh` needs node + corepack and ends with the engine suite passing (2648 at
+the time of writing; the count grows as cards are encoded, so read the output).
 
 ## Card encoding backlog
 
@@ -77,12 +78,17 @@ with `python3 tools/coverage_report.py --show-inherited`.
 
 ## Card data for OP15–OP17
 
-Every direct card source is blocked by the working environment's egress policy, which allows
-GitHub and package registries only — `optcgapi.com`, `onepiece.limitlesstcg.com`,
-`onepiece-cardgame.cn` and `en.onepiece-cardgame.com` all fail. The npm registry is reachable,
-and `one-piece-card-game-json` republishes the **official Bandai card list** (its `image_url`
-fields point at `en.onepiece-cardgame.com`), which makes it a mirror of the primary source
-rather than the aggregator summaries this project rules out.
+`one-piece-card-game-json` on npm republishes the **official Bandai card list** (its `image_url`
+fields point at `en.onepiece-cardgame.com`), which makes it a mirror of the primary source rather
+than the aggregator summaries this project rules out. That is why the importer uses it.
+
+> **Corrected 2026-08-17.** This section previously said every direct card source was blocked by an
+> egress policy. That was true of the environment the project was scoped in, not universally: on the
+> owner's machine `onepiece.limitlesstcg.com`, `en.onepiece-cardgame.com` and
+> `onepiece-cardgame.cn` all return 200, and only `optcgapi.com` times out. Limitless `robots.txt`
+> is `Disallow:` with an empty value, so automated fetch is permitted — **verify card text against
+> Limitless directly.** `onepiece-cardgame.cn` is not robots-blocked either; it is a JavaScript SPA,
+> so a plain fetch returns an empty shell. See `CLAUDE.md`.
 
 ```bash
 python3 tools/import_cards.py --validate          # trust check against the engine

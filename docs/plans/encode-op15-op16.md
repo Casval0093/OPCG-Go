@@ -55,7 +55,8 @@ whose real development happens privately and lands in weekly bulk syncs (last pu
 5. **Every encoded effect gets a test** that asserts observable game state via `OnePieceTestEngine`,
    following `packages/engine/tests/cards/OP13/004-shanks-op09-004-sp-silver.test.ts`.
    A test that only asserts the card was constructed is not a test.
-6. **The engine's own 2631 tests must keep passing** after every task.
+6. **The engine's own suite must keep passing** after every task. It is a moving baseline —
+   2632 before Task 2, 2648 after — so report the exact line rather than matching a number.
 7. **Never approximate an effect to make a test pass.** An unencodable effect is a reported
    finding, not a silent simplification.
 
@@ -109,7 +110,7 @@ Build the mechanical pipeline. **No effect encoding in this task.**
 - Wire graft into `scripts/bootstrap.sh` after `pnpm install`, before the test run.
 
 **Verify:** `./scripts/bootstrap.sh` completes, the engine typechecks with 238 new cards present,
-and the suite still reports **2631 passed**. Report the exact test line.
+and the suite still passes. Report the exact test line rather than an expected number.
 
 ## Decisions settled before Task 2 — 2026-08-17
 
@@ -156,7 +157,7 @@ the behaviour that matters now that it must survive upstream drift indefinitely.
 - Write `cards/ENCODING.md`: the five worked examples, the DSL primitives used, and the mapping
   table above.
 
-**Verify:** 2631 + 5 tests passing. Report the exact line.
+**Verify:** the pre-existing suite plus the new tests all pass. Report the exact line.
 
 ## Verification every batch runs on itself — added 2026-08-17
 
@@ -174,7 +175,12 @@ test that cannot fail. It exits 1, so a batch cannot report green over one.
 It pays for itself immediately: run against the five reviewed reference cards it found **three more
 gaps on `OP16-001` Ace** that two review rounds had missed. Nothing asserted that the [Rush] grant
 is *restricted* to the two clauses at all — an encoding granting [Rush] to any 8000-power Character
-would have passed every test in the file. Now 24/24 mutants die.
+would have passed every test in the file. Now every mutant dies.
+
+That count moved once already for a reason worth knowing: the first version of the tool
+reported 24/24 while silently skipping inline `filters: [{ ... }]` objects, which is the shape
+both decisive name filters use. Fixed, it finds 27 and kills all of them. **Quote the tool's
+output, not a remembered number** — a mutation count is a property of the tool, not the cards.
 
 Budget ~40 s per card, so a 15-card batch costs ~10 minutes.
 

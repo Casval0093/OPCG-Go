@@ -286,7 +286,7 @@ vendor/                         gitignored; created by bootstrap.sh
 ```bash
 python3 tools/ev_analysis.py                      # who is the best deck right now
 python3 tools/ev_analysis.py --sensitivity Teach  # how fragile is that answer
-./scripts/bootstrap.sh                            # ~2 min; ends with 2631 passing tests
+./scripts/bootstrap.sh                            # ~2 min; ends with the engine suite passing
 python3 tools/coverage_report.py --exclude-promos # encoding backlog
 python3 -m unittest discover -s tools -p 'test_*.py'   # tools/ regression tests
 ```
