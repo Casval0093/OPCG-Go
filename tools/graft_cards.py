@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Graft this repo's OP15/OP16 card definitions into the vendored engine.
+"""Graft this repo's OP15/OP16 card definitions (and their tests) into the vendored engine.
 
 `cards/OP15` and `cards/OP16` in this repo are the single source of truth
 (docs/plans/encode-op15-op16.md, Global Constraint #1). The vendored engine
@@ -12,12 +12,23 @@ after a rename). It then idempotently appends the export lines that top-level
 `cards/index.ts` needs to pick the new sets up, and nothing else in that file
 is touched.
 
-Never hand-edit the grafted copy under vendor/ -- edit cards/ in this repo
-and re-run this script.
+The same mirroring applies to this repo's `cards/tests/OP15|OP16` -- the
+source of truth for per-card tests (docs/plans/encode-op15-op16.md, Task 2) --
+which is synced onto
+`vendor/tcg-engines/submodules/one-piece/packages/engine/tests/cards/OP15`
+and `.../OP16`, matching the flat-by-set convention the engine's own OP11-OP13
+tests already use (as opposed to the older by-type `tests/cards/characters/`
+etc. layout). A set with no tests yet (e.g. OP15 before its own task lands)
+is skipped, same as an as-yet-unpopulated `cards/OP15`.
+
+Never hand-edit the grafted copy under vendor/ -- edit cards/ (or cards/tests/)
+in this repo and re-run this script.
 
 Usage:
     ./.venv/bin/python tools/graft_cards.py
-    ./.venv/bin/python tools/graft_cards.py --vendor-cards-root <path>   # for tests
+    ./.venv/bin/python tools/graft_cards.py --vendor-cards-root <path> --vendor-tests-root <path>
+        # --source-root / --tests-source-root also available; all four exist for tests of
+        # this script, pointed at a scratch directory instead of the real vendor/ checkout.
 """
 
 from __future__ import annotations
@@ -38,6 +49,18 @@ DEFAULT_VENDOR_CARDS_ROOT = os.path.join(
     "packages",
     "cards",
     "src",
+    "cards",
+)
+DEFAULT_TESTS_SOURCE_ROOT = os.path.join(REPO_ROOT, "cards", "tests")
+DEFAULT_VENDOR_TESTS_ROOT = os.path.join(
+    REPO_ROOT,
+    "vendor",
+    "tcg-engines",
+    "submodules",
+    "one-piece",
+    "packages",
+    "engine",
+    "tests",
     "cards",
 )
 
@@ -111,10 +134,31 @@ def append_missing_exports(index_path: str) -> list[str]:
     return missing
 
 
+def sync_set_trees(source_root: str, vendor_root: str, label: str) -> tuple[int, int, int]:
+    """Sync source_root/<SET> onto vendor_root/<SET> for every SET in SETS, skipping (with
+    a stderr note) any SET that has no source directory yet. Returns the totals across all
+    SETS."""
+    total_copied = total_deleted = total_unchanged = 0
+    for set_id in SETS:
+        src = os.path.join(source_root, set_id)
+        if not os.path.isdir(src):
+            print(f"{label} source set not found, skipping: {src}", file=sys.stderr)
+            continue
+        dst = os.path.join(vendor_root, set_id)
+        copied, deleted, unchanged = sync_tree(src, dst)
+        total_copied += copied
+        total_deleted += deleted
+        total_unchanged += unchanged
+        print(f"{label} {set_id}: {copied} copied, {deleted} deleted, {unchanged} unchanged -> {dst}")
+    return total_copied, total_deleted, total_unchanged
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-root", default=DEFAULT_SOURCE_ROOT)
     parser.add_argument("--vendor-cards-root", default=DEFAULT_VENDOR_CARDS_ROOT)
+    parser.add_argument("--tests-source-root", default=DEFAULT_TESTS_SOURCE_ROOT)
+    parser.add_argument("--vendor-tests-root", default=DEFAULT_VENDOR_TESTS_ROOT)
     args = parser.parse_args()
 
     if not os.path.isdir(args.vendor_cards_root):
@@ -125,18 +169,21 @@ def main() -> int:
         )
         return 1
 
-    total_copied = total_deleted = total_unchanged = 0
-    for set_id in SETS:
-        src = os.path.join(args.source_root, set_id)
-        if not os.path.isdir(src):
-            print(f"source set not found, skipping: {src}", file=sys.stderr)
-            continue
-        dst = os.path.join(args.vendor_cards_root, set_id)
-        copied, deleted, unchanged = sync_tree(src, dst)
-        total_copied += copied
-        total_deleted += deleted
-        total_unchanged += unchanged
-        print(f"{set_id}: {copied} copied, {deleted} deleted, {unchanged} unchanged -> {dst}")
+    if not os.path.isdir(args.vendor_tests_root):
+        # Symmetric with the cards-root check above. Without it, a wrong or stale
+        # --vendor-tests-root (or a vitest layout change upstream) would still get
+        # `os.makedirs`'d into existence by sync_tree and "succeed" -- reporting files
+        # copied into a directory vitest never scans, with no error to notice it by.
+        print(
+            f"vendor tests root not found: {args.vendor_tests_root}\n"
+            f"(run this after `pnpm install`, from a bootstrapped vendor/ checkout)",
+            file=sys.stderr,
+        )
+        return 1
+
+    total_copied, total_deleted, total_unchanged = sync_set_trees(
+        args.source_root, args.vendor_cards_root, "cards"
+    )
 
     index_path = os.path.join(args.vendor_cards_root, "index.ts")
     appended = append_missing_exports(index_path)
@@ -146,6 +193,13 @@ def main() -> int:
             print(f"  + {line}")
     else:
         print(f"{index_path}: all export lines already present (no-op)")
+
+    tests_copied, tests_deleted, tests_unchanged = sync_set_trees(
+        args.tests_source_root, args.vendor_tests_root, "tests"
+    )
+    total_copied += tests_copied
+    total_deleted += tests_deleted
+    total_unchanged += tests_unchanged
 
     print(
         f"Graft complete: {total_copied} files copied, {total_deleted} deleted, "
