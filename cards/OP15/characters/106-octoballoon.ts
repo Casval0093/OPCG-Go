@@ -27,5 +27,28 @@ export const op15Octoballoon106: CharacterCard = {
     "Draw 1 card. Then, play up to 1 yellow Character or Stage card with a cost of 2 or less from your hand.",
   traits: ["Animal", "Sky Island"],
   attribute: "wisdom",
+  effects: {
+    effects: [
+      {
+        trigger: "trigger",
+        actions: [
+          { action: "draw", player: "self", amount: 1 },
+          {
+            action: "play",
+            source: { player: "self", zone: "hand" },
+            count: { amount: 1, upTo: true },
+            // Deliberately NO `cardCategory` filter: "Character or Stage" is exactly the pool
+            // `candidatesForPlayAction` already restricts every `play` action to, so the printed
+            // wording adds nothing here. (On OP15-109 and OP15-112, which print "Character card",
+            // the filter IS present and does the work of excluding Stages.)
+            filters: [
+              { filter: "color", value: "yellow" },
+              { filter: "cost", comparison: "lte", value: 2 },
+            ],
+          },
+        ],
+      },
+    ],
+  },
   i18n: op15Octoballoon106I18n,
 };
