@@ -27,5 +27,27 @@ export const op16Tsuru067: CharacterCard = {
   attribute: "wisdom",
   effect:
     "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 [Navy] type card, add it to your hand and place the rest at the bottom of your deck in any order. Then, trash 1 card from your hand.",
+  effects: {
+    effects: [
+      {
+        // Ruling #997: the trash happens even when the search revealed nothing (是的，丢弃). So the
+        // trash is a SIBLING action of the search, never a `thenActions`/conditional continuation
+        // of it. Search shape from OP04-002 Igaram.
+        trigger: "onPlay",
+        actions: [
+          {
+            action: "search",
+            lookCount: 5,
+            source: { player: "self", zone: "deck" },
+            revealCount: { amount: 1, upTo: true },
+            revealFilters: [{ filter: "trait", value: "Navy", match: "includes" }],
+            revealDestination: "hand",
+            remainderPosition: "bottom",
+          },
+          { action: "trashFromHand", player: "self", amount: 1 },
+        ],
+      },
+    ],
+  },
   i18n: op16Tsuru067I18n,
 };

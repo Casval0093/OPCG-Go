@@ -27,5 +27,32 @@ export const op16TrafalgarLaw068: CharacterCard = {
   attribute: "wisdom",
   effect:
     "[On Play] Add up to 1 DON!! card from your DON!! deck and set it as active.\n[When Attacking] If your Leader has the [Donquixote Pirates] type, this Character gains +3000 power during this turn.",
+  effects: {
+    effects: [
+      {
+        trigger: "onPlay",
+        actions: [{ action: "addDon", count: { amount: 1, upTo: true }, state: "active" }],
+      },
+      {
+        // "this Character" is `self: true` with a fixed count of 1 (OP11-010 Hibari), never an
+        // `upTo` selection.
+        trigger: "whenAttacking",
+        conditions: [{ condition: "leaderTrait", trait: "Donquixote Pirates", match: "includes" }],
+        actions: [
+          {
+            action: "modifyPower",
+            target: {
+              player: "self",
+              zones: ["character"],
+              count: { amount: 1 },
+              self: true,
+            },
+            value: 3000,
+            duration: "thisTurn",
+          },
+        ],
+      },
+    ],
+  },
   i18n: op16TrafalgarLaw068I18n,
 };

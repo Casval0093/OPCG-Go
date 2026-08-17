@@ -27,5 +27,28 @@ export const op16Koby064: CharacterCard = {
   attribute: "strike",
   effect:
     "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 [Navy] type card other than [Koby] and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+  effects: {
+    effects: [
+      {
+        // Modeled on OP03-030 Nami: the same printed sentence, down to the "other than [Name]"
+        // self-exclusion. Only Nami's colour filter is absent here.
+        trigger: "onPlay",
+        actions: [
+          {
+            action: "search",
+            lookCount: 5,
+            source: { player: "self", zone: "deck" },
+            revealCount: { amount: 1, upTo: true },
+            revealFilters: [
+              { filter: "excludeName", value: "Koby" },
+              { filter: "trait", value: "Navy", match: "includes" },
+            ],
+            revealDestination: "hand",
+            remainderPosition: "bottom",
+          },
+        ],
+      },
+    ],
+  },
   i18n: op16Koby064I18n,
 };

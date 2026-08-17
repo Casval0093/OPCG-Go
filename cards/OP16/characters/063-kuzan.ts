@@ -26,5 +26,34 @@ export const op16Kuzan063: CharacterCard = {
   attribute: "special",
   effect:
     "[On Play] Add up to 2 DON!! cards from your DON!! deck and rest them.\n[Activate: Main] [Once Per Turn] DON!! -1: Up to 1 of your opponent's Characters cannot activate [Blocker] during this turn.",
+  effects: {
+    effects: [
+      {
+        trigger: "onPlay",
+        actions: [{ action: "addDon", count: { amount: 2, upTo: true }, state: "rested" }],
+      },
+      {
+        // "DON!! -1:" is `cost: "returnDon"` (OP06-062 Vinsmoke Judge, same trigger, same cost).
+        // Ruling #996 forbids a `hasKeyword: "blocker"` filter or `requiresKeyword: true` here:
+        // an opponent Character WITHOUT [Blocker] is an explicitly legal target (可以), and the
+        // suppression still binds if that Character gains [Blocker] later in the same turn.
+        trigger: "activateMain",
+        costs: [{ cost: "returnDon", amount: 1 }],
+        actions: [
+          {
+            action: "cannotActivate",
+            target: {
+              player: "opponent",
+              zones: ["character"],
+              count: { amount: 1, upTo: true },
+            },
+            keyword: "blocker",
+            duration: "thisTurn",
+          },
+        ],
+        oncePerTurn: true,
+      },
+    ],
+  },
   i18n: op16Kuzan063I18n,
 };
