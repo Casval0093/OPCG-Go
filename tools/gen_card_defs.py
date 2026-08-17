@@ -148,13 +148,45 @@ def to_pascal(text: str) -> str:
     return "".join(t[0].upper() + t[1:].lower() for t in tokens)
 
 
+# The repo's formatter (oxfmt, via `vp check`) wraps an object property onto two lines once the
+# rendered line passes 100 columns, putting the value on its own line one indent deeper:
+#
+#     effect:
+#       "long string...",
+#
+# The generator has to emit exactly that, otherwise every regeneration fights the formatter. It
+# did not, and regenerating rewrote 410 of the 484 committed files while claiming to be
+# idempotent. Measured against the formatted tree: the longest un-wrapped line is exactly 100
+# characters and the shortest wrapped one would have been 103, so the threshold is 100 inclusive.
+# Only `effect` and `trigger` are ever long enough to trip it, but the helper is general.
+PRINT_WIDTH = 100
+
+
+def field(indent: str, key: str, value: str) -> list[str]:
+    """Render `key: value,` at `indent`, wrapping the way the formatter would."""
+    flat = f"{indent}{key}: {value},"
+    if len(flat) <= PRINT_WIDTH:
+        return [flat]
+    # The value itself may still exceed the width; a string literal cannot be broken further,
+    # and the formatter leaves those long. That is why this only moves the value down a line.
+    return [f"{indent}{key}:", f"{indent}  {value},"]
+
+
 def ts_str(value: str) -> str:
-    """A valid double-quoted TS/JS string literal. JSON string grammar is a
-    subset of JS string grammar, so json.dumps does the escaping correctly;
-    ensure_ascii=False keeps literal Unicode (e.g. the '−' minus sign
-    used in DON!! costs) instead of emitting \\uXXXX escapes, matching the
-    existing engine files' style."""
-    return json.dumps(value, ensure_ascii=False)
+    """Render a TypeScript string literal the way the repo's formatter would.
+
+    json.dumps gets the escaping right but always uses double quotes. oxfmt picks whichever quote
+    needs FEWER escapes, falling back to double on a tie -- so a card whose text quotes a trait,
+    like 'a type including "Whitebeard Pirates"', is emitted single-quoted with no backslashes.
+    Getting this wrong is invisible until you regenerate and the formatter rewrites the file back.
+    """
+    double = json.dumps(value, ensure_ascii=False)
+    if value.count('"') <= value.count("'"):
+        return double
+    # Re-quote: drop the outer double quotes, unescape \" back to ", escape any ' we introduce.
+    # Other escapes (\n, \\, \t) are left exactly as json produced them.
+    inner = double[1:-1].replace('\\"', '"').replace("'", "\\'")
+    return f"'{inner}'"
 
 
 def ts_str_array(values: list[str]) -> str:
@@ -329,18 +361,18 @@ def render_ts(card: dict[str, Any], symbol: str, filename_stub: str) -> str:
         if card.get("counter") is not None:
             lines.append(f'  counter: {card["counter"]},')
         if card["trigger"]:
-            lines.append(f'  trigger: {ts_str(card["trigger"])},')
+            lines.extend(field("  ", "trigger", ts_str(card["trigger"])))
     else:  # event, stage
         lines.append(f'  cost: {card["cost"]},')
         if card["trigger"]:
-            lines.append(f'  trigger: {ts_str(card["trigger"])},')
+            lines.extend(field("  ", "trigger", ts_str(card["trigger"])))
 
     if card["traits"]:
         lines.append(f'  traits: {ts_str_array(card["traits"])},')
     if card["attribute"]:
         lines.append(f'  attribute: {ts_str(card["attribute"])},')
     if card["effect"]:
-        lines.append(f'  effect: {ts_str(card["effect"])},')
+        lines.extend(field("  ", "effect", ts_str(card["effect"])))
     lines.append(f"  i18n: {symbol}I18n,")
     lines.append("};")
     lines.append("")
@@ -355,7 +387,7 @@ def render_i18n_ts(card: dict[str, Any], symbol: str) -> str:
     lines.append("  en: {")
     lines.append(f'    name: {ts_str(card["name"])},')
     if card["effect"]:
-        lines.append(f'    effect: {ts_str(card["effect"])},')
+        lines.extend(field("    ", "effect", ts_str(card["effect"])))
     lines.append(f'    imageUrl: {ts_str(card["imageUrl"])},')
     lines.append("  },")
     lines.append("};")

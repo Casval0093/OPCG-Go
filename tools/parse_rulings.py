@@ -120,15 +120,20 @@ def check(out_path: str) -> int:
             changed.append((doc, f"republished ({was.get('update_time')} -> {doc['update_time']})"))
     for doc in live:
         print(f"  {doc['name']:<20} {doc['update_time']}")
+    # A withdrawn document is a change too: the committed corpus would still contain rulings the
+    # official source has retracted. Reporting it while exiting 0 told automation there was
+    # nothing to do, which is the one case where stale rulings are actively wrong.
     missing = sorted(set(prior) - {d["name"] for d in live})
-    if missing:
-        print(f"\nno longer listed: {', '.join(missing)}")
-    if not changed:
+
+    if not changed and not missing:
         print("\nno changes since the last build")
         return 0
+
     print("\nCHANGED:")
     for doc, why in changed:
         print(f"  {doc['name']} — {why}")
+    for name in missing:
+        print(f"  {name} — WITHDRAWN (no longer listed; the build still contains its rulings)")
     print(f"\nrebuild with: python3 {sys.argv[0]} --fetch -o {out_path}")
     return 1
 
@@ -296,7 +301,10 @@ def main() -> None:
             print(f"no rulings for {args.card.upper()}")
             return
         for r in rulings:
-            print(f"--- #{r['seq']} ({r['source']}) ---\n{r['text']}\n")
+            # Promo entries have no sequence number - that table is not numbered - so the label
+            # has to degrade rather than KeyError on the documented readback path.
+            label = f"#{r['seq']}" if "seq" in r else "unnumbered"
+            print(f"--- {label} ({r['source']}) ---\n{r['text']}\n")
         return
 
     sources = None
