@@ -66,6 +66,20 @@ every field composition tested. Sensitivity crossover depends on which decks don
 
 Tempo leader. Conversion plan is: land a large Whitebeard body, attack immediately.
 
+**Official SC ruling #961 resolves an ambiguity in that text, and it resolves against us.** Read in
+English, "with 8000 power or more" could attach only to the Whitebeard clause, or to both. The
+ruling is explicit: a Character with 7000 power or less and the Whitebeard Pirates trait **cannot**
+gain [Rush] (不能). **The 8000 threshold binds to both clauses.**
+
+That is the real gate on the archetype. Ace does not grant [Rush] to Whitebeard bodies — he grants
+it to *8000-power-or-more* bodies, of which `OP17-005` Newgate at 12000 is the headline example.
+Every deckbuilding decision has to clear 8000, not merely share the trait.
+
+Related, from rulings #962 and #963 on `OP16-002` Izo and `OP16-003` Edward.Newgate: the phrase
+"a Character card with 8000 power" means **exactly 8000** — not 7000 or less, not 9000 or more.
+Those two cards want precisely-8000 bodies while the Leader wants 8000-or-more, so a 9000-power
+Character turns one on and the others off. Worth remembering when building the curve.
+
 **Dracule Mihawk — `OP14-020`** · Green · 5 Life · 5000 · attribute *Slash* · Block 4
 > If your opponent's Leader has the \<Slash\> attribute, this Leader gains +1000 power.
 > [Activate: Main] [Once Per Turn] You may rest 1 of your cards: If there is a Character with a cost

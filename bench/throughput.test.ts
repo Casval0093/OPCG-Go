@@ -4,11 +4,8 @@
 // Two decks are measured, and the point is the RATIO between them.
 //
 //   synthetic  4 distinct cards cycled to 50. What the original benchmark used.
-//   ST01      the real 50-card ST01 starter deck, 16 distinct cards, shipped by
+//   ST01      the real 50-card ST01 starter deck, 17 distinct cards, shipped by
 //             the engine itself (src/starter-decks.ts) so it cannot rot.
-//
-// Absolute games/s is machine-dependent and NOT comparable to numbers recorded
-// on another host. Only the ratio between the two decks in a single run is.
 //
 // docs/engine-audit.md sizes the ISMCTS budget off the synthetic number and then
 // asserts, without measuring, that "real 51-card decks with live effects will be
@@ -85,7 +82,11 @@ function measure(deck: Deck, games: number): Measurement {
   let cmds = 0;
   let decided = 0;
   for (let i = 0; i < games; i++) {
-    const r = runBotMatch(cfg(deck, 1000 + i), { south: valueRankedStrategy, north: valueRankedStrategy }, { maxCommands: 500 });
+    const r = runBotMatch(
+      cfg(deck, 1000 + i),
+      { south: valueRankedStrategy, north: valueRankedStrategy },
+      { maxCommands: 500 },
+    );
     cmds += r.totalCommands;
     if (r.winner) decided++;
   }

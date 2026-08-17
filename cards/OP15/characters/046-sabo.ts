@@ -1,0 +1,30 @@
+import type { CharacterCard } from "@tcg/op-types";
+import { op15Sabo046I18n } from "./046-sabo.i18n.ts";
+
+export const op15Sabo046: CharacterCard = {
+  id: "OP15-046",
+  canonicalId: "OP15-046",
+  slug: "sabo/op15-046",
+  name: "Sabo",
+  printings: [
+    {
+      id: "OP15-046",
+      artId: "OP15-046",
+      setCode: "OP15",
+      collectorNumber: "046",
+      rarity: "SR",
+      imageUrl: "https://en.onepiece-cardgame.com/images/cardlist/card/OP15-046.png",
+    },
+  ],
+  cardType: "character",
+  color: ["blue"],
+  rarity: "SR",
+  setId: "OP15",
+  cost: 7,
+  power: 9000,
+  traits: ["Dressrosa", "Revolutionary Army"],
+  attribute: "special",
+  effect:
+    "[Blocker]\n[On Play] If your Leader has the [Dressrosa] type, activate up to 1 [Dressrosa] type Event from your hand.",
+  i18n: op15Sabo046I18n,
+};

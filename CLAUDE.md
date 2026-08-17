@@ -11,12 +11,21 @@ set rotations.
 Two tracks run in parallel:
 
 - **Research track** — mine real tournament + ladder data, compute field-weighted EV, recommend a deck. *Working today.*
-- **Engine track** — fork a rules engine, add search AI, simulate matchups for formats that have no data yet. *Scoped, not started.*
+- **Engine track** — fork a rules engine, add search AI, simulate matchups for formats that have no
+  data yet. *In progress:* OP15/OP16 card shells generated, simulation harness working end to end
+  on Block 2+ decks. Remaining: encode OP15/OP16 effects, then a play policy worth trusting.
 
 ## Ground truth: what is real vs what is not
 
-**No simulation has ever run in this project.** Every number in `docs/` is empirical — real human
-games. If you write something implying otherwise, you are wrong. The engine does not exist yet.
+**Every competitive number in `docs/research-findings.md` and `docs/charter.md` is empirical** —
+real human games from Limitless and an EN ladder. No simulated figure has ever been mixed into
+them, and none should be without saying so explicitly.
+
+**Simulation started working on 2026-08-17** and its output lives only in `docs/simulation.md` and
+`sim/results/`. So far that is mirror matches used to validate the harness — 400-game ST01 and
+Mihawk mirrors — plus the prompt diagnostic. **No matchup between two different decks has been
+simulated**, because the current field is OP15/OP16 and those cards are shells, not encodings.
+Keep the two bodies of evidence clearly separated when writing anything.
 
 ## Locked decisions
 
@@ -35,6 +44,30 @@ games. If you write something implying otherwise, you are wrong. The engine does
 ## Hard-won facts — do not re-derive these
 
 - **An OPTCG deck is 50 cards** + 1 leader + 10 DON!!. (An earlier draft said 51. It was wrong.)
+- **A timed-out round is a DOUBLE LOSS, not a draw** — 官方公认赛赛事守则 V1.6.0 §II: *"该对战结果
+  为双方败北"*. Failing to close inside 30 minutes is a loss on your record. Extra turns (+3 / +2)
+  and the Life→deck→猜拳 tiebreak apply **only in finals and elimination**, never in Swiss.
+  The simulator scores `win | loss | timeout` for this reason. See `docs/simulation.md`.
+- **`MatchConfig.firstPlayer` is silently discarded by the engine.** It sets the initial
+  `activeSeat` only; the 猜拳 setup roll (Comprehensive Rules 5-2-1) overwrites it, and
+  `runBotMatch` consumes that command from its prompt queue before any strategy sees it. Forcing
+  it both ways gives byte-identical results, and **north led all 120 test games**. Control turn
+  order by **seat assignment** instead — north leads, so seat the deck north to put it on the play.
+- **The engine's bot could not resolve `orderCards` prompts — FIXED 2026-08-17, do not re-diagnose.**
+  It abandoned **88% of games** on a Block 2+ deck with `illegal-command` at turn 2. Cause:
+  `resolveBotPromptCommand` branches on four of six `ChoiceKind`s and falls through to a single
+  `optionId`, which cannot express an ordering. `orderCards` failed **17/17**; every other kind
+  passed, including `chooseOption`. The ~8-line fix is `tools/patch_engine.py`, re-applied by
+  `scripts/bootstrap.sh` since `vendor/` is gitignored. A/B: 3/20 games completed → **20/20**.
+  Engine suite unchanged at 2632. **This belongs upstream** — tcg-engines is MIT and the bug is
+  theirs. See `docs/simulation.md`.
+- **Real Block 2+ decks now simulate end to end**, 400/400 `rules-win`, median 9 turns.
+- **Do not calibrate on ST01.** The play/draw gap is **54.5 pts** on ST01, **26.7** on a vanilla
+  Block 2+ pile, and **8.5 pts** on a real Block 2+ deck — the last of which is plausible. The gap
+  tracks how much interaction a deck has; a degenerate deck gives degenerate calibration. An
+  earlier note here claiming the bot exaggerates first-player advantage "by an order of magnitude"
+  was measured on ST01 and is **retracted**. Policy quality remains unmeasured — a plausible split
+  shows the policy is not obviously broken, not that it plays well.
 - **There is no sideboard in Constructed.** The deck is locked for the whole event; only Sealed
   permits a side deck (official Tournament Rules Manual / Floor Rule). Every tech slot is a
   permanent tax paid in every matchup, so slot decisions are `Σ share × ΔWR` across the *whole*
@@ -53,10 +86,11 @@ games. If you write something implying otherwise, you are wrong. The engine does
 - **The 30-minute clock is a format-level edge for Ace, independent of preference.** Tempo closes
   inside the round; attrition may not. It cuts against Teach and Big Mom, the two decks the raw EV
   table favours and the two the research notes describe as attrition engines.
-- **Engine throughput is 2.80 games/s single-core** (3.54 with the cycle detector off). Full-strength
-  ISMCTS is ~2 orders of magnitude out of reach. See `docs/engine-audit.md` for the four options.
-- **`onepiece-cardgame.cn` (official SC) is robots-blocked** to automated fetch. SC-official data must
-  come from mirrors, community sources, or Ping.
+- **Engine throughput: ~2–4 games/s single-core, host-dependent.** The 2.80 figure was measured on
+  another machine and is not comparable across hosts; only within-run ratios are. Full-strength
+  ISMCTS remains ~2 orders of magnitude out of reach. **But throughput has not been the binding
+  constraint so far** — policy legality was (see the `orderCards` bug below), and
+  `docs/engine-audit.md`'s options A–D are all speed levers that would not have found it.
 - **Card-effect encoding does not templatise.** 1,092 of 1,219 normalized effect templates are
   singletons; top-100 templates cover only 34.6% of clauses. Composition, not pattern matching.
 - **There is no encoding backlog in the existing sets — it is 0, not 331/125.** Both figures
@@ -70,9 +104,10 @@ games. If you write something implying otherwise, you are wrong. The engine does
   `OP02-013_p3` misspells the trait `"Whitebeard Piratess"` — the exact trait Ace keys on.
   Play is correct today because the engine runs the base's encoding. **When authoring
   OP15–OP17 encodings from printed text, read the base printing.** `tools/variant_audit.py`.
-- **Card data is SOLVED for OP15/OP16 via npm — do not re-litigate the egress problem.**
-  Direct card sites (`optcgapi.com`, `onepiece.limitlesstcg.com`, `onepiece-cardgame.cn`,
-  `en.onepiece-cardgame.com`) are all blocked by egress policy. The npm registry is not.
+- **Card data is SOLVED for OP15/OP16 via npm — do not re-litigate the acquisition problem.**
+  (The egress claim that used to sit here is superseded: see the environment-specific note below.
+  On this Mac the direct card sites are reachable; the npm route is still the one the importer
+  uses, and it is a mirror of the official Bandai list.)
   `one-piece-card-game-json` publishes the **official Bandai** list (its `image_url`s point
   at `en.onepiece-cardgame.com`), so it is a mirror of the primary source, not an aggregator
   summary. `tools/import_cards.py` pulls it. Validated against the engine's 2,282 hand-checked
@@ -102,6 +137,41 @@ games. If you write something implying otherwise, you are wrong. The engine does
 - **Aggregator card IDs are not trustworthy, not just aggregator card text.** Re-verifying OP17
   §5 against Limitless found an error in **every** row, including a wrong ID: the card the doc
   filed as `OP17-009` Rakuyo is actually `OP17-016`; `OP17-009` is Haruta, a different card.
+- **Official SC rulings are now in the repo: `data/rulings-sc.json`, 1,358 rulings over 893 cards**
+  (61 OP15 cards, 51 OP16 cards, plus 53 core-rules answers under `card_id: "GENERAL"`). Source:
+  the Q&A PDFs from <https://www.onepiece-cardgame.cn/rules>, given by Ping 2026-08-17. Rebuild with
+  `tools/parse_rulings.py`; read one card with `--card OP16-001`. **These are the specification for
+  effect edge cases — consult before encoding any card.** They are also SC-native and *official*,
+  which is a stronger source than anything else in this project.
+- **`OP16-001` Ace's 8000 threshold binds to BOTH clauses — ruling #961.** A 7000-power Whitebeard
+  Pirates Character does **not** gain [Rush] (不能). The English text is ambiguous; the ruling is
+  not. Ace grants [Rush] to *8000-or-more* bodies, not to Whitebeard bodies. Do not build the deck
+  on the trait alone.
+- **"Power N" in card text means EXACTLY N** — rulings #962/#963 on `OP16-002` and `OP16-003`.
+  Not ≤N-1, not ≥N+1. Encode as `eq`, not `gte`, unless a ruling says otherwise.
+- **SC rulings acquisition is fully automated — no browser needed.** `onepiece-cardgame.cn/rules`
+  is a JS SPA whose HTML is an empty shell, but it is backed by a plain JSON API and the PDFs sit
+  on an ordinary static host:
+  - list: `https://webadmin.windoent.com/op-public/rules/rulesinfo/webList`
+  - pdfs: `https://source.windoent.com/OnePiecePc/Pdf/...`
+
+  ```bash
+  ./.venv/bin/python tools/parse_rulings.py --check   # exit 1 if anything was republished
+  ./.venv/bin/python tools/parse_rulings.py --fetch    # download current PDFs and rebuild
+  ```
+  `--check` diffs each document's `updateTime` against the `sources` block of the last build. That
+  is the hook for catching the **OPC17 QA** when OP17 lands. Track `updateTime` from the API, not
+  the date shown on the page — they differ (the booster QA shows 2026-01-30 on the page and
+  `2026-05-25` in the API).
+- **The API lists seven official SC documents, not the four Ping downloaded.** Four are Q&A tables
+  (1,358 rulings); three are prose rulebooks that parse to 0 rulings, correctly:
+  - **`综合规则 Ver.1.2.0`** — the **SC Comprehensive Rules**. This is the engine-conformance target
+    the charter names, now available SC-native instead of only in EN.
+  - **`官方公认赛赛事守则 V1.6.0`** — SC official tournament rules. The authority for format
+    questions (no side deck, Bo1, timing) in the region actually being played.
+  - `官方规则指导手册 Ver.1.11` — rules guide manual.
+
+  All seven are cached to `data/qa-cache/` (gitignored) by `--fetch`.
 - **python.org Python on macOS ships without root certificates.** `import_cards.py` dies with
   `CERTIFICATE_VERIFY_FAILED` until `/Applications/Python 3.13/Install Certificates.command`
   is run once. Not a repo bug; it bites every fresh machine.
@@ -198,11 +268,17 @@ python3 tools/coverage_report.py --exclude-promos # encoding backlog
    its existing DSL with per-card tests. Author from these files, never from a variant printing.
    (The "fill the 125 mainline gaps" item that used to sit here has been deleted — that backlog
    was a measurement bug and is 0.)
-4. **Pick the Tier-3 lever** — recommendation is Tier 2.5 now, learned value net next, Rust port only
-   if calibration proves heuristic play distorts matchups. The multiplier is now measured, not
-   assumed: Option C's "runs today on 2 cores" is optimistic by ~3.4x (1.85x game length hitting
-   both decisions/game and rollout length), and that is a lower bound since ST01 is a starter deck.
-   Option A's framing needs revising — the cost is state transitions, not effect resolution.
+4. **Pick the Tier-3 lever — but the audit's framing needs revising first.** Its four options are
+   all throughput levers, and throughput has not been the binding constraint: an unimplemented
+   `orderCards` branch was, and it cost 88% of games on modern decks until fixed. Two measured
+   corrections stand: the deck-realism multiplier is ~1.79x per game (flat per command, so the
+   cost is state transitions rather than effect resolution), which makes Option C optimistic by
+   ~3.4x; and the calibration evidence that would trigger Option A/B is **much weaker than it
+   looked** — the play/draw gap is 8.5 pts on a real Block 2+ deck, not the 54.5 pts ST01 showed.
+   Measure policy *quality* before spending on speed.
+5. **Send the `orderCards` fix upstream to `TheCardGoat/tcg-engines`.** MIT, the bug is theirs, the
+   fix is ~8 lines and A/B-proven (3/20 → 20/20 games completed). Currently carried locally in
+   `tools/patch_engine.py`.
 
 ## Open questions only Ping can answer
 
