@@ -21,70 +21,103 @@
       "summary": "A TargetFilter over a candidate's attached DON!! count.",
       "detail": "instance.attachedDon exists in engine state, but matchesTargetFilter (effects/targeting.ts) has no case for it. givenDonCount is a Condition over a player's total, not a per-candidate filter.",
       "wanted_rank": 1,
-      "blocks": ["OP15-001", "OP15-038"]
+      "blocks": [
+        "OP15-001",
+        "OP15-038"
+      ]
     },
     {
       "id": "setBasePowerLiteral",
       "summary": "An action setting a card's BASE power to a literal value.",
       "detail": "setPower applies value - getCardPower(target), i.e. a TOTAL-power set measured at resolution, so it absorbs modifiers already on the target instead of letting them stack on top. setBasePowerFrom has the right arithmetic but requires a source card on the field; copyPower only ever retargets the effect's own card.",
       "wanted_rank": 2,
-      "blocks": ["OP16-058", "OP16-106", "OP16-015", "OP15-092"]
+      "blocks": [
+        "OP16-058",
+        "OP16-106",
+        "OP16-015",
+        "OP15-092"
+      ]
     },
     {
       "id": "loseGameAction",
       "summary": "An action that makes a player LOSE, to pair with scheduleAtEndOfTurn.",
       "detail": "replacedEvent 'loseGame' exists (OP03-040 Nami) but its only replacement action is winGame. Needs latch semantics too: rulings #878/#954 say the scheduled loss still happens even if the deck climbs back above 0 that turn.",
       "wanted_rank": 3,
-      "blocks": ["OP15-022"]
+      "blocks": [
+        "OP15-022"
+      ]
     },
     {
       "id": "turnNumberCondition",
       "summary": "A Condition over the turn number.",
       "detail": "condition 'turn' only distinguishes your turn from the opponent's. state.turnNumber already exists and is read elsewhere in effects/conditions.ts, so this is a missing Condition variant only.",
       "wanted_rank": 4,
-      "blocks": ["OP15-058"]
+      "blocks": [
+        "OP15-058"
+      ]
     },
     {
       "id": "eventActivatedThisTurnCondition",
       "summary": "A Condition over this turn's event-activation history.",
       "detail": "The engine fires whenYouActivateEvent at activation time but records nothing, so a later activateMain has nothing to test. Ruling #853 constrains it: activating a [Trigger] is NOT activating an Event.",
       "wanted_rank": 5,
-      "blocks": ["OP15-002"]
+      "blocks": [
+        "OP15-002"
+      ]
     },
     {
       "id": "returnDonStateRestriction",
       "summary": "A DON!!-state restriction on the returnDon cost.",
       "detail": "ReturnDonCost has only amount/minimumAmount, and returnDonCostOptions offers active, rested AND attached DON!! alike, so 'return 8 of your ACTIVE DON!!' cannot be expressed.",
       "wanted_rank": 6,
-      "blocks": ["OP16-060"]
+      "blocks": [
+        "OP16-060"
+      ]
     },
     {
       "id": "grantKeywordToTriggerEventCard",
       "summary": "Bind grantKeyword to the card carried by the trigger event.",
       "detail": "The plumbing exists in effects/resolution.ts but is hardcoded to returnToDeck.triggerEventTarget and copyPower.triggerEventAttacker. A filtered target instead becomes a CHOICE among all matching own Characters, which wrongly lets a hand-played body gain the keyword.",
       "wanted_rank": 7,
-      "blocks": ["OP16-079"]
+      "blocks": [
+        "OP16-079"
+      ]
     },
     {
       "id": "distinctNameCountCondition",
       "summary": "A distinct-card-name constraint on a Condition.",
       "detail": "differentNames exists only on the play/playGrouped Actions. A bare zoneCount eq 5 with a trait filter would wrongly fire on five copies of one card.",
       "wanted_rank": 8,
-      "blocks": ["OP16-038"]
+      "blocks": [
+        "OP16-038"
+      ]
     },
     {
       "id": "koThisTurnCondition",
       "summary": "A Condition over this turn's K.O. history.",
       "detail": "MatchState holds no per-turn K.O. log. battledOpponentCharacterOnTurn records a Leader battling a Character, on the attacker, which is a different fact. Ruling #1009 requires it to be cause-agnostic, including the opponent's own effect.",
       "wanted_rank": 9,
-      "blocks": ["OP16-100"]
+      "blocks": [
+        "OP16-100"
+      ]
     },
     {
       "id": "searchRevealToLife",
       "summary": "revealDestination: 'life' on the search action.",
       "detail": "search is the only look-N-then-order-the-remainder verb, and its handler hard-rejects anything but 'hand'/'character' -- it records an action:search:configuration capability issue and enqueues a judge prompt. NOTE this TYPE-CHECKS, because Zone already includes 'life'; it fails only at runtime. Needs face-DOWN placement per ruling #1018.",
       "wanted_rank": 10,
-      "blocks": ["OP16-119"]
+      "blocks": [
+        "OP16-119"
+      ]
+    },
+    {
+      "id": "distinctNameCountScaling",
+      "summary": "A distinct-card-name counting mode for modifyPower's per-card scaling.",
+      "detail": "valuePerCardGroup divides the RAW candidate count by `size` (effects/permanent.ts) with no name deduplication, and differentNames exists only on the play/playGrouped Actions. Sibling of distinctNameCountCondition -- same missing concept, a different DSL site (a scaling factor rather than a Condition), so both need building. Rulings #981-#984 pin the semantics exactly: the card itself counts, and a card that has been GRANTED extra names still never counts twice.",
+      "wanted_rank": 11,
+      "blocks": [
+        "OP16-034"
+      ]
     }
   ],
   "parked": [
@@ -94,7 +127,9 @@
       "coverage": "partial",
       "clause": "[Activate: Main] [Once Per Turn] Rest up to 1 of your opponent's Characters that has 2 or more DON!! cards given.",
       "primitive": "attachedDonTargetFilter",
-      "rulings": [892]
+      "rulings": [
+        892
+      ]
     },
     {
       "card": "OP15-002",
@@ -102,7 +137,9 @@
       "coverage": "partial",
       "clause": "[Activate: Main] [Once Per Turn] If you have activated an Event with a base cost of 3 or more during this turn, draw 1 card.",
       "primitive": "eventActivatedThisTurnCondition",
-      "rulings": [853]
+      "rulings": [
+        853
+      ]
     },
     {
       "card": "OP15-022",
@@ -110,7 +147,12 @@
       "coverage": "partial",
       "clause": "Under the rules of this game, you do not lose when your deck has 0 cards. You lose at the end of the turn in which your deck becomes 0 cards.",
       "primitive": "loseGameAction",
-      "rulings": [878, 953, 954, 955]
+      "rulings": [
+        878,
+        953,
+        954,
+        955
+      ]
     },
     {
       "card": "OP15-038",
@@ -118,7 +160,9 @@
       "coverage": "partial",
       "clause": "[Main] Up to 1 of your opponent's rested Characters with a cost of 8 or less that has 2 or more DON!! cards given will not become active in your opponent's next Refresh Phase.",
       "primitive": "attachedDonTargetFilter",
-      "rulings": [892]
+      "rulings": [
+        892
+      ]
     },
     {
       "card": "OP15-058",
@@ -126,7 +170,10 @@
       "coverage": "none",
       "clause": "Under the rules of this game, your DON!! deck consists of 6 cards.",
       "primitive": "donDeckSizeRule",
-      "rulings": [900, 902],
+      "rulings": [
+        900,
+        902
+      ],
       "note": "No primitive entry above: nothing in the DON!! setup path is effect-driven, and ruling #900 says negating the Leader does NOT restore 10, so the size is fixed at setup rather than being a live modifier. Needs design, not just a variant."
     },
     {
@@ -135,7 +182,9 @@
       "coverage": "none",
       "clause": "[Activate: Main] [Once Per Turn] If it is your second turn or later, add up to 1 DON!! card from your DON!! deck and set it as active, and add up to 4 additional DON!! cards and rest them. Then, give up to 4 rested DON!! cards to 1 of your Characters.",
       "primitive": "turnNumberCondition",
-      "rulings": [901]
+      "rulings": [
+        901
+      ]
     },
     {
       "card": "OP16-038",
@@ -151,7 +200,9 @@
       "coverage": "partial",
       "clause": "[Main] If you have 10 DON!! cards on your field, all of your [Prisoner of Impel Down] cards' base power becomes 7000 during this turn.",
       "primitive": "setBasePowerLiteral",
-      "rulings": [994]
+      "rulings": [
+        994
+      ]
     },
     {
       "card": "OP16-060",
@@ -159,7 +210,9 @@
       "coverage": "none",
       "clause": "[Activate: Main] You may return 8 of your active DON!! cards to your DON!! deck: Play up to 3 [Admiral] type Character cards with different card names from your hand.",
       "primitive": "returnDonStateRestriction",
-      "rulings": [995]
+      "rulings": [
+        995
+      ]
     },
     {
       "card": "OP16-079",
@@ -175,7 +228,9 @@
       "coverage": "partial",
       "clause": "[Main] You may rest 2 of your DON!! cards: If your opponent's Character has been K.O.'d during this turn, set your Leader [Yamato] as active.",
       "primitive": "koThisTurnCondition",
-      "rulings": [1009]
+      "rulings": [
+        1009
+      ]
     },
     {
       "card": "OP16-106",
@@ -191,7 +246,23 @@
       "coverage": "partial",
       "clause": "[On Play] Look at 3 cards from the top of your deck; add up to 1 card to the top of your Life cards. Then, place the rest at the bottom of your deck in any order.",
       "primitive": "searchRevealToLife",
-      "rulings": [1018]
+      "rulings": [
+        1018
+      ]
+    },
+    {
+      "card": "OP16-034",
+      "name": "Monkey.D.Luffy",
+      "coverage": "partial",
+      "clause": "[DON!! x1] [Your Turn] This Character gains +1000 power for each of your Characters with a different card name.",
+      "primitive": "distinctNameCountScaling",
+      "rulings": [
+        981,
+        982,
+        983,
+        984
+      ],
+      "note": "The [On Play] half IS encoded and tested. #982/#983: 1 Luffy + 2 copies of one other card is +2000, not +3000."
     }
   ]
 }

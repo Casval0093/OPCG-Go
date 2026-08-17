@@ -616,6 +616,55 @@ the target's *ownership* scoping with an opponent body instead.
 **"a cost of N" / "power N" is `eq`.** Confirmed again on Rebecca (费用为3). Same reading as
 rulings #962/#963. A bare number in card text is an equality unless a comparison word is printed.
 
+## OP16 green Characters (12 cards) — lessons
+
+**Ruling #977 (Bunkov) closes the loop opened by #979 (Antlerkov).** The two cards name each other, and
+both need `zone: "field"` — the Leader counts. The SC text pins a second thing the English does not
+(我方场上): `player: "self"`, so an *opponent's* Antlerkov does not satisfy it.
+
+**`replacedEvent: "ko"` is the right value for "if this Character would be K.O.'d", and covers both
+battle and effect.** `findKoReplacement` searches `["ko","leaveField"]` on a battle cause and
+`["ko","removeFromField","leaveField"]` on an effect cause — `"ko"` is in both. This is the positive
+counterpart to `OP15-098`'s lesson: there the printed text was "removed from the field" and needed
+`leaveField`; here it is "K.O.'d" and `ko` is simply correct. Match the printed verb.
+
+**"Rest N of YOUR cards" and "rest N of your OPPONENT'S cards" use different zone pools, deliberately.**
+Your own is Leader + Character + Stage — the pool the engine's own `restCards` **cost** uses
+(`candidatesForRestCardsCost`), which exists for exactly that printed phrasing. The opponent-facing one
+additionally includes `costArea`, consistently across five existing cards (`OP13-033`, `OP14EB04-024`,
+`OP14EB04-029`, `EB03-032`, `OP13-006`). Copying the wrong half lets a card rest its own DON!!, or
+stops it touching the opponent's.
+
+**A `rest` target spanning field zones *and* `costArea` publishes `effectMixedRestSelection`, and its
+step kind is `payCost`** — not `effectTargetSelection`/`selectEntity`. Getting the intent wrong yields
+"Could not find a pending …", which reads like the encoding never fired.
+
+**Pin a small `amount: N` by making the candidates FEWER than N, not by what you select.** Single-digit
+amounts are invisible to the mutation tool. For Morley's "rest 2", make only one card restable: the
+replacement is then suppressed entirely by `replacementActionIsAvailable` and the card dies — an
+assertion that goes red instantly at `amount: 1`. The same fixture proves already-rested cards are out
+of the pool.
+
+**`setBasePowerFrom` copies the source's PRINTED base power**, so attaching DON!! or adding modifiers to
+the source changes nothing. To prove `player: "opponent"` you need the two Leaders to differ in printed
+power — and only four real Leaders are not 5000: `op02EdwardNewgate001` (6000),
+`op11MonkeyDLuffy040` (6000), `op13PortgasDAce002` (6000), `op13GolDRoger003` (7000).
+
+**`leaderTrait`'s `match: "includes"` is behavioural, not decoration.** Older Leaders store traits as
+one concatenated string — `op02EmporioIvankov049` is `["Revolutionary Army Impel Down"]` — so
+`match: "exact"` never finds `"Impel Down"`. Use that card as the fixture Leader and `includes` is
+genuinely exercised. GENERAL ruling #39 confirms the substring semantics from the rules side.
+
+**When asserting a prompt did NOT appear, filter `status === "pending"`.** `state.promptQueue` retains
+*resolved* prompts, so a test that opens a blocker step in a control attack and resolves it will still
+see `battleBlocker` in the queue afterwards — a false red on an unblockable assertion. (`view.prompts`
+already filters pending, which is why it stays the safe accessor.) Also do not use
+`view.prompts.toHaveLength(0)` here: a Leader taking damage legitimately publishes `lifeTrigger`.
+
+**`expectFailure` returns `ApplyCommandResult` — the fields are `accepted` and `reason`, not `ok`.**
+And `ProjectedCard.power` is `number | null`, so a test helper needs
+`if (!card || card.power === null)` or `vp check` fails with TS2322.
+
 ## OP16 blue Characters (14 cards) — lessons
 
 **Sometimes the correct encoding is the ABSENCE of a filter, and only a ruling can tell you.**
