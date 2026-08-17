@@ -5,7 +5,7 @@ import {
   eb01MountainGod018,
   op16Antlerkov029,
   op16Bunkov025,
-  op16CaptainBuggySOurSavior057,
+  op16MobyDick021,
   op16PortgasDAce001,
 } from "@tcg/op-cards";
 
@@ -98,20 +98,25 @@ describe("OP16-029 Antlerkov", () => {
     expect(play.candidates.map((candidate) => candidate.ref.id)).toEqual([eligibleId]);
   });
 
-  test("the hand-play is restricted to Character cards -- a cheap Event does not qualify", () => {
+  test("the hand-play is restricted to Character cards -- a cheap Stage does not qualify", () => {
     const engine = OnePieceTestEngine.create(
       {
         character: [{ card: op16Antlerkov029, playedOnTurn: 0 }, op16Bunkov025],
-        // op16CaptainBuggySOurSavior057 costs 1 -- within "cost of 2 or less" -- so only the
-        // `cardCategory: "character"` filter keeps it out of the candidates.
-        hand: [eb01Doma005, op16CaptainBuggySOurSavior057],
+        // op16MobyDick021 costs 1 -- within "cost of 2 or less" -- so only the
+        // `cardCategory: "character"` filter keeps it out of the candidates. A cheap Event
+        // would NOT prove this: candidatesForPlayAction (effects/actions.ts) hard-filters
+        // every `play` action's candidate pool to `cardType === "stage" || "character"`
+        // before `cardCategory` is ever consulted, so an Event is unreachable here
+        // regardless of what `cardCategory` says -- only a Stage actually exercises this
+        // filter. See cards/ENCODING.md.
+        hand: [eb01Doma005, op16MobyDick021],
       },
       {},
       { firstPlayer: "north", activeSeat: "south" },
     );
     const antlerkovId = engine.findCardInZone("south", "character", op16Antlerkov029);
     const eligibleId = engine.findCardInZone("south", "hand", eb01Doma005);
-    const eventId = engine.findCardInZone("south", "hand", op16CaptainBuggySOurSavior057);
+    const stageId = engine.findCardInZone("south", "hand", op16MobyDick021);
 
     engine.declareAttack(antlerkovId, engine.leader("north"), "south");
 
@@ -119,6 +124,6 @@ describe("OP16-029 Antlerkov", () => {
     expect(play?.kind).toBe("selectEntity");
     if (play?.kind !== "selectEntity") throw new Error("Expected Antlerkov's hand-play choice.");
     expect(play.candidates.map((candidate) => candidate.ref.id)).toEqual([eligibleId]);
-    expect(play.candidates.map((candidate) => candidate.ref.id)).not.toContain(eventId);
+    expect(play.candidates.map((candidate) => candidate.ref.id)).not.toContain(stageId);
   });
 });

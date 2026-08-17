@@ -94,6 +94,27 @@ disposable and gets overwritten.
    something obviously synthetic (`TEST-...`), and override whatever the test actually needs.
    This is used throughout the reference tests — see the Marco and Antlerkov/Our Savior
    sections below for three different reasons to reach for it.
+
+   **If you override `name` to make a card match a `name` filter, you must also override
+   `i18n.en.name`, or the filter will silently keep matching the spread-from card's original
+   name.** `cardName()` (`shared.ts`) resolves a card's name from `card.i18n.en.name`, not
+   the top-level `name` field the rest of this file's mapping table talks about — the two
+   normally agree by construction in `gen_card_defs.py`'s output, but a hand-spread synthetic
+   card has to be told to agree on purpose:
+   ```ts
+   const bunkovNamedLeader: LeaderCard = {
+     ...op16PortgasDAce001,
+     id: "TEST-...",
+     canonicalId: "TEST-...",
+     name: "Bunkov",
+     i18n: { en: { ...op16PortgasDAce001.i18n.en, name: "Bunkov" } },  // <- easy to forget
+   };
+   ```
+   Forgetting the `i18n` override doesn't error — it just makes the condition evaluate to
+   `false` with no indication why, which looks identical to "the encoding is still broken"
+   until you isolate it. This cost real time building the Antlerkov/Our Savior ruling tests
+   below; it will cost the same time again for whoever forgets it next unless they read this
+   first.
 5. Typecheck and format:
    ```bash
    ./node_modules/.bin/vp check          # from packages/engine, and again from packages/cards
@@ -360,11 +381,11 @@ cards, defer" and filed as untested. That conflated two genuinely different thin
   Leader — so this ruling was always encoding-relevant, not a generic-interaction
   side-question.
 
-Seven other existing "if you have [Name]" encodings in the vendored engine already get this
-right, including `OP02/characters/111-fullbody.ts` — this card's own model, cited below,
-that this encoding then diverged from on exactly the field that matters. `OP16-025` Bunkov
-carries the identical ruling (#977) for the symmetric "if you have [Antlerkov]" case, in a
-later batch.
+Seven pre-existing "if you have [Name]" encodings in the vendored engine already get this
+right (eight counting this card itself), including `OP02/characters/111-fullbody.ts` — this
+card's own model, cited below, that this encoding then diverged from on exactly the field
+that matters. `OP16-025` Bunkov carries the identical ruling (#977) for the symmetric "if
+you have [Antlerkov]" case, in a later batch.
 
 **Encoding.** `hasCard` condition (not `existsOnField` — both resolve identically via
 `candidatesForTarget`, but `hasCard` is the far more common spelling for "if you have
@@ -387,9 +408,14 @@ actions: [
 ],
 ```
 `zone: "field"` (`effects/targeting.ts`, `candidatePoolForTarget`) builds
-`[leaderInstanceId, ...characterArea, ...stageArea]`; the `hasCard`/`zoneCount` conditions
-(`effects/conditions.ts`) build the same triple directly rather than going through
-`candidatePoolForTarget`, but the Leader is first in both. `zone: "character"` (the 36 other
+`[leaderInstanceId, ...characterArea, ...stageArea]`. `hasCard` reaches it the same way
+everything else does — it builds a `Target` and calls `candidatesForTarget`
+(`effects/conditions.ts`), which is a thin wrapper around `candidatePoolForTarget` — so
+there is exactly one place "field" is assembled, not two. (`zoneCount` is the one condition
+that inlines the same `[leader, ...characters, stage]` triple directly instead of going
+through `candidatePoolForTarget`, for its own reasons — see `effects/conditions.ts`'s
+`zoneCount` case. The Leader is still first either way; the two paths just aren't the same
+function.) `zone: "character"` (the 36 other
 uses of this filter pattern in the vendored engine) is the right choice for the *different*
 printed pattern "a Character with…", which explicitly excludes the Leader by its own
 wording — the two zones are not interchangeable stand-ins for each other, they encode two
@@ -407,9 +433,24 @@ play offer appears and correctly excludes a too-expensive hand card; without Bun
 whole effect never fires (no prompt at all, not just an empty one); ruling #979 itself, with
 a synthetic Leader statically named `"Bunkov"` and **zero** Bunkov Characters anywhere —
 this test fails under the pre-fix `zone: "character"` encoding (no prompt appears at all,
-`pendingDecision` throws) and passes under `zone: "field"`; and a cheap real Event card
-(cost 1, within "cost of 2 or less") in hand to prove `cardCategory: "character"` actually
-excludes something rather than being redundant.
+`pendingDecision` throws) and passes under `zone: "field"`; and a cheap real **Stage** card
+(`OP16-021` Moby Dick, cost 1, within "cost of 2 or less") in hand to prove `cardCategory:
+"character"` actually excludes something.
+
+*Gotcha for anyone copying this shape:* it has to be a Stage, not an Event, or the test is
+vacuous and will pass whether or not the `cardCategory` filter is even there.
+`candidatesForPlayAction` (`effects/actions.ts`) hard-filters every `play` action's
+candidate pool to `card.cardType === "stage" || card.cardType === "character"` **before**
+any `cardCategory` filter on the action is ever consulted — an Event card is unreachable
+through a `play` action's candidate pool regardless of what `cardCategory` says, so a
+cheap-Event fixture "passes" for a reason that has nothing to do with the filter it's meant
+to be testing. `cardCategory: "character"` on a `play` action's own filters is therefore
+only ever doing one job: narrowing that already-`stage`-or-`character` pool down to exclude
+Stages. Proven both directions while building this: with the Event fixture, deleting the
+`cardCategory` filter entirely still left this test green (4/4 passing, including the
+now-broken one); switching to the Stage fixture and re-deleting the filter reliably turns
+red (`expected [ 'card-000021', 'card-000022' ] to deeply equal [ 'card-000021' ]`), then
+green again on restore.
 
 ### OP16-057 Captain Buggy's Our Savior!! (event, conditional `counter`)
 
