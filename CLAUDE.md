@@ -128,6 +128,20 @@ Keep the two bodies of evidence clearly separated when writing anything.
   not a skip.** It used to skip any field either side left null, which is why 146 cost/power
   comparisons went unmade while it still printed power 100%. That is how the `-` defect
   shipped. Fixed 2026-08-17; power now checks 1819 cards, not 1687, and still agrees 100%.
+- **`[Trigger]` in card text is two different things, and the importer used to conflate them.**
+  As a *heading* it opens the card's own Trigger box; as a *keyword* it names **other** cards'
+  Trigger abilities mid-sentence — "trash 1 card with a [Trigger] from your hand", "an Event or
+  [Trigger]". `split_trigger()` cut at the first literal match, so on 24 cards the rest of that
+  sentence was lost out of `effect` into `trigger`, and where a real Trigger box followed it was
+  glued onto the fragment. Fixed 2026-08-17: a heading never follows a word, so
+  `TRIGGER_HEADING_RE` in `tools/import_cards.py` requires the match not to be preceded by one.
+  Over the whole dataset that accepts every heading (489 en / 491 jp) — including the four
+  anchors that are not a full stop: `)`, `]`, the bare `-` blank-ability marker, and a line
+  break — and rejects every keyword reference (30 en / 31 jp). **Do not "simplify" it to
+  splitting on the last `[Trigger]`**: a real Trigger box can itself contain a keyword reference,
+  and six cards are shaped that way (`OP03-037`, `OP03-119`, `EB04-027`, `OP14-112`, `OP14-118`,
+  `P-115`). Three cards in the imported sets were affected — `OP16-080` Teach, the Blackbeard
+  leader, plus `OP16-115` and `OP16-117`. Regression tests in `tools/test_import_cards.py`.
 - **OP17 is not published yet — it is not missing, it does not exist upstream.** Bandai has
   not put it on the official card list. EN release 2026-08-28, SC ~2026-08-23. Re-run
   `python3 tools/import_cards.py --set OP17 --refresh` after that date; no code change needed.
@@ -264,9 +278,11 @@ python3 tools/ev_analysis.py                      # who is the best deck right n
 python3 tools/ev_analysis.py --sensitivity Teach  # how fragile is that answer
 ./scripts/bootstrap.sh                            # ~2 min; ends with 2631 passing tests
 python3 tools/coverage_report.py --exclude-promos # encoding backlog
+python3 -m unittest discover -s tools -p 'test_*.py'   # tools/ regression tests
 ```
 
 `ev_analysis.py` needs numpy; scipy is optional (Nash is skipped without it).
+The `tools/` tests are stdlib `unittest`, matching the tools' own stdlib-only constraint.
 
 ## Next actions, in priority order
 

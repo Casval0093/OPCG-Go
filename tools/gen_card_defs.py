@@ -81,15 +81,18 @@ EFFECTS_BLOCK_RE = re.compile(r"(?m)^\s*effects\s*:\s*\{")
 # `_fix_falsy_zero`. This is a `tools/import_cards.py` defect, not something
 # to fix by hand-patching data/*.json; flagged separately for a follow-up.
 #
-# Bug 2 -- false-positive split on the literal substring "[Trigger]". The
-# importer cuts a card's full text at the first "[Trigger]" it finds and
-# treats everything after as the card's Trigger-box text. On three cards the
-# phrase "a card with a [Trigger]" is used as an in-sentence keyword
-# reference (these are Blackbeard-deck cards that interact with *other*
-# Trigger cards), not a section heading, so the cut lands mid-sentence: the
-# tail of `effect` is lost into `trigger`, and for two of the three a real
-# trigger ability further down gets glued onto that same fragment. Corrected
-# text below is copied verbatim from onepiece.limitlesstcg.com/cards/<id>.
+# Bug 2 -- FIXED IN THE IMPORTER 2026-08-17; this table is now a dormant
+# guard, not an active workaround. It used to cut a card's full text at the
+# first literal "[Trigger]" and treat everything after as Trigger-box text. On
+# three cards the phrase "a card with a [Trigger]" is an in-sentence keyword
+# reference (Blackbeard-deck cards that interact with *other* Trigger cards),
+# not a section heading, so the cut landed mid-sentence: the tail of `effect`
+# was lost into `trigger`, and for two of the three a real trigger ability
+# further down got glued onto that same fragment. `split_trigger()` now
+# anchors on the heading (see TRIGGER_HEADING_RE in tools/import_cards.py) and
+# produces exactly the text below, so `_apply_text_fixes` substitutes nothing
+# and reports nothing. Kept, and kept tested, in case the defect returns
+# upstream. Text is copied verbatim from onepiece.limitlesstcg.com/cards/<id>.
 TEXT_OVERRIDES: dict[str, dict[str, str]] = {
     "OP16-080": {
         "effect": (
@@ -220,15 +223,21 @@ def _fix_falsy_zero(raw: dict[str, Any], warnings: list[str]) -> dict[str, Any]:
 def _apply_text_fixes(raw: dict[str, Any], warnings: list[str]) -> dict[str, Any]:
     fixed = dict(raw)
     cid = raw["id"]
-    if cid in TEXT_OVERRIDES:
-        override = TEXT_OVERRIDES[cid]
+    override = TEXT_OVERRIDES.get(cid)
+    # Only correct -- and only report -- input that is actually wrong. The
+    # importer now splits these correctly, so on current data this is a no-op;
+    # the table stays as a guard in case the defect returns upstream.
+    if override and (raw.get("effect"), raw.get("trigger")) != (
+        override["effect"],
+        override["trigger"],
+    ):
         fixed["effect"] = override["effect"]
         fixed["trigger"] = override["trigger"]
         warnings.append(
             f"{cid} {raw['name']}: effect/trigger reconstructed (false-positive "
             f"'[Trigger]' text-split bug, corrected text sourced from Limitless)"
         )
-    elif (fixed.get("effect") or "").strip() in BLANK_EFFECT_MARKERS:
+    if (fixed.get("effect") or "").strip() in BLANK_EFFECT_MARKERS:
         fixed["effect"] = ""
     return fixed
 
