@@ -27,5 +27,51 @@ export const op16BoaMarigold113: CharacterCard = {
   traits: ["Kuja Pirates"],
   attribute: "slash",
   effect: "If you have 2 or less Life cards, this Character gains [Blocker].",
+  effects: {
+    effects: [
+      {
+        trigger: "trigger",
+        conditions: [
+          {
+            condition: "leaderTrait",
+            trait: "Kuja Pirates",
+            match: "includes",
+          },
+        ],
+        actions: [
+          {
+            action: "playThisCard",
+          },
+        ],
+      },
+    ],
+    permanentEffects: [
+      {
+        conditions: [
+          {
+            condition: "lifeCount",
+            player: "self",
+            comparison: "lte",
+            value: 2,
+          },
+        ],
+        actions: [
+          {
+            action: "grantKeyword",
+            target: {
+              player: "self",
+              zones: ["character"],
+              count: {
+                amount: 1,
+              },
+              self: true,
+            },
+            keyword: "blocker",
+            duration: "permanent",
+          },
+        ],
+      },
+    ],
+  },
   i18n: op16BoaMarigold113I18n,
 };

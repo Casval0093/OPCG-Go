@@ -29,5 +29,70 @@ export const op16CatarinaDevon104: CharacterCard = {
   attribute: "special",
   effect:
     "[When Attacking] Select up to 1 of your opponent's Characters. This Character's base power becomes the same as the selected Character's power during this turn.",
+  effects: {
+    effects: [
+      {
+        trigger: "whenAttacking",
+        actions: [
+          {
+            // "This Character's base power becomes the same as the selected Character's power":
+            // `copyPower` always retargets the card bearing the effect and applies
+            // `copiedPower - basePower(self)`, which is exactly a base-power replacement, and it
+            // reads the SOURCE's current power (getCardPower), not its printed base power. The
+            // `target` here is therefore the card being COPIED FROM, not the card being changed.
+            action: "copyPower",
+            target: {
+              player: "opponent",
+              zones: ["character"],
+              count: {
+                amount: 1,
+                upTo: true,
+              },
+            },
+            duration: "thisTurn",
+          },
+        ],
+      },
+      {
+        trigger: "trigger",
+        actions: [
+          {
+            action: "draw",
+            player: "self",
+            amount: 1,
+          },
+          {
+            action: "play",
+            source: {
+              player: "self",
+              zone: "trash",
+            },
+            count: {
+              amount: 1,
+              upTo: true,
+            },
+            filters: [
+              {
+                filter: "trait",
+                value: "Blackbeard Pirates",
+                match: "includes",
+              },
+              {
+                // "with a cost of 1" -- a bare number is an equality, not "1 or less"
+                // (rulings #962/#963).
+                filter: "cost",
+                comparison: "eq",
+                value: 1,
+              },
+              {
+                filter: "cardCategory",
+                value: "character",
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
   i18n: op16CatarinaDevon104I18n,
 };

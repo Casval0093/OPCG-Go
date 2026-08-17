@@ -28,5 +28,52 @@ export const op16MarshallDTeach119: CharacterCard = {
   attribute: "special",
   effect:
     "[On Play] Look at 3 cards from the top of your deck; add up to 1 card to the top of your Life cards. Then, place the rest at the bottom of your deck in any order.",
+  // PARKED -- the [On Play] half ("Look at 3 cards from the top of your deck; add up to 1 card to
+  // the top of your Life cards. Then, place the rest at the bottom of your deck in any order.") is
+  // NOT encoded. `search` is the only look-N-then-order-the-remainder verb in the DSL, and its
+  // handler (effects/actions.ts, `case "search"`) hard-rejects any `revealDestination` other than
+  // "hand" or "character": it records an `action:search:configuration` capability issue and
+  // enqueues a judge prompt instead of resolving. Missing primitive: `revealDestination: "life"`
+  // support on `search`, placing the revealed card face-DOWN (ruling #1018: the card added this way
+  // is not shown to the opponent). Only the [Trigger] below is encoded.
+  effects: {
+    effects: [
+      {
+        trigger: "trigger",
+        actions: [
+          {
+            action: "negateEffects",
+            target: {
+              player: "opponent",
+              zones: ["character"],
+              count: {
+                amount: 1,
+                upTo: true,
+              },
+            },
+            duration: "thisTurn",
+          },
+          {
+            action: "ko",
+            target: {
+              player: "opponent",
+              zones: ["character"],
+              count: {
+                amount: 1,
+                upTo: true,
+              },
+              filters: [
+                {
+                  filter: "cost",
+                  comparison: "lte",
+                  value: 5,
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ],
+  },
   i18n: op16MarshallDTeach119I18n,
 };
