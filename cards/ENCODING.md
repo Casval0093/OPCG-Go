@@ -594,6 +594,36 @@ the target's *ownership* scoping with an opponent body instead.
 **"a cost of N" / "power N" is `eq`.** Confirmed again on Rebecca (费用为3). Same reading as
 rulings #962/#963. A bare number in card text is an equality unless a comparison word is printed.
 
+## Task 4 — OP15 events + stage (20 cards)
+
+**An Event is already in its own trash when its `[Main]` resolves — so a "cards in your trash"
+condition counts the card itself.** `engine/commands.ts` calls `enqueueEffectsForTrigger(…, "main")`
+and *then* `moveCard(… "trash")`; the effect resolves off the queue afterwards. Rulings #930
+(`OP15-095`, 15+ cards) and #931 (`OP15-097`, 10+ cards) both turn on this: 14 and 9 pre-existing
+cards are respectively enough. **Encode the printed number, never printed-minus-one.**
+
+**…but a `[Trigger]`-activated Event does NOT self-count.** A Life card with a Trigger moves to the
+`resolution` zone, not the trash (`battle.ts`). `OP15-097` is the same card both ways and ruling #931
+answers both: from hand at 9 cards in trash it fires; via its own `[Trigger]` at 9 cards it does
+nothing. Test both directions on any card that counts its own trash.
+
+**Where a Leader check goes is per-card, and the rulings disagree on purpose.** A *leading* "If your
+Leader is [X], …" gates the whole block (`conditions`); a check written into a later sentence's
+target — "your [Lucy] Leader gains …" — gates only that action. Ruling #899 (`OP15-056`: a non-Lucy
+Leader still draws 2) and ruling #944 (`OP15-116`: without the type, the "Then" half does not happen
+either) are the two worked cases. **Read the ruling per card; do not generalise from a sibling.**
+
+**Siblings are not a pattern.** `OP15-074/075/076` all gate their `[Main]` on an `[Enel]` Leader;
+`OP15-077/078` print no such condition and must not get one by analogy. Check the SC text quoted in
+each card's own ruling.
+
+**`[Main] / [Counter]` is two blocks with duplicated actions** — there is no combined trigger. Model
+on `OP03/events/017-cross-fire.ts`. The two halves frequently differ (`OP15-095`'s `[Main]` is
+trait-filtered and DON!!-gated while its `[Counter]` is neither), so copy deliberately, not blindly.
+
+**`baseCost` vs `cost`, `basePower` vs `power`.** "a base cost of 5 or less" (原本的费用) is
+`baseCost`; a discounted cost-6 body must not qualify. Same split as `basePower` on `OP15-098`.
+
 ## Parked (DSL gaps)
 
 Recorded per the settled decision: *record the card and the missing primitive, move on; revisit
@@ -614,6 +644,16 @@ carry an inline `// PARKED` note, because they have an `effects` block to protec
 | `OP15-022` Brook | The deck-out grace period (don't lose at 0 deck; lose at end of that turn) | A `loseGame` **action**. `replacedEvent: "loseGame"` exists (`OP03/leaders/040-nami.ts`) but its only replacement action is `winGame`, so there is nothing to schedule. Needs latch semantics too: rulings #878/#954 say the loss still happens even if the deck climbs back above 0 that turn. |
 | `OP15-058` Enel | "your DON!! deck consists of 6 cards" | A DON!!-deck-size rule modifier. `deckBuildingRules` covers only `unlimitedCopies`/`cannotInclude`. Ruling #900 says negating the Leader does *not* restore 10, so it is fixed at setup, not a live modifier. |
 | `OP15-058` Enel | `[Activate: Main]` "if it is your **second turn or later**" | A turn-**number** Condition. `condition: "turn"` only distinguishes your turn from the opponent's. `state.turnNumber` already exists and is read elsewhere in `effects/conditions.ts`, so this is a missing Condition variant only. Ruling #901 makes it load-bearing: activating on turn 1 is legal and does nothing. |
+
+**Task 4 — 1 parked clause over 1 card:**
+
+| Card | Parked clause | Missing primitive |
+|---|---|---|
+| `OP15-038` It's an Order! | `[Main]` freeze an opponent rested Character, cost ≤8, **that has 2+ DON!! given** | The same attached-DON!! `TargetFilter` that parks `OP15-001` Krieg. Ruling #892 additionally pins the semantics the primitive would need: the DON!! check happens at **selection** time only — a Character that later stops having 2+ DON!! given stays frozen. The card's `[Counter]` half IS encoded and tested. |
+
+**The attached-DON!! filter is the most-wanted primitive so far** — it alone parks clauses on
+`OP15-001` and `OP15-038`. `instance.attachedDon` already exists in engine state; what is missing is
+a `TargetFilter` case in `matchesTargetFilter` (`effects/targeting.ts`) that reads it.
 
 ## Engine limitations found (not encoding choices, not DSL gaps)
 
@@ -658,6 +698,41 @@ carry an inline `// PARKED` note, because they have an `effects` block to protec
 - **Import `type PlayerFixture` from `../../../src/index.ts`** for fixture helper signatures.
   `Parameters<typeof OnePieceTestEngine.create>[0]["character"]` does not typecheck — the
   parameter is optional, so the type includes `undefined`.
+
+### Prompt intents, and which shape produces which
+
+Guessing these costs a test run each. The full list of real intent strings is
+`grep -rhoE 'intent: "[a-zA-Z]+"' packages/engine/src`. The ones the batches so far needed:
+
+| Shape in the encoding | Intent | Step kind | Option ids |
+|---|---|---|---|
+| action `target` selection | `effectTargetSelection` | `selectEntity` | — |
+| block-level `optional: true` | `effectOptional` | `confirm` | `yes` / `no` |
+| action `optional` | `effectActionOptional` | `confirm` | `yes` / `no` |
+| action `choice` | `effectActionChoice` | `chooseOption` | `"0"`, `"1"`, … |
+| action `play` | `effectPlaySelection` | `selectEntity` | — |
+| action `search` | `effectSearchSelection`, then `effectSearchRemainderOrder` | `selectEntity` | — |
+| action `trashFromHand` | `effectTrashFromHandSelection` | `selectEntity` | — |
+| cost `trashFromHand` | `effectCostTrashFromHand` | **`payCost`** | — |
+| cost `returnCharacter` | `effectCostReturnCharacter` | **`payCost`** | — |
+| `giveDon` with `count.upTo` | `effectGiveDonCount` **first**, then the recipient | `chooseOption` | `"0"`, `"1"`, … |
+| `addToLife` with `count.upTo` | `effectAddToLifeFromDeck` **first** | `chooseOption` | `"0"`, `"1"`, … |
+| a Life card's `[Trigger]` | `lifeTrigger` | `confirm` | **`activate` / `skip`** |
+| playing a `[Counter]` from hand | `battleCounter` | `selectEntity` | — |
+| a battle-K.O. replacement | `battleKoReplacement` | `confirm` | `yes` / `no` |
+
+- **`lifeTrigger` takes `activate`, not `yes` — and an unrecognised `optionId` resolves as a silent
+  skip rather than an error.** A test written with `yes` passes the resolve call, does nothing, and
+  then fails much later with a confusing "could not find a pending …" on the next step.
+- **An `upTo` target with ZERO legal candidates publishes NO prompt at all** (GENERAL ruling #27:
+  nothing happens). So a threshold cannot be pinned by asserting an *empty* candidate list — put an
+  eligible body on the field and assert the list contains only it.
+- **Granted keywords have no projected field to read.** Prove them functionally: `[Blocker]` by the
+  granted Character appearing in the `battleBlocker` candidates on the opponent's turn (which pins the
+  duration in the same test), `[Double Attack]` by a connecting Leader attack taking 2 Life.
+- **Activating a `[Trigger]` consumes the card to the trash; it does not also join the hand.** Adding
+  it to hand is the *alternative* to activating it (GENERAL ruling #21). So after `activate`, the hand
+  holds only what the effect itself drew.
 
 ## Rulings reviewed, and what's genuinely still deferred
 

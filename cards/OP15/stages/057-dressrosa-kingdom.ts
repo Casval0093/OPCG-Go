@@ -24,5 +24,48 @@ export const op15DressrosaKingdom057: StageCard = {
   traits: ["Dressrosa"],
   effect:
     "[On Play] If your Leader has the [Dressrosa] type, draw 1 card.\n[On Your Opponent's Attack] You may rest this Stage and trash 1 Event or Stage card from your hand: Up to 1 of your Leader or Character cards gains +2000 power during this battle.",
+  effects: {
+    effects: [
+      {
+        trigger: "onPlay",
+        conditions: [{ condition: "leaderTrait", trait: "Dressrosa", match: "includes" }],
+        actions: [{ action: "draw", player: "self", amount: 1 }],
+      },
+      {
+        trigger: "onOpponentAttack",
+        // No `targetSelf` -- [On Your Opponent's Attack] fires on any declared attack. See the
+        // OP15-002 Lucy section in cards/ENCODING.md.
+        costs: [
+          { cost: "restThisCard" },
+          {
+            cost: "trashFromHand",
+            amount: 1,
+            filters: [
+              {
+                filter: "anyOf",
+                groups: [
+                  [{ filter: "cardCategory", value: "event" }],
+                  [{ filter: "cardCategory", value: "stage" }],
+                ],
+              },
+            ],
+          },
+        ],
+        optional: true,
+        actions: [
+          {
+            action: "modifyPower",
+            target: {
+              player: "self",
+              zones: ["leader", "character"],
+              count: { amount: 1, upTo: true },
+            },
+            value: 2000,
+            duration: "thisBattle",
+          },
+        ],
+      },
+    ],
+  },
   i18n: op15DressrosaKingdom057I18n,
 };

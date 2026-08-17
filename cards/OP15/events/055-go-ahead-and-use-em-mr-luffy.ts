@@ -24,5 +24,33 @@ export const op15GoAheadAndUseEmMrLuffy055: EventCard = {
   traits: ["Dressrosa", "Barto Club"],
   effect:
     "[Main] Choose one:\n• Draw 2 cards.\n• Up to 1 of your [Dressrosa] type Characters gains [Blocker] until the end of your opponent's next End Phase.",
+  effects: {
+    effects: [
+      {
+        trigger: "main",
+        actions: [
+          {
+            action: "choice",
+            options: [
+              [{ action: "draw", player: "self", amount: 2 }],
+              [
+                {
+                  action: "grantKeyword",
+                  target: {
+                    player: "self",
+                    zones: ["character"],
+                    count: { amount: 1, upTo: true },
+                    filters: [{ filter: "trait", value: "Dressrosa", match: "includes" }],
+                  },
+                  keyword: "blocker",
+                  duration: "untilEndOfOpponentNextEndPhase",
+                },
+              ],
+            ],
+          },
+        ],
+      },
+    ],
+  },
   i18n: op15GoAheadAndUseEmMrLuffy055I18n,
 };
