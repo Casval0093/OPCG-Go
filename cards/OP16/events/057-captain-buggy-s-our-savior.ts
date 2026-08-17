@@ -34,16 +34,17 @@ export const op16CaptainBuggySOurSavior057: EventCard = {
         // broader "Impel Down" trait this event and OP16-042 both also carry -- that trait
         // is shared by Bunkov/Antlerkov/Buggy too and would make the condition far too
         // easy to satisfy.
-        // Ruling #993 addresses a hypothetical Leader that grants all cards every name, in
-        // which case "2 or more" can be met with only 1 real Prisoner of Impel Down on
-        // field. Same generic name-resolution concern as ruling #979 on Antlerkov
-        // (OP16-029) -- not this card's encoding, and not exercised by a test here since no
-        // Task 2 reference card grants names.
+        // Ruling #993: a Leader whose own effect grants it every card's name/trait/attribute
+        // makes "2 or more" hold with only 1 real Prisoner of Impel Down on field -- the
+        // Leader is the second one. Same "if you have [Name]" pattern as ruling #979 on
+        // Antlerkov (OP16-029): the scan has to include the Leader, so `zone: "field"`, not
+        // `zone: "character"`. See cards/tests/OP16/057-captain-buggy-s-our-savior.test.ts
+        // and cards/ENCODING.md.
         conditions: [
           {
             condition: "zoneCount",
             player: "self",
-            zone: "character",
+            zone: "field",
             comparison: "gte",
             value: 2,
             filters: [{ filter: "name", value: "Prisoner of Impel Down" }],

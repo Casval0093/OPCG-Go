@@ -31,16 +31,18 @@ export const op16Antlerkov029: CharacterCard = {
     effects: [
       {
         trigger: "whenAttacking",
-        // Ruling #979 addresses a hypothetical Leader that grants all cards every name --
-        // in that case "if you have [Bunkov]" is satisfied without a literal Bunkov on
-        // field. That is a property of how "name" filters resolve granted names generically
-        // (see cardNames() in shared.ts), not of this card's own encoding, and none of the
-        // five Task 2 reference cards grants names, so it is not exercised by a test here.
+        // Ruling #979: a Leader whose own effect grants it every card's name/trait/attribute
+        // satisfies "if you have [Bunkov]" by itself, with zero Bunkov Characters on field --
+        // the Leader counts. "if you have [Name]" therefore has to scan the whole field
+        // (Leader included), not just the character zone: `zone: "character"` structurally
+        // excludes the Leader and would make the ruling's "yes" impossible to encode
+        // regardless of whether any given Leader actually grants names. See
+        // cards/tests/OP16/029-antlerkov.test.ts and cards/ENCODING.md.
         conditions: [
           {
             condition: "hasCard",
             player: "self",
-            zone: "character",
+            zone: "field",
             filters: [{ filter: "name", value: "Bunkov" }],
           },
         ],

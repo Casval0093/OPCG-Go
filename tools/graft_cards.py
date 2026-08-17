@@ -169,6 +169,18 @@ def main() -> int:
         )
         return 1
 
+    if not os.path.isdir(args.vendor_tests_root):
+        # Symmetric with the cards-root check above. Without it, a wrong or stale
+        # --vendor-tests-root (or a vitest layout change upstream) would still get
+        # `os.makedirs`'d into existence by sync_tree and "succeed" -- reporting files
+        # copied into a directory vitest never scans, with no error to notice it by.
+        print(
+            f"vendor tests root not found: {args.vendor_tests_root}\n"
+            f"(run this after `pnpm install`, from a bootstrapped vendor/ checkout)",
+            file=sys.stderr,
+        )
+        return 1
+
     total_copied, total_deleted, total_unchanged = sync_set_trees(
         args.source_root, args.vendor_cards_root, "cards"
     )

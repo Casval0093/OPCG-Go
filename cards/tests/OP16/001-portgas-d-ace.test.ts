@@ -7,7 +7,7 @@ import {
   op16PortgasDAce001,
 } from "@tcg/op-cards";
 
-import { OnePieceTestEngine } from "../../../src/index.ts";
+import { getLegalCommands, OnePieceTestEngine } from "../../../src/index.ts";
 
 describe("OP16-001 Portgas.D.Ace", () => {
   test("ruling #961: a Whitebeard Pirates Character at 2000 power cannot gain Rush, only one at 8000+", () => {
@@ -77,5 +77,28 @@ describe("OP16-001 Portgas.D.Ace", () => {
         .getView("south")
         .players.south.characters.find((card) => card?.instanceId === highPowerLuffyId)?.rested,
     ).toBe(true);
+  });
+
+  test("[Once Per Turn] cannot be activated a second time in the same turn", () => {
+    const engine = OnePieceTestEngine.create(
+      {
+        leaderCardId: op16PortgasDAce001,
+        character: [op16Jozu007],
+      },
+      {},
+    );
+    const jozuId = engine.findCardInZone("south", "character", op16Jozu007);
+
+    engine.activateEffect(engine.leader("south"), "activateMain", "south");
+    engine.resolveDecision("effectTargetSelection", { selectedIds: [jozuId] }, "south");
+
+    // Deleting `oncePerTurn: true` breaks nothing else this file checks -- this is the
+    // assertion that would catch it.
+    expect(
+      getLegalCommands(engine.getState(), "south").some(
+        (command) =>
+          command.type === "activateEffect" && command.sourceId === engine.leader("south"),
+      ),
+    ).toBe(false);
   });
 });
