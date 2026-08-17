@@ -27,5 +27,19 @@ export const op16MonkeyDGarp075: CharacterCard = {
   attribute: "strike",
   effect:
     "[On Play] If your Leader has the [Navy] type, add up to 1 DON!! card from your DON!! deck and set it as active, and add up to 1 additional DON!! card and rest it.",
+  effects: {
+    effects: [
+      {
+        // OP14-031 King: leading "If your Leader has the {X} type" on the block, then the
+        // active/rested addDon pair as two separate actions.
+        trigger: "onPlay",
+        conditions: [{ condition: "leaderTrait", trait: "Navy", match: "includes" }],
+        actions: [
+          { action: "addDon", count: { amount: 1, upTo: true }, state: "active" },
+          { action: "addDon", count: { amount: 1, upTo: true }, state: "rested" },
+        ],
+      },
+    ],
+  },
   i18n: op16MonkeyDGarp075I18n,
 };

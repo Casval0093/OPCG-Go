@@ -27,5 +27,26 @@ export const op16DonquixoteRosinante070: CharacterCard = {
   attribute: "special",
   effect:
     "[Blocker]\n[On Play] You may rest 2 of your DON!! cards: If your Leader has the [Navy] type, add up to 1 DON!! card from your DON!! deck and rest it.",
+  effects: {
+    keywords: ["blocker"],
+    effects: [
+      {
+        // The [Navy] check follows the cost colon, so it gates the payload only: you may pay 2
+        // rested DON!! with a non-Navy Leader and get nothing (OP04-060 Crocodile's placement).
+        // Net-negative on purpose — that is why the "may" matters and `optional: true` is here.
+        trigger: "onPlay",
+        costs: [{ cost: "restDon", amount: 2 }],
+        actions: [
+          {
+            action: "addDon",
+            count: { amount: 1, upTo: true },
+            state: "rested",
+            condition: { condition: "leaderTrait", trait: "Navy", match: "includes" },
+          },
+        ],
+        optional: true,
+      },
+    ],
+  },
   i18n: op16DonquixoteRosinante070I18n,
 };

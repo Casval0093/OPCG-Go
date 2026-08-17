@@ -26,5 +26,19 @@ export const op16DonquixoteDoflamingo069: CharacterCard = {
   attribute: "special",
   effect:
     "[On Play]/[When Attacking] Add up to 1 DON!! card from your DON!! deck and set it as active.",
+  effects: {
+    effects: [
+      // "[A]/[B]" is two independent blocks with duplicated actions, not one combined trigger
+      // (OP04-085 Suleiman). Each fires on its own timing and both can fire in one turn.
+      {
+        trigger: "onPlay",
+        actions: [{ action: "addDon", count: { amount: 1, upTo: true }, state: "active" }],
+      },
+      {
+        trigger: "whenAttacking",
+        actions: [{ action: "addDon", count: { amount: 1, upTo: true }, state: "active" }],
+      },
+    ],
+  },
   i18n: op16DonquixoteDoflamingo069I18n,
 };
