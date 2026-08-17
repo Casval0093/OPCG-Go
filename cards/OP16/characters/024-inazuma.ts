@@ -27,5 +27,28 @@ export const op16Inazuma024: CharacterCard = {
   attribute: "slash",
   effect:
     "When this Character is K.O.'d by your opponent's effect, rest up to 1 of your opponent's Characters.\n[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)",
+  effects: {
+    keywords: ["blocker"],
+    effects: [
+      {
+        trigger: "onKo",
+        // "by your opponent's effect" is two gates in one word: `source: "opponentEffect"`
+        // requires effectController !== controller AND koCause !== "battle"
+        // (effects/resolution.ts), so a battle K.O. must not fire this. Modeled on
+        // EB01/characters/057-shirahoshi.ts -- the same keywords + onKo/opponentEffect shape.
+        source: "opponentEffect",
+        actions: [
+          {
+            action: "rest",
+            target: {
+              player: "opponent",
+              zones: ["character"],
+              count: { amount: 1, upTo: true },
+            },
+          },
+        ],
+      },
+    ],
+  },
   i18n: op16Inazuma024I18n,
 };

@@ -27,5 +27,37 @@ export const op16EmporioIvankov026: CharacterCard = {
   attribute: "special",
   effect:
     "[On Play] Look at 3 cards from the top of your deck; reveal up to 1 [Impel Down] type card, add it to your hand and place the rest at the bottom of your deck in any order. Then, play up to 1 Character card with a cost of 2 or less from your hand.",
+  effects: {
+    effects: [
+      {
+        trigger: "onPlay",
+        // Ruling #978: the "Then, play ..." half fires even when the look-3 added NOTHING to
+        // hand (可以). Two independent actions in one block is exactly that -- the play is not
+        // hung off the search's `thenActions`, which would make it conditional on a reveal.
+        // "[Impel Down] type" is the trait 《因佩尔地狱》, not a card name. Search half modeled
+        // on OP02/stages/092-impel-down.ts, which looks at the same 3 for the same trait.
+        actions: [
+          {
+            action: "search",
+            lookCount: 3,
+            source: { player: "self", zone: "deck" },
+            revealCount: { amount: 1, upTo: true },
+            revealFilters: [{ filter: "trait", value: "Impel Down", match: "includes" }],
+            revealDestination: "hand",
+            remainderPosition: "bottom",
+          },
+          {
+            action: "play",
+            source: { player: "self", zone: "hand" },
+            count: { amount: 1, upTo: true },
+            filters: [
+              { filter: "cost", comparison: "lte", value: 2 },
+              { filter: "cardCategory", value: "character" },
+            ],
+          },
+        ],
+      },
+    ],
+  },
   i18n: op16EmporioIvankov026I18n,
 };
