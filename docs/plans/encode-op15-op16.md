@@ -275,3 +275,28 @@ card ID and the specific missing primitive — never approximated.
 - `./scripts/bootstrap.sh` from a clean clone produces a working engine with OP15/OP16 registered
 - `python3 tools/coverage_report.py` reports 0 gaps across OP15/OP16
 - A list of any effects the DSL could not express
+
+## Overnight run — 2026-08-18, unattended
+
+Ping is asleep; work continues unattended until 08:00. The loop is:
+
+1. Wait for a batch agent to report (round 2: OP16 red / green / blue / purple).
+2. `git merge --no-ff claude/encode-<batch>` — conflicts should be impossible, since batches are
+   disjoint file sets. A conflict means they were not, and is a **stop-and-diagnose**, not a resolve.
+3. Re-graft, run the full suite and both `vp check`s. Fix formatting round-trips back into `cards/`.
+4. Bank the batch's reported lessons into `cards/ENCODING.md` and its parked clauses into
+   `data/parked-clauses.json`. Agents never edit those two files, so this is the only path in.
+5. When all four are merged, **one** isolated `mutation_check.py --set OP16` run — never concurrent
+   with anything else touching that clone, and never piped to `tail` when reading the exit code.
+6. Then dispatch round 3, the six OP15 character batches, the same way.
+
+**Boundaries held while unattended.** Everything stays local: commits on `claude/tasks-3-18-78c831`
+only. **No push, no PR, no remote of any kind**, and nothing outside this worktree and the batch
+worktrees. Agent branches are merged but never deleted until their work is verified in the merge.
+No engine primitives are built — the parked-don't-extend decision stands and is not mine to reverse
+overnight.
+
+**What gets escalated rather than worked around**, i.e. left for the morning with the work stopped at
+a clean commit: a merge conflict, a suite regression that is not a formatting round-trip, a surviving
+mutant that hand-mutation confirms is real, or any card whose printed text contradicts its ruling in a
+way not already covered in `cards/ENCODING.md`.
