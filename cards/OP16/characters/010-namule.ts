@@ -27,5 +27,36 @@ export const op16Namule010: CharacterCard = {
   attribute: "strike",
   effect:
     "[On Play] You may reveal 1 Character card with 8000 power from your hand: K.O. up to 1 of your opponent's Characters with 2000 base power or less.",
+  effects: {
+    effects: [
+      {
+        trigger: "onPlay",
+        costs: [
+          {
+            cost: "revealFromHand",
+            amount: 1,
+            filters: [
+              { filter: "cardCategory", value: "character" },
+              // Ruling #968: "8000 power" is exactly 8000.
+              { filter: "power", comparison: "eq", value: 8000 },
+            ],
+          },
+        ],
+        actions: [
+          {
+            action: "ko",
+            target: {
+              player: "opponent",
+              zones: ["character"],
+              count: { amount: 1, upTo: true },
+              // 原本的力量不高于2000 -- BASE power, so a buffed 2000-base body is still a target.
+              filters: [{ filter: "basePower", comparison: "lte", value: 2000 }],
+            },
+          },
+        ],
+        optional: true,
+      },
+    ],
+  },
   i18n: op16Namule010I18n,
 };

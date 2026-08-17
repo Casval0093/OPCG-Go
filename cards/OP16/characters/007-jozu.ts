@@ -26,5 +26,37 @@ export const op16Jozu007: CharacterCard = {
   attribute: "strike",
   effect:
     "[Blocker]\n[On Play] You may reveal 1 Character card with 8000 power from your hand: Give up to 1 of your opponent's Characters -1000 power during this turn.",
+  effects: {
+    keywords: ["blocker"],
+    effects: [
+      {
+        trigger: "onPlay",
+        costs: [
+          {
+            cost: "revealFromHand",
+            amount: 1,
+            filters: [
+              { filter: "cardCategory", value: "character" },
+              // Ruling #965: "8000 power" is exactly 8000.
+              { filter: "power", comparison: "eq", value: 8000 },
+            ],
+          },
+        ],
+        actions: [
+          {
+            action: "modifyPower",
+            target: {
+              player: "opponent",
+              zones: ["character"],
+              count: { amount: 1, upTo: true },
+            },
+            value: -1000,
+            duration: "thisTurn",
+          },
+        ],
+        optional: true,
+      },
+    ],
+  },
   i18n: op16Jozu007I18n,
 };

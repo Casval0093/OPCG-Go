@@ -27,5 +27,38 @@ export const op16SpeedJil009: CharacterCard = {
   attribute: "slash",
   effect:
     "[On Play] You may trash 1 Character card with 8000 power from your hand: This Character gains [Rush] and +2000 power until the end of your opponent's next End Phase.",
+  effects: {
+    effects: [
+      {
+        trigger: "onPlay",
+        costs: [
+          {
+            cost: "trashFromHand",
+            amount: 1,
+            filters: [
+              { filter: "cardCategory", value: "character" },
+              // Ruling #967: "8000 power" is exactly 8000.
+              { filter: "power", comparison: "eq", value: 8000 },
+            ],
+          },
+        ],
+        actions: [
+          {
+            action: "grantKeyword",
+            target: { player: "self", zones: ["character"], count: { amount: 1 }, self: true },
+            keyword: "rush",
+            duration: "untilEndOfOpponentNextEndPhase",
+          },
+          {
+            action: "modifyPower",
+            target: { player: "self", zones: ["character"], count: { amount: 1 }, self: true },
+            value: 2000,
+            duration: "untilEndOfOpponentNextEndPhase",
+          },
+        ],
+        optional: true,
+      },
+    ],
+  },
   i18n: op16SpeedJil009I18n,
 };

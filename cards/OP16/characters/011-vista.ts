@@ -26,5 +26,41 @@ export const op16Vista011: CharacterCard = {
   attribute: "slash",
   effect:
     "[On Play] You may reveal 1 Character card with 8000 power from your hand: Draw 1 card.\n[DON!! x1] [When Attacking] K.O. up to 2 of your opponent's Characters with 2000 base power or less.",
+  effects: {
+    effects: [
+      {
+        trigger: "onPlay",
+        costs: [
+          {
+            cost: "revealFromHand",
+            amount: 1,
+            filters: [
+              { filter: "cardCategory", value: "character" },
+              // Ruling #969: "8000 power" is exactly 8000.
+              { filter: "power", comparison: "eq", value: 8000 },
+            ],
+          },
+        ],
+        actions: [{ action: "draw", player: "self", amount: 1 }],
+        optional: true,
+      },
+      {
+        trigger: "whenAttacking",
+        conditions: [{ condition: "donAttached", amount: 1 }],
+        actions: [
+          {
+            action: "ko",
+            target: {
+              player: "opponent",
+              zones: ["character"],
+              count: { amount: 2, upTo: true },
+              // 原本的力量不高于2000 -- BASE power, so a buffed 2000-base body is still a target.
+              filters: [{ filter: "basePower", comparison: "lte", value: 2000 }],
+            },
+          },
+        ],
+      },
+    ],
+  },
   i18n: op16Vista011I18n,
 };

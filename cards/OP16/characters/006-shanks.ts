@@ -27,5 +27,26 @@ export const op16Shanks006: CharacterCard = {
   attribute: "slash",
   effect:
     "[On Play] You may rest 2 of your DON!! cards: K.O. up to 1 of your opponent's Characters with 4000 power or less.",
+  effects: {
+    effects: [
+      {
+        trigger: "onPlay",
+        costs: [{ cost: "restDon", amount: 2 }],
+        actions: [
+          {
+            action: "ko",
+            target: {
+              player: "opponent",
+              zones: ["character"],
+              count: { amount: 1, upTo: true },
+              // Printed "4000 power", not "4000 base power" (力量, not 原本的力量): current power.
+              filters: [{ filter: "power", comparison: "lte", value: 4000 }],
+            },
+          },
+        ],
+        optional: true,
+      },
+    ],
+  },
   i18n: op16Shanks006I18n,
 };

@@ -26,5 +26,55 @@ export const op16EdwardNewgate003: CharacterCard = {
   attribute: "special",
   effect:
     "[Your Turn] Your Leader gains [Double Attack] and +2000 power.\n[On Play] You may reveal 2 Character cards with 8000 power from your hand: Give up to 1 of your opponent's Characters -6000 power during this turn.",
+  effects: {
+    permanentEffects: [
+      {
+        conditions: [{ condition: "turn", value: "your" }],
+        actions: [
+          {
+            action: "grantKeyword",
+            target: { player: "self", zones: ["leader"], count: { amount: "all" } },
+            keyword: "doubleAttack",
+            duration: "permanent",
+          },
+          {
+            action: "modifyPower",
+            target: { player: "self", zones: ["leader"], count: { amount: "all" } },
+            value: 2000,
+            duration: "permanent",
+          },
+        ],
+      },
+    ],
+    effects: [
+      {
+        trigger: "onPlay",
+        costs: [
+          {
+            cost: "revealFromHand",
+            amount: 2,
+            filters: [
+              { filter: "cardCategory", value: "character" },
+              // Ruling #963: "8000 power" is exactly 8000, not 8000-or-more.
+              { filter: "power", comparison: "eq", value: 8000 },
+            ],
+          },
+        ],
+        actions: [
+          {
+            action: "modifyPower",
+            target: {
+              player: "opponent",
+              zones: ["character"],
+              count: { amount: 1, upTo: true },
+            },
+            value: -6000,
+            duration: "thisTurn",
+          },
+        ],
+        optional: true,
+      },
+    ],
+  },
   i18n: op16EdwardNewgate003I18n,
 };
