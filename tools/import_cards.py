@@ -18,13 +18,21 @@ Trust, established rather than assumed
 --------------------------------------
 `--validate` cross-checks every card the dataset shares with the engine's 2,282
 hand-checked definitions. Run it before trusting an import; at the pinned version
-it agrees on power 100%, life 100%, cost 99.95%, counter 99.58%.
+it agrees on power 100%, life 100%, cost 99.95%, counter 99.63%.
 
-Two systematic differences are expected and are schema, not disagreement:
+Read that as coverage, not just accuracy: a field is only checked where the
+engine has a value, so a field the importer drops is a *disagreement*, not a
+skip. It used to be a skip, and that is how 146 cost/power comparisons went
+unmade while the check still printed 100% -- see MANDATORY below.
+
+Three systematic differences are expected and are schema, not disagreement:
   - the dataset marks up text with <br> and writes traits as {Trait}, the engine
     writes [Trait]
   - the dataset concatenates the [Trigger] clause into `effects`, the engine
     keeps it in a separate `trigger` field
+  - the dataset writes "-" both for a field a card does not have and for a
+    printed value of 0; it never writes "0" at all. MANDATORY tells the two
+    apart by card type.
 
 Usage:
     python3 tools/import_cards.py --validate            # trust check, imports nothing
@@ -124,27 +132,63 @@ def split_trigger(effect: str) -> tuple[str, str]:
     return effect[: match.start()].strip(), effect[match.end() :].strip()
 
 
-def numeric(value: str | None) -> int | None:
-    if value is None:
-        return None
-    value = str(value).strip()
-    return int(value) if value.isdigit() else None
+BLANK = {"-", "–", "—", ""}
+
+# The dataset writes "-" for a field a card has no value in -- and it writes the
+# same "-" for a printed value of 0. The string "0" appears nowhere in it: across
+# all 4,674 records, cost/power/counter/life are "0" exactly zero times. So "-"
+# on its own does not mean "absent", and reading it that way silently turned the
+# real 0 of 165 of the dataset's 2,560 cards into null.
+#
+# Which meaning applies is decided by the card type, because the card frame
+# decides which boxes are printed at all. A character always prints a power and
+# an event always prints a cost, so "-" there can only be 0. A character's
+# counter is genuinely optional (953 cards carry no counter icon) and only
+# leaders carry life, so "-" there really is absent and must stay None --
+# a blanket "-" -> 0 would invent a 0 counter on every counter-less character.
+#
+# Checked against the engine's hand-verified definitions, not assumed: of its
+# OP01-OP14/EB/PRB/ST cards, every one of the 116 characters with power 0 and the
+# 7 events with cost 0 is "-" upstream (116/116 and 7/7, no exceptions), and it
+# has no card with counter 0 or life 0 at all. Any OP15/OP16 definitions grafted
+# into the engine are excluded from that count -- they were generated from this
+# importer's own output, so counting them would be circular.
+MANDATORY = {
+    "leader": {"power", "life"},
+    "character": {"cost", "power"},
+    "event": {"cost"},
+    "stage": {"cost"},
+}
+
+
+def numeric(value: str | None, blank_is_zero: bool = False) -> int | None:
+    """Parse one of the dataset's numeric fields.
+
+    `blank_is_zero` says the card type always prints this field, so the
+    dataset's blank marker is a printed 0 rather than a missing value.
+    """
+    text = "" if value is None else str(value).strip()
+    if text.isdigit():
+        return int(text)
+    return 0 if blank_is_zero and text in BLANK else None
 
 
 def normalise(card: dict) -> dict:
     effect, trigger = split_trigger(clean_text(card.get("effects")))
+    card_type = (card.get("card_type") or "").strip().lower()
+    printed = MANDATORY.get(card_type, frozenset())
     return {
         "id": card.get("card_number"),
         "name": (card.get("card_name") or "").strip(),
-        "cardType": (card.get("card_type") or "").strip().lower(),
+        "cardType": card_type,
         "rarity": card.get("rarity"),
         "colors": [c.strip().lower() for c in card.get("colors") or []],
         "traits": [t.strip() for t in card.get("types") or []],
         "attribute": (card.get("attributes") or [None])[0],
-        "cost": numeric(card.get("cost")),
-        "power": numeric(card.get("power")),
-        "counter": numeric(card.get("counter")),
-        "life": numeric(card.get("life")),
+        "cost": numeric(card.get("cost"), "cost" in printed),
+        "power": numeric(card.get("power"), "power" in printed),
+        "counter": numeric(card.get("counter"), "counter" in printed),
+        "life": numeric(card.get("life"), "life" in printed),
         "blockIcon": numeric(card.get("block_icon")),
         "effect": effect,
         "trigger": trigger,
@@ -229,10 +273,15 @@ def validate(cards: list[dict]) -> int:
     for cid in shared:
         for field in ("cost", "power", "counter", "life"):
             engine_value, dataset_value = engine[cid][field], by_id[cid][field]
-            if engine_value is None or dataset_value is None:
+            # Skip only where the engine itself has no value -- the field does
+            # not exist on that card frame, so there is nothing to check against.
+            # A dataset None where the engine has a number is NOT a skip: it is
+            # the exact shape of the "-"-read-as-absent defect, and skipping it
+            # is how 146 zeroed cost/power values once scored 100%.
+            if engine_value is None:
                 continue
             stats[f"{field}:n"] += 1
-            if int(engine_value) == dataset_value:
+            if dataset_value is not None and int(engine_value) == dataset_value:
                 stats[f"{field}:ok"] += 1
             else:
                 problems[field].append((cid, dataset_value, int(engine_value)))

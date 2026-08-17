@@ -111,8 +111,23 @@ Keep the two bodies of evidence clearly separated when writing anything.
   `one-piece-card-game-json` publishes the **official Bandai** list (its `image_url`s point
   at `en.onepiece-cardgame.com`), so it is a mirror of the primary source, not an aggregator
   summary. `tools/import_cards.py` pulls it. Validated against the engine's 2,282 hand-checked
-  cards: power 100%, life 100%, cost 99.95%, counter 99.58%. `OP16-001` Ace comes back
+  cards: power 100%, life 100%, cost 99.95%, counter 99.63%. `OP16-001` Ace comes back
   matching `docs/research-findings.md` verbatim.
+- **Bandai prints a real 0 as `-`, the same string it prints for a field the card does not
+  have — and it never prints `0`.** Verified at the source: `en.onepiece-cardgame.com`
+  renders `EB01-013` Kouzuki Hiyori, a hand-checked 0-power character, as `power: -`, exactly
+  as it renders a counter-less card's counter. The string `"0"` appears zero times in all
+  4,674 records of the npm dataset. So the npm package is *faithful* — there is no upstream
+  bug to file, and it could not fix this without the same inference we do. `numeric()` never
+  had a falsy-zero coercion either; it just never received a `"0"` to coerce. Disambiguation
+  is by card frame and lives in `MANDATORY` in `tools/import_cards.py`: a character always
+  prints power, an event/stage always prints cost, so `-` there is 0 — but a character's
+  counter is genuinely optional and only leaders have life, so `-` there stays null. Do not
+  "simplify" this to a blanket `- → 0`. It affected 165 of 2,560 cards, 23 in OP15/OP16.
+- **`--validate` measures coverage, not just accuracy — a dropped field is a disagreement,
+  not a skip.** It used to skip any field either side left null, which is why 146 cost/power
+  comparisons went unmade while it still printed power 100%. That is how the `-` defect
+  shipped. Fixed 2026-08-17; power now checks 1819 cards, not 1687, and still agrees 100%.
 - **OP17 is not published yet — it is not missing, it does not exist upstream.** Bandai has
   not put it on the official card list. EN release 2026-08-28, SC ~2026-08-23. Re-run
   `python3 tools/import_cards.py --set OP17 --refresh` after that date; no code change needed.
