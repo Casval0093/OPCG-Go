@@ -27,5 +27,30 @@ export const op16Mr3Galdino056: CharacterCard = {
   attribute: "special",
   effect:
     "[Activate: Main] You may trash this Character: Draw 2 cards, and up to 1 of your opponent's Characters with a cost of 9 or less cannot attack until the end of your opponent's next End Phase.",
+  effects: {
+    effects: [
+      {
+        trigger: "activateMain",
+        costs: [{ cost: "trashThisCard" }],
+        actions: [
+          { action: "draw", player: "self", amount: 2 },
+          {
+            // `cannotAttack` + `untilEndOfOpponentNextEndPhase` is the standard pairing for
+            // this printed duration; model OP12-043 Kuzan, whose [On Play] prints the same
+            // clause without the cost filter.
+            action: "cannotAttack",
+            target: {
+              player: "opponent",
+              zones: ["character"],
+              count: { amount: 1, upTo: true },
+              filters: [{ filter: "cost", comparison: "lte", value: 9 }],
+            },
+            duration: "untilEndOfOpponentNextEndPhase",
+          },
+        ],
+        optional: true,
+      },
+    ],
+  },
   i18n: op16Mr3Galdino056I18n,
 };

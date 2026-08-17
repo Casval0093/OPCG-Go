@@ -27,5 +27,38 @@ export const op16Mr1DazBonez054: CharacterCard = {
   attribute: "slash",
   effect:
     "[DON!! x1] [Your Turn] If you have 5 or more cards in your hand, this Character gains +3000 power.\n[On Play] Draw 1 card.",
+  effects: {
+    effects: [
+      {
+        trigger: "onPlay",
+        actions: [{ action: "draw", player: "self", amount: 1 }],
+      },
+    ],
+    // [DON!! xN] + [Your Turn] + a static power gain is a permanent effect gated on three
+    // conditions, not a triggered one. Shape from OP07-081 Kalifa (donAttached + turn) and
+    // OP12-043 Kuzan (handCount gte 5 gating a self-targeted static modifier).
+    permanentEffects: [
+      {
+        conditions: [
+          { condition: "donAttached", amount: 1 },
+          { condition: "turn", value: "your" },
+          { condition: "handCount", player: "self", comparison: "gte", value: 5 },
+        ],
+        actions: [
+          {
+            action: "modifyPower",
+            target: {
+              player: "self",
+              zones: ["character"],
+              count: { amount: 1 },
+              self: true,
+            },
+            value: 3000,
+            duration: "permanent",
+          },
+        ],
+      },
+    ],
+  },
   i18n: op16Mr1DazBonez054I18n,
 };
