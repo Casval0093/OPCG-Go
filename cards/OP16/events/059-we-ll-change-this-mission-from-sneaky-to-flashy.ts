@@ -24,5 +24,46 @@ export const op16WeLlChangeThisMissionFromSneakyToFlashy059: EventCard = {
   traits: ["Impel Down", "Buggy Pirates"],
   effect:
     "[Main] You may rest 7 of your DON!! cards: Look at 5 cards from the top of your deck; play up to 2 [Impel Down] type Character cards with 6000 power or less. Then, place the rest at the bottom of your deck in any order.\n[Counter] Your Leader gains +3000 power during this battle.",
+  effects: {
+    effects: [
+      {
+        trigger: "main",
+        costs: [{ cost: "restDon", amount: 7 }],
+        actions: [
+          {
+            // "Look at 5 ...; play up to 2 ...; then place the rest at the bottom" is one search
+            // action whose reveal destination is the character area -- the shape OP03-094 Air Door
+            // established.
+            action: "search",
+            lookCount: 5,
+            source: { player: "self", zone: "deck" },
+            revealCount: { amount: 2, upTo: true },
+            revealFilters: [
+              { filter: "trait", value: "Impel Down", match: "includes" },
+              { filter: "power", comparison: "lte", value: 6000 },
+              // Load-bearing, not decorative: a Stage's power is hard-zeroed by basePower()
+              // (effects/shared.ts), so 0 <= 6000 and OP02-092 Impel Down -- a cost-1 Stage with
+              // the trait -- would otherwise qualify to be "played" by this effect.
+              { filter: "cardCategory", value: "character" },
+            ],
+            revealDestination: "character",
+            remainderPosition: "bottom",
+          },
+        ],
+        optional: true,
+      },
+      {
+        trigger: "counter",
+        actions: [
+          {
+            action: "modifyPower",
+            target: { player: "self", zones: ["leader"], count: { amount: 1 } },
+            value: 3000,
+            duration: "thisBattle",
+          },
+        ],
+      },
+    ],
+  },
   i18n: op16WeLlChangeThisMissionFromSneakyToFlashy059I18n,
 };
