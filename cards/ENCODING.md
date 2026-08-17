@@ -594,6 +594,62 @@ the target's *ownership* scoping with an opponent body instead.
 **"a cost of N" / "power N" is `eq`.** Confirmed again on Rebecca (费用为3). Same reading as
 rulings #962/#963. A bare number in card text is an equality unless a comparison word is printed.
 
+## OP16 yellow Characters (13 cards) — lessons
+
+**A `[Trigger]` resolves AFTER its own card has left the Life area, so a Life-count condition does not
+count the card itself.** Ruling #1013 (`OP16-111`: 3 Life *including* this card satisfies "2 or less").
+This is the exact twin of Task 4's trash finding — and the adjustment goes the **opposite** way, which
+is why each zone has to be checked rather than reasoned from the other. Either way: encode the printed
+number.
+
+**"[Trigger] Activate this card's [On K.O.] effect" is `activateEffect` with
+`effectTrigger: "onKo"`, and the target block's own `conditions` are re-checked on the second route for
+free.** `activateEffect` *enqueues* an `effectBlock` resolution rather than executing the actions, and
+`effects/resolution.ts` evaluates `block.conditions` when the queue reaches the item. So an
+`[Opponent's Turn]` gate written once on the `onKo` block governs both the battle-K.O. path and the
+`[Trigger]` path — which is exactly what ruling #1011 demands on `OP16-103` Van Augur (fire the Trigger
+on your own turn and the `[On K.O.]` must not activate). Seven cards print this wording; the
+pre-existing precedent is `OP09-102` Professor Clover, for `onPlay`.
+
+**`0/0 mutants killed` prints as `ok`.** Combined with rule 0 above, a card whose entire decision
+surface is a negative magnitude generates no mutants at all and still reports as a pass. Treat a `0/0`
+line as "not probed", not "verified", and write the boundary test by hand. (Task 3/4's OP15 cards
+happened to have zero `0/0` lines, but three of the OP16 black batch's did.)
+
+**`expect(view.decisions).toHaveLength(0)` is NOT a way to assert "no prompt appeared."**
+`projectDecisions` always includes an `actions:<seat>` entry for the active seat, so that assertion
+passes only for the *non*-active seat — which makes it look like it works. **`view.prompts` is safe**:
+`projectPrompts` filters the real queue for pending prompts belonging to the viewer and adds nothing.
+Use `view.prompts`, or assert against `getState().promptQueue` and name the intent you expect absent.
+
+**A `rest` action's candidate pool drops already-rested cards BEFORE the action's own filters.** So on
+an `[On K.O.]` rest effect the attacker cannot double as the "excluded by the filter" fixture —
+attacking rests it, and it is then excluded whether the filter exists or not. `mutation_check.py`
+caught this on `OP16-110`, with the tell-tale signature of a fixture excluded for the wrong reason:
+`delete filter:cost` survived while `lte→gte` died. The over-cost body must be **active**. Note this is
+the opposite of `setActive`, which per GENERAL ruling #27 does offer already-active Characters.
+
+**`negateEffects` has no projected field.** Prove it by suppressing a *specific* ability: negate a
+Character that has an `[On K.O.]`, K.O. it, and assert its own trigger never published — paired with a
+control that declines the negate and shows the prompt appearing.
+
+**`battleCounter` is published only when the defending seat's hand is non-empty**
+(`beginBattleCounterStep` returns early on no options), and the fixture default for `hand` is `[]`,
+unlike `deck` and `life` which get filler. That is why a copied-in `resolveDecision("battleCounter", …)`
+often fails with "Could not find a pending battleCounter prompt" — and why it *did* appear for the two
+OP15 cards that needed it.
+
+**The engine's only [Blackbeard Pirates] Leader negates its own controller's `[On Play]` effects.**
+`op09MarshallDTeach081` prints exactly that, so a synthetic `onPlay` test card does nothing under it —
+no prompt, no capability issue, no log, indistinguishable from a broken encoding. Drive such scenarios
+with `activateMain` on a body already on the field instead.
+
+**Vanilla fixture cost/power ladder** (all pre-OP15, no `effect` key): cost 1/3000 `eb01Doma005`,
+2/4000 `op01Sai012`, 3/5000 `op03Namule007`, 4/6000 `op02Atmos003`, 5/7000 `op02Kingdew006`,
+6/7000 `op11XDrake017`, 7/9000 `op02LittleoarsJr020`, 8/10000 `op05JohnGiant044`. Two at cost 7 matters
+when one must attack while the other stays active. Older sets store traits as one concatenated string,
+so a trait filter **must** carry `match: "includes"` or these fixtures silently fail to match.
+
 ## OP16 black Characters (17 cards) — lessons
 
 **"If you have X" is not always your own field, and the English print can be flatly wrong.**
