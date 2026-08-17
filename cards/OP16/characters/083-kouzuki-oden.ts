@@ -27,5 +27,29 @@ export const op16KouzukiOden083: CharacterCard = {
   attribute: "slash",
   effect:
     "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[On Play] You may trash 1 Character card with a cost of 8 or more from your hand: Draw 2 cards.",
+  effects: {
+    keywords: ["blocker"],
+    effects: [
+      {
+        trigger: "onPlay",
+        costs: [
+          {
+            cost: "trashFromHand",
+            amount: 1,
+            // candidatesForTrashFromHandCost applies no card-type restriction of its own -- it
+            // scans the whole hand -- so `cardCategory` is load-bearing here in a way it is not
+            // on a `play` action (whose pool is pre-restricted to character/stage upstream).
+            // An 8-cost Event in hand is a real false positive without it.
+            filters: [
+              { filter: "cardCategory", value: "character" },
+              { filter: "cost", comparison: "gte", value: 8 },
+            ],
+          },
+        ],
+        actions: [{ action: "draw", player: "self", amount: 2 }],
+        optional: true,
+      },
+    ],
+  },
   i18n: op16KouzukiOden083I18n,
 };

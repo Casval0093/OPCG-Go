@@ -27,5 +27,10 @@ export const op16ShimotsukiUshimaru088: CharacterCard = {
   attribute: "slash",
   effect:
     "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)",
+  // The whole printed ability is one keyword; the parenthetical is reminder text, not a
+  // second clause. 203 cards in the vendored engine carry `keywords: ["blocker"]` this way.
+  effects: {
+    keywords: ["blocker"],
+  },
   i18n: op16ShimotsukiUshimaru088I18n,
 };

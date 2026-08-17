@@ -27,5 +27,25 @@ export const op16TonyTonyChopper090: CharacterCard = {
   attribute: "strike",
   effect:
     "[On Play] Draw 2 cards and trash 2 cards from your hand. Then, K.O. up to 1 of your opponent's Characters with a cost of 1 or less.",
+  effects: {
+    effects: [
+      {
+        trigger: "onPlay",
+        actions: [
+          { action: "draw", player: "self", amount: 2 },
+          { action: "trashFromHand", player: "self", amount: 2 },
+          {
+            action: "ko",
+            target: {
+              player: "opponent",
+              zones: ["character"],
+              count: { amount: 1, upTo: true },
+              filters: [{ filter: "cost", comparison: "lte", value: 1 }],
+            },
+          },
+        ],
+      },
+    ],
+  },
   i18n: op16TonyTonyChopper090I18n,
 };
