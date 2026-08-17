@@ -443,11 +443,11 @@ run(
         `  ${(100 * d.mean).toFixed(2)} pts   95% CI [${(100 * d.lo).toFixed(2)}, ${(100 * d.hi).toFixed(2)}]`,
       );
       console.log(`  discordant pairs ${d.discordant}/${d.n} — only these carry information`);
-    if (d.skipped > 0) {
-      console.log(
-        `  skipped ${d.skipped} pair(s) where a game never finished — excluded, not scored as losses`,
-      );
-    }
+      if (d.skipped > 0) {
+        console.log(
+          `  skipped ${d.skipped} pair(s) where a game never finished — excluded, not scored as losses`,
+        );
+      }
       if (d.lo > 0) console.log(`  => A' is better, significant at 95%`);
       else if (d.hi < 0) console.log(`  => A' is WORSE, significant at 95%`);
       else console.log(`  => not significant; need more games or the effect is ~0`);
