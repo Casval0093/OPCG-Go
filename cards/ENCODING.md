@@ -13,6 +13,28 @@ change. `OP16-025` Bunkov carries the mirror-image ruling (#977, identical shape
 Antlerkov's #979) and is waiting in a later batch; this is what stops the same bug landing
 there too, and in however many of the other "if you have [Name]" cards come up after it.
 
+## How to read this file
+
+It is long because every section was paid for by a defect. If you are encoding a batch, read in this
+order and skim the rest:
+
+1. **Before encoding any card** — the mandatory rulings step. Non-negotiable.
+2. **The five worked examples** — the reference encodings, and the shapes most cards copy.
+3. **Test-harness facts worth not rediscovering** — the prompt-intent table alone saves a test run per
+   guess, and *"Writing tests that survive `mutation_check.py`"* inside it is the section that decides
+   whether your batch needs a fix-up round. **Read rule 0 there before you write a single assertion.**
+4. **Parked (DSL gaps)** — check whether the effect you cannot express is already a known gap before
+   you re-derive it. Machine-readable twin: `data/parked-clauses.json`.
+5. The per-batch lesson sections (Task 3, Task 4, and the three OP16 batches) — reference material,
+   organised by the batch that found each lesson rather than chronologically. Grep them for the shape
+   you are encoding.
+
+**The two mistakes this file exists to prevent, above all others.** An encoding can be *wrong and
+green*: the rulings step is the only defence, because the English print is sometimes ambiguous
+(`OP16-001`) and sometimes flatly wrong about the player (`OP16-081`). And a test can be *green and
+powerless*: the mutation gate is the only defence, and it has blind spots of its own that you must
+cover by hand.
+
 ## Before encoding any card
 
 1. **Read the printed `effect` field** in the generated `.ts` file (or `data/cards-OP15-en.json`
