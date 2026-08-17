@@ -14,11 +14,19 @@
 //   "在各对战中，如果在宣布的结束时间到来时还没有决定胜负，则不进行胜负判定，该对战结果为双方败北。"
 //
 // If the round clock expires with no winner, the result is **a loss for BOTH players** — 双方败北.
-// Not a draw. That makes an unfinished game strictly worse than a coin flip, and it means a win
-// rate computed over decided games only would systematically flatter slow decks. So every game
-// resolves to one of three outcomes, and `timeout` counts against BOTH decks:
+// Not a draw. That makes running out of clock strictly worse than a coin flip, and it means a win
+// rate over clock-expired games only would systematically flatter slow decks. Four outcomes:
 //
-//   win | loss | timeout  (double loss)
+//   win | loss | timeout | unfinished
+//
+// `timeout` is the ROUND CLOCK — a real rules outcome, scored as a loss for both decks.
+// `unfinished` is OUR command ceiling or the engine giving up — a tool limit, not a game result.
+// It is excluded from the win rate and from paired differences entirely.
+//
+// These were one branch until a tech-slot A/B reported "-28.5 points, significant at 95%" that
+// turned out to be 52% command-ceiling hits wearing a rules outcome's clothes. Scoring a tool
+// limit as a double loss makes any deck that stalls the policy look catastrophic, which is a
+// statement about the bot rather than the cards.
 //
 // Extra turns exist ONLY in finals and elimination brackets, not in Swiss rounds: +3 turns if time
 // is called on the first player's turn, +2 if on the second player's, then a tiebreak of Life count
@@ -85,7 +93,7 @@ interface GameResult {
   /** Whether deck A was the first player in this game. */
   aOnPlay: boolean;
   /** Outcome for deck A. */
-  outcome: "win" | "loss" | "timeout";
+  outcome: "win" | "loss" | "timeout" | "unfinished";
   turns: number;
   commands: number;
   /**
@@ -177,12 +185,20 @@ function playOne(
   // the play/draw buckets follow it instead of silently mislabelling every game.
   const actualFirst = (r.finalState.config?.firstPlayer ?? "north") as MatchSeat;
 
-  // Timeout dominates: an unfinished game is 双方败北 regardless of who was ahead.
-  // `stuck` and command exhaustion are engine limits rather than game states, but they are
-  // indistinguishable from "did not finish in time" at the table, so they score the same.
+  // `timeout` models the ROUND CLOCK — 双方败北, a real rules outcome that scores against both
+  // decks. `unfinished` means the harness ran out of command budget or the engine gave up, which
+  // is a TOOL limit and not a game result at all.
+  //
+  // These were the same branch until a tech-slot A/B returned "-28.5 points, significant" that
+  // turned out to be 52% command-ceiling hits wearing a rules outcome's clothes. Scoring a tool
+  // limit as a double loss makes any deck that stalls the policy look catastrophically bad, which
+  // is a statement about the bot, not the deck. Keep them apart; `unfinished` games are excluded
+  // from win rate and reported separately so they cannot masquerade as signal.
   let outcome: GameResult["outcome"];
-  if (r.winner === null || turns > turnBudget) {
-    outcome = "timeout";
+  if (turns > turnBudget) {
+    outcome = "timeout"; // the clock, per 官方公认赛赛事守则 V1.6.0 §II
+  } else if (r.winner === null) {
+    outcome = "unfinished"; // our ceiling, not the game's
   } else {
     outcome = r.winner === aSeat ? "win" : "loss";
   }
@@ -226,7 +242,10 @@ interface Summary {
   wins: number;
   losses: number;
   timeouts: number;
-  /** Timeouts count as losses — the tournament rule, not a modelling choice. */
+  /** Harness/engine gave up. NOT a game result — excluded from winRate entirely. */
+  unfinished: number;
+  /** Wins over DECIDED games (win + loss + timeout). Timeouts count as losses per the
+   *  tournament rule; `unfinished` games are excluded because they are a tool artefact. */
   winRate: number;
   ci: [number, number];
   medianTurns: number;
@@ -237,14 +256,17 @@ function summarize(rs: GameResult[]): Summary {
   const wins = rs.filter((r) => r.outcome === "win").length;
   const losses = rs.filter((r) => r.outcome === "loss").length;
   const timeouts = rs.filter((r) => r.outcome === "timeout").length;
+  const unfinished = rs.filter((r) => r.outcome === "unfinished").length;
+  const decided = rs.length - unfinished;
   const turns = rs.map((r) => r.turns).sort((x, y) => x - y);
   return {
     games: rs.length,
     wins,
     losses,
     timeouts,
-    winRate: rs.length ? wins / rs.length : 0,
-    ci: wilson(wins, rs.length),
+    unfinished,
+    winRate: decided ? wins / decided : 0,
+    ci: wilson(wins, decided),
     medianTurns: turns.length ? (turns[Math.floor(turns.length / 2)] ?? 0) : 0,
     meanCommands: rs.length ? rs.reduce((s, r) => s + r.commands, 0) / rs.length : 0,
   };
@@ -268,6 +290,13 @@ function report(label: string, all: GameResult[]): Summary {
     `  timeouts  ${s.timeouts} (${pct(s.timeouts / Math.max(1, s.games))}) — double losses` +
       `   median turns ${s.medianTurns}   mean cmds ${s.meanCommands.toFixed(1)}`,
   );
+  if (s.unfinished > 0) {
+    console.log(
+      `  *** UNFINISHED ${s.unfinished}/${s.games} (${pct(s.unfinished / s.games)}) — command ` +
+        `ceiling or engine give-up. NOT counted as losses. Raise --max-commands, or the policy ` +
+        `cannot close these games and the win rate above is drawn from a biased subset. ***`,
+    );
+  }
   const reasons = new Map<string, number>();
   for (const r of all) reasons.set(r.termination, (reasons.get(r.termination) ?? 0) + 1);
   const breakdown = [...reasons.entries()].sort((x, y) => y[1] - x[1]);
@@ -309,12 +338,23 @@ function pairedDiff(a: GameResult[], b: GameResult[]) {
   const n = Math.min(a.length, b.length);
   const score = (o: GameResult["outcome"]) => (o === "win" ? 1 : 0);
   const diffs: number[] = [];
-  for (let i = 0; i < n; i++) diffs.push(score(a[i]!.outcome) - score(b[i]!.outcome));
-  const mean = diffs.reduce((s, d) => s + d, 0) / n;
-  const variance = diffs.reduce((s, d) => s + (d - mean) ** 2, 0) / Math.max(1, n - 1);
-  const se = Math.sqrt(variance / n);
+  let skipped = 0;
+  for (let i = 0; i < n; i++) {
+    // A pair where either side never finished carries no information about the cards. Scoring it
+    // as a loss for that arm is how a command-ceiling artefact turns into a fake 28-point effect.
+    if (a[i]!.outcome === "unfinished" || b[i]!.outcome === "unfinished") {
+      skipped++;
+      continue;
+    }
+    diffs.push(score(a[i]!.outcome) - score(b[i]!.outcome));
+  }
+  if (diffs.length === 0) return { mean: 0, se: 0, lo: 0, hi: 0, n: 0, discordant: 0, skipped };
+  const m = diffs.length;
+  const mean = diffs.reduce((s, d) => s + d, 0) / m;
+  const variance = diffs.reduce((s, d) => s + (d - mean) ** 2, 0) / Math.max(1, m - 1);
+  const se = Math.sqrt(variance / m);
   const discordant = diffs.filter((d) => d !== 0).length;
-  return { mean, se, lo: mean - 1.96 * se, hi: mean + 1.96 * se, n, discordant };
+  return { mean, se, lo: mean - 1.96 * se, hi: mean + 1.96 * se, n: m, discordant, skipped };
 }
 
 const run = process.env.SIM_RUN === "1" ? test : test.skip;
@@ -403,6 +443,11 @@ run(
         `  ${(100 * d.mean).toFixed(2)} pts   95% CI [${(100 * d.lo).toFixed(2)}, ${(100 * d.hi).toFixed(2)}]`,
       );
       console.log(`  discordant pairs ${d.discordant}/${d.n} — only these carry information`);
+    if (d.skipped > 0) {
+      console.log(
+        `  skipped ${d.skipped} pair(s) where a game never finished — excluded, not scored as losses`,
+      );
+    }
       if (d.lo > 0) console.log(`  => A' is better, significant at 95%`);
       else if (d.hi < 0) console.log(`  => A' is WORSE, significant at 95%`);
       else console.log(`  => not significant; need more games or the effect is ~0`);

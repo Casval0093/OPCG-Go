@@ -139,6 +139,35 @@ matchup results", and the distortion now looks far smaller than it did an hour a
 position is that policy quality is still unmeasured: a plausible play/draw split shows the policy
 is not obviously broken, not that it plays well.
 
+## First tech-slot A/B — and why its headline number is not real
+
+Swapped 4x `OP13-024` Gordon (1-cost, 0 power, 2000 counter) for 4x `EB04-016` Bird Neptunian
+(5-cost, 7000 power, **no counter**) in the Mihawk proxy, 400 paired games per arm:
+
+| | win rate | timeouts/unfinished | median turns | mean commands |
+|---|---|---|---|---|
+| A (proxy) | 53.75% | 0 | 9 | 119.9 |
+| A′ (tech) | 25.25% | **208 / 400** | 7 | **487.2** |
+
+Paired difference **−28.50 pts, 95% CI [−33.95, −23.05]**, 156/400 discordant pairs.
+
+**Do not quote that number.** A′ hit the 800-command ceiling in 52% of games, and the harness was
+scoring command exhaustion as a clock timeout — a double loss. So most of the "effect" is the
+policy failing to close games, not the cards being worse. The swap probably *is* bad (it removes
+four cheap counters and worsens the curve), but this run cannot say by how much.
+
+Fixed: `timeout` now means the turn budget only, `unfinished` means our ceiling or an engine
+give-up, and unfinished games are excluded from win rates and skipped in paired differences rather
+than scored as losses. The lesson is the same one as the earlier `termination` conflation, in a
+subtler place — **a tool limit that looks like a rules outcome will manufacture significant
+results.**
+
+**Throughput reality check.** That run took **11,045 s for 800 games — 0.07 games/s**, against the
+~2 games/s the section below assumes. Decks the policy cannot close are ~30x slower, because games
+run to the command ceiling instead of ending. The 4,400-games-per-arm estimate below therefore
+holds only for decks that finish cleanly; budget an order of magnitude more for anything that
+stalls, or fix the policy first.
+
 ## Statistical design
 
 **Common random numbers.** A tech slot changes 1–2 of 50 cards, so the effect is small and the
