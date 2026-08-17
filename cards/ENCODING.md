@@ -616,6 +616,47 @@ the target's *ownership* scoping with an opponent body instead.
 **"a cost of N" / "power N" is `eq`.** Confirmed again on Rebecca (费用为3). Same reading as
 rulings #962/#963. A bare number in card text is an equality unless a comparison word is printed.
 
+## OP16 red Characters (14 cards) — lessons
+
+**`OP16-008` Squard is the one card printing BOTH power filters, and they differ on purpose.** Its
+trash cost is 原本的力量 (`basePower`, exactly 10000); its own K.O. target is plain 力量
+(`power lte 8000`). Ruling #966. When a card uses both, read each clause's own Chinese.
+
+**A power filter cannot tell `basePower` from `power` on a plain fixture, and the mutation tool never
+swaps them** — it deletes filters and flips comparisons, but has no operator rewriting one to the
+other. Both readings are green on any board where nothing is modified, i.e. every board built from
+vanilla fixtures. The discriminator is a synthetic body with a *self-targeting* permanent
+`modifyPower` (`{ …, count: { amount: 1 }, self: true }`, which passes the `"all"`-or-`self` guard) so
+its base and current power differ. Aim it the way the text demands: for 原本的力量 give it a buff (low
+base, high current, must still be hit); for plain 力量 give it a debuff. **Attached DON!! is not a
+substitute** — it contributes only while its controller is the active seat, which is never the case for
+an opponent's body during your own `[On Play]`.
+
+**A `trashFromHand` battle-K.O. replacement is ONE prompt, not a confirm then a payment.** `battle.ts`
+branches on the replacement action's shape: anything *other than* `trashFromHand` builds a `confirm`
+with `yes`/`no`, but a `trashFromHand` builds a `selectCards` prompt whose options are already the
+filter-matched hand. **Both carry intent `battleKoReplacement`**, which is what makes this easy to get
+wrong. So the candidate list — the only place the replacement's filters are observable — hangs off
+`battleKoReplacement` itself, and declining is `{ selectedIds: [] }`, not `{ optionId: "no" }`.
+`EB03-001` Vivi shows this branch; `OP05-001` and `OP15-098` show the other.
+
+**A Leader with its own `onOpponentAttack` ability queues AHEAD of the blocker step.** `op09Shanks001`
+fires on every declared attack, so a `battleBlocker` test using it as the defending Leader must resolve
+that `effectOptional` first or the blocker prompt is not there yet. Prefer an inert fixture Leader
+(`op16PortgasDAce001`, whose only ability is an `[Activate: Main]`) unless the Leader's own text is
+what is under test.
+
+**`donFieldCount` counts DON!! wherever they sit** — active + rested + every attachment — so paying a
+card's own cost never changes it, and a "10 DON!! on your field" gate holds across the play that
+triggers it. `value: 10` is two digits, so the numeric operator generates nothing: pin 9, 10 and 11 by
+hand, and `activeDon: 11` remains the only way to kill the `eq`→`gte` mutant.
+
+**Fixture ceilings.** The vanilla pool has no cost-8 [Whitebeard Pirates] Character and nothing above
+10000 base power (tops out at cost 7 `op02LittleoarsJr020`; 10000 `eb02DonAccino004`, `op12Shiki005`,
+`op12Issho082`, `op14eb04Oars101`). Below 3000 there is no *vanilla* Character at all, but two inert
+ones serve as K.O. targets: `op03Fossa010` (cost 2, [Blocker] only) and `op03Thatch005` (cost 1,
+`[Activate: Main]` only).
+
 ## OP16 green Characters (12 cards) — lessons
 
 **Ruling #977 (Bunkov) closes the loop opened by #979 (Antlerkov).** The two cards name each other, and

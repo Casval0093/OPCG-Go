@@ -14,7 +14,7 @@
     "missing), rulings (SC ruling numbers that constrain what the primitive must do), blocks (other",
     "cards waiting on the same primitive)."
   ],
-  "generated_from": "Tasks 3, 4, 11, 12, 13 (black), 13 (yellow) — 2026-08-18",
+  "generated_from": "Tasks 3, 4, 11-18 — all of OP15 leaders/events/stage and all of OP16 — 2026-08-18",
   "missing_primitives": [
     {
       "id": "attachedDonTargetFilter",
@@ -117,6 +117,24 @@
       "wanted_rank": 11,
       "blocks": [
         "OP16-034"
+      ]
+    },
+    {
+      "id": "nameIncludesMatch",
+      "summary": "Substring matching for card names, as `match: \"includes\"` already does for traits.",
+      "detail": "leaderName is cardNames(leader).includes(name) -- exact array membership -- and the `name` TargetFilter is exact too. Neither carries the match option LeaderTraitCondition has. NOTE the tempting narrowing is actively WRONG, not merely imprecise: 'if your Leader's card name includes \"Ace\"' cannot become leaderName: 'Portgas.D.Ace', because 'Ace & Sabo & Luffy' is a real card name containing Ace.",
+      "wanted_rank": 12,
+      "blocks": [
+        "OP16-015"
+      ]
+    },
+    {
+      "id": "setCounterLiteral",
+      "summary": "An action SETTING a card's counter to a literal value.",
+      "detail": "modifyCounter is additive -- getCardCounter is (card.counter ?? 0) + getPermanentModifierTotal(..., 'counter'). Rulings #1016 and #1017 between them ban both additive readings: a printed +1000 body must become exactly +2000, and two copies must not stack to +4000. EB01-001 Oden gets away with modifyCounter only because its printed text carries a `counter eq 0` filter this card does not have.",
+      "wanted_rank": 13,
+      "blocks": [
+        "OP16-118"
       ]
     }
   ],
@@ -263,6 +281,37 @@
         984
       ],
       "note": "The [On Play] half IS encoded and tested. #982/#983: 1 Luffy + 2 copies of one other card is +2000, not +3000."
+    },
+    {
+      "card": "OP16-015",
+      "name": "Monkey.D.Luffy",
+      "coverage": "none",
+      "clause": "If your Leader's card name includes \"Ace\" and you have 6 or more DON!! cards on your field, give this card in your hand -2 cost.",
+      "primitive": "nameIncludesMatch",
+      "rulings": [],
+      "note": "BOTH of this card's clauses are parked, so it has no effects block and cannot document itself -- this registry is its only record."
+    },
+    {
+      "card": "OP16-015",
+      "name": "Monkey.D.Luffy",
+      "coverage": "none",
+      "clause": "[On Your Opponent's Attack] You may trash 1 Character card with 8000 power from your hand: Your Leader and this Character's base power becomes 7000 during this turn.",
+      "primitive": "setBasePowerLiteral",
+      "rulings": [
+        972
+      ]
+    },
+    {
+      "card": "OP16-118",
+      "name": "Portgas.D.Ace",
+      "coverage": "partial",
+      "clause": "The counter of all of your Character cards with 8000 power in your hand becomes +2000.",
+      "primitive": "setCounterLiteral",
+      "rulings": [
+        1016,
+        1017
+      ],
+      "note": "The [On Play]/[On K.O.] search halves ARE encoded and tested."
     }
   ]
 }

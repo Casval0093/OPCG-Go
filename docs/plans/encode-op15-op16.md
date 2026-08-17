@@ -215,7 +215,7 @@ Counts exclude the 5 Task-2 reference cards and the 15 genuinely vanilla Charact
 | 11 + 12 | OP16 leaders (5) + stages (2) + events (15) | 22 | **done** — 20 encoded, 5 clauses parked |
 | 13 | OP16 yellow characters | 13 | **done** — 2 clauses parked; 9 are the B/Y Teach list |
 | 14 | OP16 black characters | 17 | **done** — nothing parked |
-| 15 | OP16 red characters | 14 | dispatched — `003 005 006 007 008 009 010 011 012 013 015 017 018 118` |
+| 15 | OP16 red characters | 14 | **done** — 12 full, OP16-118 partial, OP16-015 parked whole; sweep 223/223 |
 | 16 | OP16 green characters | 12 | **done** — 1 clause parked (OP16-034); full sweep 185/185 + 17 hand mutants |
 | 17 | OP16 blue characters | 14 | **done** — nothing parked; full sweep 189/189 mutants |
 | 18 | OP16 purple characters | 13 | **done** — nothing parked; 56 hand mutants (7 of 13 cards are invisible to the tool) |
