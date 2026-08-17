@@ -26,5 +26,34 @@ export const op16Squard008: CharacterCard = {
   attribute: "slash",
   effect:
     "[On Play] You may trash 1 of your Characters with 10000 base power: K.O. up to 1 of your opponent's Characters with 8000 power or less.",
+  effects: {
+    effects: [
+      {
+        trigger: "onPlay",
+        costs: [
+          {
+            cost: "trashCharacter",
+            amount: 1,
+            // Ruling #966: 原本的力量为10000 -- BASE power, and exactly 10000.
+            filters: [{ filter: "basePower", comparison: "eq", value: 10000 }],
+          },
+        ],
+        actions: [
+          {
+            action: "ko",
+            target: {
+              player: "opponent",
+              zones: ["character"],
+              count: { amount: 1, upTo: true },
+              // The K.O. half prints 力量 (current power), not 原本的力量: a different filter
+              // from the cost's, on purpose.
+              filters: [{ filter: "power", comparison: "lte", value: 8000 }],
+            },
+          },
+        ],
+        optional: true,
+      },
+    ],
+  },
   i18n: op16Squard008I18n,
 };

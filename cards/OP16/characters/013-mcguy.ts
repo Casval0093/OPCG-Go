@@ -25,5 +25,24 @@ export const op16Mcguy013: CharacterCard = {
   traits: ["Whitebeard Pirates Allies"],
   attribute: "slash",
   effect: "[On K.O.] K.O. up to 1 of your opponent's Characters with 8000 base power or less.",
+  effects: {
+    effects: [
+      {
+        trigger: "onKo",
+        actions: [
+          {
+            action: "ko",
+            target: {
+              player: "opponent",
+              zones: ["character"],
+              count: { amount: 1, upTo: true },
+              // 原本的力量不高于8000 -- BASE power: a 9000-base body debuffed to 8000 is safe.
+              filters: [{ filter: "basePower", comparison: "lte", value: 8000 }],
+            },
+          },
+        ],
+      },
+    ],
+  },
   i18n: op16Mcguy013I18n,
 };

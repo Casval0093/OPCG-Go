@@ -27,5 +27,35 @@ export const op16BennBeckman012: CharacterCard = {
   attribute: "ranged",
   effect:
     "[Blocker]\n[On Play] You may rest 1 of your DON!! cards: If your Leader has the [Red-Haired Pirates] type and you have 10 DON!! cards on your field, play up to 1 [Shanks] from your hand.",
+  effects: {
+    keywords: ["blocker"],
+    effects: [
+      {
+        trigger: "onPlay",
+        costs: [{ cost: "restDon", amount: 1 }],
+        actions: [
+          {
+            action: "play",
+            source: { player: "self", zone: "hand" },
+            count: { amount: 1, upTo: true },
+            filters: [{ filter: "name", value: "Shanks" }],
+            // The checks are printed AFTER the cost colon, inside the effect body, so they gate
+            // this action rather than the block: the DON!! is rested either way. Same shape as
+            // OP08-040 Atmos. "10 DON!! cards on your field" is `eq`, per the five existing
+            // donFieldCount precedents.
+            condition: {
+              condition: "compound",
+              operator: "and",
+              conditions: [
+                { condition: "leaderTrait", trait: "Red-Haired Pirates", match: "includes" },
+                { condition: "donFieldCount", player: "self", comparison: "eq", value: 10 },
+              ],
+            },
+          },
+        ],
+        optional: true,
+      },
+    ],
+  },
   i18n: op16BennBeckman012I18n,
 };
