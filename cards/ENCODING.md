@@ -539,10 +539,125 @@ a Character whose survival (or K.O.) in the battle depends on it.
 *Second gotcha, unrelated to the above:* only the Leader and **rested** Characters are legal
 attack targets; an active Character "cannot be attacked."
 
-## Parked (DSL gaps found in this task)
+## Task 3 — OP15 leaders (6 cards, 5 with encodings)
 
-None. All five reference cards expressed fully in the existing DSL — no primitive was
-missing.
+The five sections above stay the canonical worked examples; this section records only what
+Task 3 added that they do not already teach. Leaders turned out to be the *worst* card type
+for DSL coverage — 5 of 11 printed clauses across these 6 cards are parked, because Leaders
+are where rules-bending text lives (deck-out grace periods, DON!! deck resizing). Expect a
+much lower park rate on Characters and Events.
+
+**`OP15-001` Krieg — "if the only Characters on your field are [X] type" is NOT vacuous.**
+Ruling #852: with **zero** Characters on your field the effect does not apply (不会). English
+reads the other way — an empty character area trivially satisfies "the only Characters … are
+[East Blue]" — and the shape already in the engine for this exact phrasing,
+`EB02/leaders/010-monkey-d-luffy.ts`, is a lone `zoneCount … eq 0` over *non*-matching traits,
+which therefore **fires on an empty field and gets the ruling backwards**. This affects
+`OP16-022` Monkey.D.Luffy too ("only [Impel Down] type Characters"), and `OP05-084` /
+`OP05-092` upstream. The correct pair is an unfiltered `zoneCount … gte 1` **and** the
+`eq 0` negate check. Keep the `gte 1` **unfiltered**: given "no Character lacks the type",
+"≥1 of the type" and "≥1 Character at all" are the same predicate, so a trait filter there is
+dead weight — `mutation_check.py` flagged it as a survivor when it was present, correctly.
+
+**`OP15-098` Monkey.D.Luffy — `replacedEvent: "leaveField"`, not `"removeFromField"`, whenever
+a battle K.O. must be replaceable.** This is the single most load-bearing thing Task 3 learned.
+`findKoReplacement` (`effects/replacements.ts`) searches `["ko", "leaveField"]` when the cause is
+a **battle** and `["ko", "removeFromField", "leaveField"]` when the cause is an **effect**. So a
+`removeFromField` replacement silently does nothing on a battle K.O. — no prompt, the Character
+just dies — while still passing every effect-removal test you write. `leaveField` is the one
+value in both sets. Printed text is the tell: "would be removed from the field **by your
+opponent**" (SC 因对方) is cause-agnostic and ruling #957 confirms battle K.O. counts, whereas "by
+your opponent's **effect**" is not. Pair it with `eventFilter: { causedBy: "opponent" }` to
+supply the "by your opponent" half, or the replacement also intercepts your own removals.
+
+**Do not add a condition the availability check already enforces.** Ruling #933 (Luffy cannot use
+the replacement at 0 Life) needs no `lifeCount` condition: `replacementActionIsAvailable` already
+rejects a `removeFromLife` of 1 against an empty Life area, so the effect is never offered. A
+redundant condition would be an unkillable mutant. Test the structural behaviour instead — see
+`cards/tests/OP15/098-monkey-d-luffy.test.ts`.
+
+**`[On Your Opponent's Attack]` takes no `targetSelf`, and upstream is inconsistent about it.**
+The modern bracketed keyword fires for the defending seat on **any** declared attack
+(`enqueueInPlayEffectsForTrigger(state, "onOpponentAttack", …)`, `battle.ts`) — target
+irrelevant. Match `OP11/leaders/041-nami.ts` (same keyword, same "This Leader gains +N power"
+payload, no `targetSelf`), not `OP13/leaders/002-portgas-d-ace.ts` (same keyword, *with*
+`targetSelf`). `targetSelf` belongs only on the older wording "when this Leader … **is
+attacked**", e.g. `OP03/leaders/001-portgas-d-ace.ts`. GENERAL ruling #8 confirms a power boost
+may be applied to a card that is not the one being attacked.
+
+**Targeting is permissive — do not invent a `state: "rested"` filter.** Brook's "set up to 1 of
+your Characters as active" offers already-**active** Characters as candidates, and that is
+correct: GENERAL ruling #27 allows choosing a target for which the effect does nothing. An
+initial test asserting active Characters were filtered out was simply wrong about the game. Prove
+the target's *ownership* scoping with an opponent body instead.
+
+**"a cost of N" / "power N" is `eq`.** Confirmed again on Rebecca (费用为3). Same reading as
+rulings #962/#963. A bare number in card text is an equality unless a comparison word is printed.
+
+## Parked (DSL gaps)
+
+Recorded per the settled decision: *record the card and the missing primitive, move on; revisit
+once the parked list is complete.* **A fully-parked card cannot document itself** —
+`gen_card_defs.py` only preserves files that already have an `effects:` block, so a card with
+nothing encoded gets its comments overwritten on the next generator run (this happened to
+`OP15-058` Enel). For those cards **this list is the only record**. Partially-parked cards do
+carry an inline `// PARKED` note, because they have an `effects` block to protect them.
+
+*Task 2 (the five reference cards): none — all expressed fully in the existing DSL.*
+
+**Task 3 — 5 parked clauses over 4 cards:**
+
+| Card | Parked clause | Missing primitive |
+|---|---|---|
+| `OP15-001` Krieg | `[Activate: Main]` Rest 1 opponent Character **that has 2+ DON!! given** | A `TargetFilter` over a candidate's attached DON!! count. `instance.attachedDon` exists in state but `matchesTargetFilter` has no case for it; `givenDonCount` is a Condition over a player's total, not per-candidate. **Also blocks `OP15-038`.** |
+| `OP15-002` Lucy | `[Activate: Main]` draw if **you activated an Event with base cost 3+ this turn** | A condition over this turn's event-activation history. The engine fires `whenYouActivateEvent` but records nothing, so a later `activateMain` has nothing to test. Ruling #853 constrains it: a `[Trigger]` resolution is **not** an Event activation (发动【触发】效果和发动事件不同). |
+| `OP15-022` Brook | The deck-out grace period (don't lose at 0 deck; lose at end of that turn) | A `loseGame` **action**. `replacedEvent: "loseGame"` exists (`OP03/leaders/040-nami.ts`) but its only replacement action is `winGame`, so there is nothing to schedule. Needs latch semantics too: rulings #878/#954 say the loss still happens even if the deck climbs back above 0 that turn. |
+| `OP15-058` Enel | "your DON!! deck consists of 6 cards" | A DON!!-deck-size rule modifier. `deckBuildingRules` covers only `unlimitedCopies`/`cannotInclude`. Ruling #900 says negating the Leader does *not* restore 10, so it is fixed at setup, not a live modifier. |
+| `OP15-058` Enel | `[Activate: Main]` "if it is your **second turn or later**" | A turn-**number** Condition. `condition: "turn"` only distinguishes your turn from the opponent's. `state.turnNumber` already exists and is read elsewhere in `effects/conditions.ts`, so this is a missing Condition variant only. Ruling #901 makes it load-bearing: activating on turn 1 is legal and does nothing. |
+
+## Engine limitations found (not encoding choices, not DSL gaps)
+
+- **`trashFromDeck` mills nothing when the deck is shorter than the requested amount.**
+  `effects/actions.ts` computes `maximum = min(amount, deck.length)` and then returns early
+  without trashing when `!upTo && maximum < amount`. On `OP15-022` Brook — the one Leader whose
+  deck reaching 0 is its own clock — a 1–3 card deck therefore never empties and the `setActive`
+  never fires, whereas ruling #879 says the activation is legal and mills the whole remainder.
+  `upTo: true` is **not** the fix: it converts a mandatory mill into a 0..N player choice, and
+  being able to decline the mill is a large behavioural change on exactly this card. The encoding
+  is literal at `amount: 4` and the sub-4-card path is untested rather than wrong-and-green.
+- **`EB02/leaders/010-monkey-d-luffy.ts` (and `OP05-084`, `OP05-092`) encode "only Characters on
+  your field are [X] type" in the shape ruling #852 rules out** — see the Krieg section above.
+  Upstream's cards, not this batch's to fix, but worth knowing before copying that shape.
+
+## Test-harness facts worth not rediscovering
+
+- **A cost selection projects as `kind: "payCost"`, not `"selectEntity"`** (`projection.ts`). It
+  still carries `candidates`/`min`/`max`; only the kind differs from an action's target selection.
+- **A cost with exactly one eligible candidate auto-pays and publishes no prompt.** Already noted
+  for `OP16-002`; it applies to every cost, so a filter test needs **two** eligible candidates or
+  it passes whether or not the filter exists. This is how `OP15-039`'s trait filter went untested.
+- **The player going first cannot attack on their own first turn.** A south-Leader attack needs
+  `{ firstPlayer: "north", activeSeat: "south" }`; `firstPlayer: "south"` fails with "The selected
+  attacker cannot attack." (This is separate from `MatchConfig.firstPlayer` being discarded at
+  match setup — inside `OnePieceTestEngine.create`'s options it does take effect.)
+- **Attached DON!! survives the opponent's whole turn**, because `resetStartOfTurnState`
+  (`state.ts`) returns it at the start of its *own* controller's turn. So to test a
+  `[DON!! xN] [Opponent's Turn]` clause: `attachDon` on your turn, then `endTurn`. There is no
+  fixture field for a Leader's attached DON!!.
+- **A battle K.O. replacement prompt is intent `battleKoReplacement`** with `optionId` `"yes"` /
+  `"no"`. The effect-driven ones are `effectKoReplacement`, `effectRemovalReplacement`,
+  `effectRestReplacement` — four distinct intents, easy to pick wrong.
+- **`match: "includes"` on a trait filter is substring matching per trait string**
+  (`matchesTargetFilter`). That is what lets `"Sky Island"` match older engine cards whose traits
+  are one concatenated string, e.g. `["Sky Island Shandian Warrior"]`. `negate: true` inverts to
+  "no trait contains the substring".
+- **Prefer pre-OP15 engine cards as fixtures.** An OP15/OP16 card with no `effects` block is
+  *unencoded*, not vanilla — it will start behaving once its own batch lands and can break a test
+  that leaned on its inertness. Verify a fixture is really vanilla: no `effect` key at all, or
+  `effect: "NULL"` (the printed-blank marker).
+- **Import `type PlayerFixture` from `../../../src/index.ts`** for fixture helper signatures.
+  `Parameters<typeof OnePieceTestEngine.create>[0]["character"]` does not typecheck — the
+  parameter is optional, so the type includes `undefined`.
 
 ## Rulings reviewed, and what's genuinely still deferred
 
