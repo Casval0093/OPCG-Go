@@ -111,13 +111,48 @@ Build the mechanical pipeline. **No effect encoding in this task.**
 **Verify:** `./scripts/bootstrap.sh` completes, the engine typechecks with 238 new cards present,
 and the suite still reports **2631 passed**. Report the exact test line.
 
+## Decisions settled before Task 2 — 2026-08-17
+
+**Test depth: rulings-conformant, scoped.** (Ping delegated this one.) A per-card test asserts the
+printed behaviour, **and** where a ruling *constrains the encoding*, asserts the ruling too. It does
+not duplicate rulings about timing or interaction that the engine resolves generically — many of the
+167 are exactly that. 112 of 238 cards carry rulings.
+
+Chosen over printed-text-only because that is the weaker option in the specific way this project
+keeps getting burned: an encoding can be **wrong and green** under printed text alone. It already
+would have been, twice — `OP16-001`'s 8000 threshold binds to *both* clauses (ruling #961), and
+"a Character card with 8000 power" means *exactly* 8000 (#962/#963). Both read naturally the other
+way in English. Roughly 1.5–2x the effort, buying the only defence against the error class that has
+actually occurred here.
+
+**Unencodable effects: park, do not extend the DSL yet.** Record the card and the missing primitive,
+move on. Revisit once the parked list is complete. A DSL extension cannot be scoped from one card
+and can be from thirty, and parking is reversible where a badly-scoped primitive is not.
+
+**Concurrency: one git worktree and branch per batch, never the shared checkout.** Not theoretical —
+a concurrent session already wrote into the shared tree mid-task and 486 of its files were swept into
+an unrelated commit. A worktree per batch is exactly what prevents that.
+
+**The `orderCards` fix stays local — Ping, 2026-08-17: do not send it upstream.** `tools/patch_engine.py`
+is therefore permanent, not a stopgap. It already fails loudly when its anchor text moves, which is
+the behaviour that matters now that it must survive upstream drift indefinitely.
+
 ## Task 2 — Test harness and reference encodings
 
 - Establish `cards/tests/OP15|OP16/` in this repo, grafted to
   `packages/engine/tests/cards/OP15|OP16/`. Extend the graft step to carry tests.
-- Hand-encode **five** cards chosen to span distinct trigger families — at minimum `onPlay`,
-  `activateMain`, `onKo`, an attack-triggered effect, and a `counter` event — each with a passing
-  test. These become the reference set every later task copies.
+- Hand-encode these **five**, each with passing tests. They become the reference every later task
+  copies, so they are chosen to span both the trigger families and the card types, and **all five
+  carry SC rulings** so the reference set *demonstrates* the rulings workflow rather than describing
+  it:
+
+  | Card | Type | Family | Why this one |
+  |---|---|---|---|
+  | `OP16-001` Portgas.D.Ace | leader | `activateMain` | The primary archetype's leader, and ruling #961 is the canonical "printed text reads the other way" case |
+  | `OP16-002` Izo | character | `onPlay` + optional cost | Ruling #962: "8000 power" is `eq`, not `gte` — the encoding hinges on it |
+  | `OP16-014` Marco | character | replacement / `onKo` | Replacement effects are among the harder shapes; Whitebeard |
+  | `OP16-029` Antlerkov | character | `whenAttacking` | Condition on a *named* other card |
+  | `OP16-057` Captain Buggy's Our Saviour | event | `counter` | The only family with no Character example; conditional counter |
 - Write `cards/ENCODING.md`: the five worked examples, the DSL primitives used, and the mapping
   table above.
 
