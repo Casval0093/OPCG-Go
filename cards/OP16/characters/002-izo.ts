@@ -26,5 +26,32 @@ export const op16Izo002: CharacterCard = {
   traits: ["Land of Wano", "Whitebeard Pirates"],
   attribute: "ranged",
   effect: "[On Play] You may reveal 1 Character card with 8000 power from your hand: Draw 1 card.",
+  effects: {
+    effects: [
+      {
+        trigger: "onPlay",
+        costs: [
+          {
+            // Ruling #962: "a Character card with 8000 power" is exactly 8000 (`eq`), not
+            // "8000 or more" (`gte`). See cards/tests/OP16/002-izo.test.ts for both boundaries.
+            cost: "revealFromHand",
+            amount: 1,
+            filters: [
+              { filter: "cardCategory", value: "character" },
+              { filter: "power", comparison: "eq", value: 8000 },
+            ],
+          },
+        ],
+        actions: [
+          {
+            action: "draw",
+            player: "self",
+            amount: 1,
+          },
+        ],
+        optional: true,
+      },
+    ],
+  },
   i18n: op16Izo002I18n,
 };

@@ -27,5 +27,42 @@ export const op16Antlerkov029: CharacterCard = {
   attribute: "ranged",
   effect:
     "[When Attacking] If you have [Bunkov], play up to 1 Character card with a cost of 2 or less from your hand.",
+  effects: {
+    effects: [
+      {
+        trigger: "whenAttacking",
+        // Ruling #979 addresses a hypothetical Leader that grants all cards every name --
+        // in that case "if you have [Bunkov]" is satisfied without a literal Bunkov on
+        // field. That is a property of how "name" filters resolve granted names generically
+        // (see cardNames() in shared.ts), not of this card's own encoding, and none of the
+        // five Task 2 reference cards grants names, so it is not exercised by a test here.
+        conditions: [
+          {
+            condition: "hasCard",
+            player: "self",
+            zone: "character",
+            filters: [{ filter: "name", value: "Bunkov" }],
+          },
+        ],
+        actions: [
+          {
+            action: "play",
+            source: {
+              player: "self",
+              zone: "hand",
+            },
+            count: {
+              amount: 1,
+              upTo: true,
+            },
+            filters: [
+              { filter: "cost", comparison: "lte", value: 2 },
+              { filter: "cardCategory", value: "character" },
+            ],
+          },
+        ],
+      },
+    ],
+  },
   i18n: op16Antlerkov029I18n,
 };
