@@ -113,6 +113,26 @@ describe("OP16-040 Gum-Gum Hammer Rifle", () => {
     expect(freeze?.kind).toBe("selectEntity");
   });
 
+  test("Mr.3(Galdino) alone is not enough -- [Monkey.D.Luffy] is a separate requirement", () => {
+    // Each of the two `hasCard` conditions needs a case where IT is the one that fails, or the
+    // other one carries the test on its own and deleting a name filter changes nothing observable.
+    // Here the Leader is Whitebeard Pirates and only Mr.3 is present.
+    const engine = OnePieceTestEngine.create(
+      {
+        leaderCardId: op16PortgasDAce001,
+        hand: [op16GumGumHammerRifle040],
+        character: [op09Mr3Galdino056],
+        activeDon: 1,
+      },
+      { leaderCardId: op16PortgasDAce001, character: opponentBoard },
+      { firstPlayer: "north", activeSeat: "south" },
+    );
+
+    engine.playCard(op16GumGumHammerRifle040, "south");
+
+    expect(engine.getView("south").prompts).toHaveLength(0);
+  });
+
   test("ruling #986: your OPPONENT holding Mr.3(Galdino) does not satisfy the condition", () => {
     const engine = OnePieceTestEngine.create(
       {
