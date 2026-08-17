@@ -28,5 +28,53 @@ export const op16DocQ109: CharacterCard = {
   attribute: "special",
   effect:
     "[On K.O.] If your Leader has the [Blackbeard Pirates] type, draw 1 card and K.O. up to 2 of your opponent's Characters with a cost of 1 or less.",
+  effects: {
+    effects: [
+      {
+        trigger: "onKo",
+        conditions: [
+          {
+            condition: "leaderTrait",
+            trait: "Blackbeard Pirates",
+            match: "includes",
+          },
+        ],
+        actions: [
+          {
+            action: "draw",
+            player: "self",
+            amount: 1,
+          },
+          {
+            action: "ko",
+            target: {
+              player: "opponent",
+              zones: ["character"],
+              count: {
+                amount: 2,
+                upTo: true,
+              },
+              filters: [
+                {
+                  filter: "cost",
+                  comparison: "lte",
+                  value: 1,
+                },
+              ],
+            },
+          },
+        ],
+      },
+      {
+        trigger: "trigger",
+        actions: [
+          {
+            action: "activateEffect",
+            effectTrigger: "onKo",
+          },
+        ],
+      },
+    ],
+  },
   i18n: op16DocQ109I18n,
 };

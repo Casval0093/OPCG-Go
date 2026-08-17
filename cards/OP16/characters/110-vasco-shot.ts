@@ -28,5 +28,46 @@ export const op16VascoShot110: CharacterCard = {
   attribute: "special",
   effect:
     "[On K.O.] Draw 1 card and rest up to 1 of your opponent's Characters with a cost of 6 or less.",
+  effects: {
+    effects: [
+      {
+        trigger: "onKo",
+        actions: [
+          {
+            action: "draw",
+            player: "self",
+            amount: 1,
+          },
+          {
+            action: "rest",
+            target: {
+              player: "opponent",
+              zones: ["character"],
+              count: {
+                amount: 1,
+                upTo: true,
+              },
+              filters: [
+                {
+                  filter: "cost",
+                  comparison: "lte",
+                  value: 6,
+                },
+              ],
+            },
+          },
+        ],
+      },
+      {
+        trigger: "trigger",
+        actions: [
+          {
+            action: "activateEffect",
+            effectTrigger: "onKo",
+          },
+        ],
+      },
+    ],
+  },
   i18n: op16VascoShot110I18n,
 };

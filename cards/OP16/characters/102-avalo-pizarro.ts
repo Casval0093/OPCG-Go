@@ -27,5 +27,47 @@ export const op16AvaloPizarro102: CharacterCard = {
   traits: ["Impel Down", "Blackbeard Pirates"],
   attribute: "special",
   effect: "[On K.O.] Draw 1 card, then play up to 1 [Fullalead] from your hand or trash.",
+  effects: {
+    effects: [
+      {
+        trigger: "onKo",
+        actions: [
+          {
+            action: "draw",
+            player: "self",
+            amount: 1,
+          },
+          {
+            action: "play",
+            source: {
+              player: "self",
+              zone: ["hand", "trash"],
+            },
+            count: {
+              amount: 1,
+              upTo: true,
+            },
+            filters: [
+              {
+                // "[Fullalead]" is the bracketed NAME of the Stage OP09-099, not the
+                // "Blackbeard Pirates" trait it shares with most of this card's deck.
+                filter: "name",
+                value: "Fullalead",
+              },
+            ],
+          },
+        ],
+      },
+      {
+        trigger: "trigger",
+        actions: [
+          {
+            action: "activateEffect",
+            effectTrigger: "onKo",
+          },
+        ],
+      },
+    ],
+  },
   i18n: op16AvaloPizarro102I18n,
 };
