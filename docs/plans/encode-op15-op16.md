@@ -210,8 +210,8 @@ Counts exclude the 5 Task-2 reference cards and the 15 genuinely vanilla Charact
 
 | Task | Batch | Cards | Status |
 |---|---|---|---|
-| 3 | OP15 leaders | 6 (5 encoded, `OP15-058` fully parked) | **done** — 25 tests, 20/20 mutants killed |
-| 4 | OP15 events + stage | 20 | **done** — 94 tests |
+| 3 | OP15 leaders | 6 (5 encoded, `OP15-058` fully parked) | **done** — see Task 4's combined gate |
+| 4 | OP15 events + stage | 20 | **done** — 94 tests (OP15 total), 74/74 mutants killed |
 | 11 + 12 | OP16 leaders (5) + stages (2) + events (15) | 22 | dispatched |
 | 13 | OP16 yellow characters | 13 | dispatched — 9 are the B/Y Teach list |
 | 14 | OP16 black characters | 17 | dispatched |
