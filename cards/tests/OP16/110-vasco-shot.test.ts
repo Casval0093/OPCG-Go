@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vite-plus/test";
 import {
   op01Sai012,
+  op01Urashima092,
   op02LittleoarsJr020,
   op03Namule007,
   op11XDrake017,
@@ -13,6 +14,12 @@ const SOUTH_ATTACKS = { firstPlayer: "north", activeSeat: "south" } as const;
 
 // op02LittleoarsJr020 is the attacker everywhere: cost 7, so it is outside "a cost of 6 or less"
 // and its post-attack rested state cannot be mistaken for the effect's work.
+//
+// The attacker CANNOT double as the body that proves the cost filter, though: attacking rests it,
+// and `restActionCandidateIds` (effects/replacements.ts) drops every already-rested candidate
+// BEFORE it consults the action's own filters. So a rested over-cost body is excluded whether or
+// not the cost filter exists, and the mutation checker rightly called that fixture vacuous. The
+// over-cost body has to be an ACTIVE one -- op01Urashima092, cost 7.
 function southBoard() {
   return {
     character: [
@@ -21,6 +28,8 @@ function southBoard() {
       op11XDrake017,
       // cost 3 -- clear of the line, separating `lte` from `gte`.
       op03Namule007,
+      // cost 7 and still active -- the only body the cost filter itself excludes.
+      op01Urashima092,
     ],
   };
 }
@@ -36,8 +45,10 @@ describe("OP16-110 Vasco Shot", () => {
     const vascoId = engine.findCardInZone("north", "character", op16VascoShot110);
     const boundaryId = engine.findCardInZone("south", "character", op11XDrake017);
     const clearOfLineId = engine.findCardInZone("south", "character", op03Namule007);
+    const tooExpensiveId = engine.findCardInZone("south", "character", op01Urashima092);
 
     expect(engine.getState().cards[boundaryId]?.rested).toBe(false);
+    expect(engine.getState().cards[tooExpensiveId]?.rested).toBe(false);
 
     engine.declareAttack(attackerId, vascoId, "south");
 
@@ -49,6 +60,7 @@ describe("OP16-110 Vasco Shot", () => {
     expect(choice.candidates.map((candidate) => candidate.ref.id).sort()).toEqual(
       [boundaryId, clearOfLineId].sort(),
     );
+    expect(choice.candidates.map((candidate) => candidate.ref.id)).not.toContain(tooExpensiveId);
     expect(choice.candidates.map((candidate) => candidate.ref.id)).not.toContain(attackerId);
 
     engine.resolveDecision("effectTargetSelection", { selectedIds: [boundaryId] }, "north");
@@ -56,6 +68,7 @@ describe("OP16-110 Vasco Shot", () => {
     const state = engine.getState();
     expect(state.cards[boundaryId]?.rested).toBe(true);
     expect(state.cards[clearOfLineId]?.rested).toBe(false);
+    expect(state.cards[tooExpensiveId]?.rested).toBe(false);
   });
 
   test("[Trigger] activates this card's own [On K.O.] from the Life area", () => {
