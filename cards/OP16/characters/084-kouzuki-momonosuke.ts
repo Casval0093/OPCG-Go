@@ -42,7 +42,13 @@ export const op16KouzukiMomonosuke084: CharacterCard = {
           // This is `cost`, not `baseCost`, and that is the entire point of the card: printed
           // cost is 5, so it only ever switches on after a cost buff such as OP16-087
           // Shinobu's +20 (5 + 20 = 25).
-          { condition: "cardState", target: "this", property: "cost", comparison: "gte", value: 20 },
+          {
+            condition: "cardState",
+            target: "this",
+            property: "cost",
+            comparison: "gte",
+            value: 20,
+          },
           // "9 or more DON!! cards on your field" -- donFieldCount counts the cost area plus
           // every DON!! given to the Leader and Characters (shared.ts donCardsOnField).
           { condition: "donFieldCount", player: "self", comparison: "gte", value: 9 },
