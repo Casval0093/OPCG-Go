@@ -313,13 +313,11 @@ The `tools/` tests are stdlib `unittest`, matching the tools' own stdlib-only co
 
 ## Open questions only Ping can answer
 
-1. **Target event and date** (店赛 / 标准对战会 / 旗舰赛)? — **the binding unknown.** (Format is
-   settled: **Bo1, Swiss + top cut, 30-minute rounds**, Ping 2026-08-17 — he has an event
-   announcement in hand, so the date is probably knowable.) The engine cannot contribute to any
-   event inside ~6 weeks:
-   SC OP17 lands ~2026-08-23, Bandai publishes 2026-08-28, and encoding runs weeks past that. For
-   a near event the deliverable is a frozen list plus reps, and the engine builds for the *next*
-   format.
+1. ~~Target event and date~~ — **answered 2026-08-17: no event yet.** Format is settled
+   (**Bo1, Swiss + top cut, 30-minute rounds**); only the occasion is missing. **There is no
+   deadline**, so the earlier advice — freeze a list, favour reps over list quality, treat the
+   engine as building for the *next* format — no longer applies. Build the engine properly. When
+   an event does appear, re-read the 30-minute clock and Bo1 variance notes before choosing a list.
 2. Acquisition budget ceiling (RMB)
 3. Is SC OP17 the same list as JP/EN OP17, or does it carry SC-exclusive content? (The 08-17
    parity confirmation was scoped to banlist and rotation only — this is still open.)

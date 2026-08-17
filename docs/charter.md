@@ -166,8 +166,10 @@ which is the gap that still matters for share-weighting.
 
 ## Open inputs needed
 
-1. **Target event and date** (店赛 / 标准对战会 / 旗舰赛) — *the binding unknown; it decides whether
-   the engine track is relevant this cycle at all.* Format is settled: **Bo3**.
+1. ~~Target event and date~~ — **answered 2026-08-17: there is no event yet.** Format is settled
+   (**Bo1, Swiss + top cut, 30-minute rounds**), only the occasion is not. This *removes the
+   deadline*, which changes the calculus rather than lowering the stakes: the engine track is now
+   worth building properly instead of racing a date, and there is no reason to freeze a list.
 2. Acquisition budget ceiling (RMB)
 3. Is SC OP17 the same list as JP/EN OP17, or does it carry SC-exclusive content? *(the 08-17
    confirmation was scoped to banlist and rotation, so this is still open)*
