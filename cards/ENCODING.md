@@ -616,6 +616,73 @@ the target's *ownership* scoping with an opponent body instead.
 **"a cost of N" / "power N" is `eq`.** Confirmed again on Rebecca (费用为3). Same reading as
 rulings #962/#963. A bare number in card text is an equality unless a comparison word is printed.
 
+## OP16 purple Characters (13 cards) — lessons
+
+**A WHOLE COLOUR can be invisible to `mutation_check.py`.** Seven of the thirteen purple Characters
+generate **zero** mutants and still print `ok`. Purple's decision surface is `state: "active" |
+"rested"`, single-digit DON!! counts and `leaderTrait` conditions — the numeric operator needs an
+unsigned 3–6 digit `value:`, and **there is no operator for `conditions`, for `state`, or for an
+action's `amount` at all.** So rule 0 is much broader than "negative numbers": for DON!! cards the
+mutation report certifies *nothing*, and every boundary must be hand-written. The purple batch wrote
+**56 hand mutants** to cover swapped DON!! states, off-by-one counts, `restDon`↔`returnDon`, dropped
+and relocated Leader gates, dropped `optional`, and dropped blocks.
+
+**Killing `mutation_check.py` by pattern does not kill it, and the failure mode lies.** The python's
+command line is repo-relative (`python3 tools/mutation_check.py --engine vendor/…`); the worktree path
+appears only in the *wrapper shell's* line. So `pkill -f "<worktree>.*mutation_check"` kills the
+wrapper and **orphans the tool**, which keeps rewriting vendored cards. Symptoms: a test fails on a
+card you never touched, and `graft_cards.py` reports `1 copied` on every run because the file changes
+back between invocations. Match on cwd instead —
+`for p in $(pgrep -f mutation_check.py); do lsof -a -p $p -d cwd -Fn | grep '^n'; done` — and since a
+signal skips the tool's `finally` restore, follow any kill with `graft_cards.py` **twice**, requiring
+the second to report `0 copied`. This is the exact mirror of the concurrent-graft hazard: a stray
+`graft` manufactures phantom *survivors*, a stray `mutation_check` manufactures phantom *failures*.
+
+**Concurrency has a hard ceiling.** Four sibling batches on one machine take a single `vp test run`
+from ~7 s to ~90 s, which puts a full `--set` sweep in the multi-hour range. The affordable per-batch
+gate is `--card <ID>` over the batch's own cards, **each with its own exit code** (a loop's last status
+hides earlier failures). Sweep the whole set **once, centrally, after merge** — and check first that no
+other test imports the batch's cards, which is what makes the split legitimate rather than a shortcut.
+
+**Where "If your Leader has the [X] type" sits is load-bearing, and both placements are printed.**
+After the cost colon it gates only the payload — the cost is payable with the wrong Leader and buys
+nothing (`OP16-065`, `OP16-070`; precedent `OP04-060` Crocodile). Leading the clause, it gates the
+whole block including the "Then," half (`OP16-066`, `OP16-074`, `OP16-075`) — ruling #944's shape.
+
+**`DON!! -N` is `cost: "returnDon"`** (takes DON!! off the field, to the DON!! deck); **"rest N of your
+DON!! cards" is `cost: "restDon"`** (leaves it in the cost area). Assert `donDeckCount` as well as
+`activeDon`/`restedDon` or the two are indistinguishable. **Neither prompts when the payer holds only
+one KIND of DON!! source** — the gate is `options.length > amount && sourceKeys.size > 1`, kinds being
+active / rested / attached-per-card — so an all-active fixture auto-pays silently. Same gate governs
+`opponentReturnDon`: give the opponent **both** active and rested DON!! or ruling #999 goes unasserted.
+
+**`addDon` with `count.upTo` publishes `effectAddDon`**, capped at `min(amount, donDeckCount)` — so set
+`donDeckCount` in the fixture *above* the printed cap, or `["0","1"]` proves an exhausted deck rather
+than "up to 1". For the "up to 1 active **and** up to 1 additional rested" shape the two actions
+publish two consecutive prompts: resolve the first and assert between them, or swapping the two
+actions is undetectable.
+
+**A `payCost` step exposes `candidates`, not `options`** — even when the underlying options are DON!!
+slot ids. Reading `.options` yields `undefined` and fails as `Target cannot be null or undefined`.
+`chooseOption` steps *do* expose `options`.
+
+**`cannotActivate` has a `requiresKeyword` flag, and ruling #996 forbids it on `OP16-063`**: an
+opponent Character with **no** [Blocker] is an explicitly legal target, and the lock still binds if it
+gains one later that turn. The obvious encoding is wrong and the English does not say so. Note also its
+special case — `keyword: "blocker"` with `count.amount: "all"`, a single `character` zone and no
+filters becomes a player-scoped modifier on the **Leader**.
+
+**`whenDonReturned` is enqueued only for the seat whose DON!! moved**, so making the opponent return
+DON!! cannot wake your own Leader's trigger. An `[On K.O.]` `addDon` prompts the K.O.'d card's own
+controller, not the attacker.
+
+**Fixture additions.** Vanilla [Navy]: `op02Komille097` (1/3000), `op02Doberman107` (2/4000). Vanilla
+[Impel Down]: `op11Saldeath064` (6/8000), `op02Blugori084` (concatenated traits — needs
+`match: "includes"`). Printed-[Blocker]-only body: `op04Ideo077` (2/2000). Inert Leaders by trait:
+`op02Smoker093` [Navy], `eb01Hannyabal021` [Impel Down], `op10Sugar003` [Donquixote Pirates]. **There is
+no vanilla Character named "Koby"** — OP11-001 is a Leader — so an `excludeName: "Koby"` test needs a
+synthetic with both `name` and `i18n.en.name` overridden.
+
 ## OP16 Leaders, Events and Stages (22 cards) — lessons
 
 **A card gated on N separate conditions needs N negative fixtures, one per condition.**
