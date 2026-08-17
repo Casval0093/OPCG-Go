@@ -27,5 +27,44 @@ export const op16JesusBurgess107: CharacterCard = {
   attribute: "strike",
   effect:
     "[On K.O.] Add up to 1 card from the top of your opponent's Life cards to the owner's hand.",
+  effects: {
+    effects: [
+      {
+        trigger: "onKo",
+        actions: [
+          {
+            // "to the owner's hand" -- removeLifeCards (effects/actions.ts) sends a `hand`
+            // destination to the Life card's own controller, so the opponent gets it back, and
+            // the default position with no `position` key is the TOP of Life.
+            action: "removeFromLife",
+            player: "opponent",
+            count: {
+              amount: 1,
+              upTo: true,
+            },
+            destination: "hand",
+          },
+        ],
+      },
+      {
+        trigger: "trigger",
+        // Ruling #1012: with an empty hand this card cannot be played by its own [Trigger]. That
+        // falls out of the discard being a real `cost` -- an unpayable cost means the optional
+        // block is never even offered -- and would NOT hold if the discard were an action.
+        costs: [
+          {
+            cost: "trashFromHand",
+            amount: 1,
+          },
+        ],
+        actions: [
+          {
+            action: "playThisCard",
+          },
+        ],
+        optional: true,
+      },
+    ],
+  },
   i18n: op16JesusBurgess107I18n,
 };
