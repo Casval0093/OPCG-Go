@@ -68,6 +68,16 @@ Keep the two bodies of evidence clearly separated when writing anything.
   earlier note here claiming the bot exaggerates first-player advantage "by an order of magnitude"
   was measured on ST01 and is **retracted**. Policy quality remains unmeasured — a plausible split
   shows the policy is not obviously broken, not that it plays well.
+- **Tests that cannot fail are this project's most frequent defect — `tools/mutation_check.py`
+  exists for it.** Task 2 shipped three: a test with the right name, the right comment, and no
+  power to detect the defect it claimed to cover. Two review rounds caught some and missed others.
+  Run `python3 tools/mutation_check.py --set OP16` as part of any encoding batch's verification; a
+  surviving mutant is a vacuous assertion and it exits 1. It found three gaps on `OP16-001` Ace
+  that human review had passed — nothing asserted the [Rush] grant was *restricted* to its two
+  clauses at all.
+- **Parallel batches get their own engine, not a shared one.** `cp -Rc vendor/tcg-engines DEST` is
+  an APFS copy-on-write clone: ~8 s, near-zero disk, verified to run the suite clean. Two agents
+  grafting different card sets into one 766 MB engine overwrite each other.
 - **There is no sideboard in Constructed.** The deck is locked for the whole event; only Sealed
   permits a side deck (official Tournament Rules Manual / Floor Rule). Every tech slot is a
   permanent tax paid in every matchup, so slot decisions are `Σ share × ΔWR` across the *whole*

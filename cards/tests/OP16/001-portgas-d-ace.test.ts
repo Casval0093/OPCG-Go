@@ -1,5 +1,7 @@
 import { describe, expect, test } from "vite-plus/test";
 import {
+  eb01Crocus041,
+  op02Kingdew006,
   op02MonkeyDLuffy041,
   op04MonkeyDLuffy014,
   op16Jozu007,
@@ -100,5 +102,39 @@ describe("OP16-001 Portgas.D.Ace", () => {
           command.type === "activateEffect" && command.sourceId === engine.leader("south"),
       ),
     ).toBe(false);
+  });
+
+  test("the grant is restricted to those two clauses: an 8000 outsider and a 7000 Whitebeard both fail", () => {
+    // Closes three gaps that mutation testing found (tools/mutation_check.py). The tests above
+    // pin the Luffy clause's threshold and exclude a 2000 Whitebeard, but nothing they assert
+    // changes if the encoding stops checking WHO the character is, or if the Whitebeard clause's
+    // own threshold slips. Concretely, all three of these survived before this test existed:
+    //   delete filter:name   -- the Luffy clause degenerates to "any 8000+ body"
+    //   delete filter:trait  -- the Whitebeard clause degenerates the same way
+    //   value 8000->7000 on the Whitebeard clause
+    // An encoding that granted [Rush] to any 8000-power Character would have passed every
+    // assertion in this file.
+    const engine = OnePieceTestEngine.create(
+      {
+        leaderCardId: op16PortgasDAce001,
+        // Crocus: 8000 power, Former Roger Pirates -- clears the threshold, belongs to neither
+        // clause. Kingdew: Whitebeard Pirates at exactly 7000 -- right trait, one step under.
+        character: [eb01Crocus041, op02Kingdew006, op16Jozu007],
+      },
+      {},
+    );
+    const crocusId = engine.findCardInZone("south", "character", eb01Crocus041);
+    const kingdewId = engine.findCardInZone("south", "character", op02Kingdew006);
+    const jozuId = engine.findCardInZone("south", "character", op16Jozu007);
+
+    engine.activateEffect(engine.leader("south"), "activateMain", "south");
+
+    const selection = engine.pendingDecision("effectTargetSelection", "south").steps[0];
+    expect(selection?.kind).toBe("selectEntity");
+    if (selection?.kind !== "selectEntity") throw new Error("Expected Ace's Rush recipient.");
+    const ids = selection.candidates.map((candidate) => candidate.ref.id);
+    expect(ids).toEqual([jozuId]);
+    expect(ids).not.toContain(crocusId);
+    expect(ids).not.toContain(kingdewId);
   });
 });
