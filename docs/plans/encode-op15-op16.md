@@ -158,6 +158,38 @@ the behaviour that matters now that it must survive upstream drift indefinitely.
 
 **Verify:** 2631 + 5 tests passing. Report the exact line.
 
+## Verification every batch runs on itself — added 2026-08-17
+
+Two problems surfaced running Task 2 that would have made Tasks 3–18 unaffordable. Both are solved;
+neither needs deciding again.
+
+**Vacuous tests. `python3 tools/mutation_check.py --set OP16` is now part of a batch's own
+verification, not an optional extra.** Task 2 shipped *three* assertions that could not fail — a
+test with the right name, the right comment, and no power to detect the defect it claimed to cover.
+All three were caught by hand, by reverting the encoding and watching for a red test, which does not
+scale to 220 cards. The tool perturbs the decision surface — filters, thresholds, zones,
+once-per-turn — reruns only that card's tests, and requires them to go red. A surviving mutant is a
+test that cannot fail. It exits 1, so a batch cannot report green over one.
+
+It pays for itself immediately: run against the five reviewed reference cards it found **three more
+gaps on `OP16-001` Ace** that two review rounds had missed. Nothing asserted that the [Rush] grant
+is *restricted* to the two clauses at all — an encoding granting [Rush] to any 8000-power Character
+would have passed every test in the file. Now 24/24 mutants die.
+
+Budget ~40 s per card, so a 15-card batch costs ~10 minutes.
+
+**Parallelism. Give each batch its own engine with `cp -Rc`.** `vendor/` is 766 MB and shared, so two
+agents grafting different card sets into one engine overwrite each other. APFS copy-on-write makes a
+private clone cost **~8 seconds and almost no disk** until written:
+
+```bash
+cp -Rc vendor/tcg-engines "$WORKTREE/vendor/tcg-engines"     # ~8s, blocks shared until modified
+python3 tools/mutation_check.py --set OP16 --engine "$WORKTREE/vendor/.../packages/engine"
+```
+
+Verified: a clone runs the OP16 suite clean. So the batch rule is a **git worktree *and* an engine
+clone per batch** — no shared mutable state at all.
+
 ## Tasks 3–18 — Encode effects in batches
 
 Each task: encode every effect in its batch, one test per card, all passing. Batches are grouped so
@@ -176,8 +208,9 @@ one agent sees mechanically related cards.
 `docs/research-findings.md`) are the cards that unblock the first real experiment. Task 11 and
 Task 13 should take them first.
 
-**Per-task verification:** every new test passes and the pre-existing 2631 still pass. Report
-counts. Any effect that cannot be expressed in the existing DSL is reported as a finding with the
+**Per-task verification:** every new test passes, the pre-existing suite still passes, `vp check`
+is clean, and **`tools/mutation_check.py` reports every mutant killed for the batch's cards**. A
+batch with a surviving mutant is not done — the survivor names a test that cannot fail. Any effect that cannot be expressed in the existing DSL is reported as a finding with the
 card ID and the specific missing primitive — never approximated.
 
 ## Definition of done
