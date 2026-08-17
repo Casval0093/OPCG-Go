@@ -27,5 +27,30 @@ export const op16KouzukiMomonosuke085: CharacterCard = {
   attribute: "special",
   effect:
     "[Blocker]\n[On Play] Play up to 1 [Land of Wano] type Character card with a cost of 6 or less other than [Kouzuki Momonosuke] from your trash.",
+  effects: {
+    keywords: ["blocker"],
+    effects: [
+      {
+        trigger: "onPlay",
+        actions: [
+          {
+            action: "play",
+            source: { player: "self", zone: "trash" },
+            count: { amount: 1, upTo: true },
+            filters: [
+              // A `play` action's pool is already restricted to character-or-stage upstream
+              // (candidatesForPlayAction), so this filter's only job is to exclude Stages --
+              // and OP02-048 Land of Wano is exactly such a Stage. An Event fixture would make
+              // the test vacuous; see the OP16-029 note in cards/ENCODING.md.
+              { filter: "cardCategory", value: "character" },
+              { filter: "trait", value: "Land of Wano", match: "includes" },
+              { filter: "cost", comparison: "lte", value: 6 },
+              { filter: "excludeName", value: "Kouzuki Momonosuke" },
+            ],
+          },
+        ],
+      },
+    ],
+  },
   i18n: op16KouzukiMomonosuke085I18n,
 };

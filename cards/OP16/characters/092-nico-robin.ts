@@ -27,5 +27,26 @@ export const op16NicoRobin092: CharacterCard = {
   attribute: "strike",
   effect:
     "[On Play] You may trash 1 Character card with a cost of 8 or more from your hand: Draw 2 cards.",
+  effects: {
+    effects: [
+      {
+        trigger: "onPlay",
+        costs: [
+          {
+            // Same printed clause as OP16-083 Kouzuki Oden's second line, but a separate object
+            // with its own copy of both filters -- each card's test has to constrain its own.
+            cost: "trashFromHand",
+            amount: 1,
+            filters: [
+              { filter: "cardCategory", value: "character" },
+              { filter: "cost", comparison: "gte", value: 8 },
+            ],
+          },
+        ],
+        actions: [{ action: "draw", player: "self", amount: 2 }],
+        optional: true,
+      },
+    ],
+  },
   i18n: op16NicoRobin092I18n,
 };

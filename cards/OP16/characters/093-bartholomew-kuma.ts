@@ -27,5 +27,25 @@ export const op16BartholomewKuma093: CharacterCard = {
   attribute: "strike",
   effect:
     "[On Play] Draw 2 cards and trash 2 cards from your hand. Then, give up to 1 rested DON!! card to your Leader or 1 of your Characters.",
+  effects: {
+    effects: [
+      {
+        trigger: "onPlay",
+        actions: [
+          { action: "draw", player: "self", amount: 2 },
+          { action: "trashFromHand", player: "self", amount: 2 },
+          {
+            // "up to 1 rested DON!! card" is the DON!! count (`count.upTo`), while "your Leader
+            // or 1 of your Characters" is one mandatory recipient (`target.count.amount: 1`).
+            // Copied from OP13-081 Koala, which prints the same sentence.
+            action: "giveDon",
+            target: { player: "self", zones: ["leader", "character"], count: { amount: 1 } },
+            count: { amount: 1, upTo: true },
+            donState: "rested",
+          },
+        ],
+      },
+    ],
+  },
   i18n: op16BartholomewKuma093I18n,
 };

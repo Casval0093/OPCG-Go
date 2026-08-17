@@ -27,5 +27,30 @@ export const op16MonkeyDLuffy095: CharacterCard = {
   attribute: "strike",
   effect:
     "[On Play] Up to 1 of your black [Land of Wano] type Characters gains [Unblockable] during this turn.\n(This card cannot be blocked.)",
+  effects: {
+    effects: [
+      {
+        trigger: "onPlay",
+        actions: [
+          {
+            // Same shape as OP14-024 Terracotta ("Up to 1 of your {Alabasta} type Characters
+            // gains [Unblockable] during this turn"), with a colour filter added.
+            action: "grantKeyword",
+            target: {
+              player: "self",
+              zones: ["character"],
+              count: { amount: 1, upTo: true },
+              filters: [
+                { filter: "color", value: "black" },
+                { filter: "trait", value: "Land of Wano", match: "includes" },
+              ],
+            },
+            keyword: "unblockable",
+            duration: "thisTurn",
+          },
+        ],
+      },
+    ],
+  },
   i18n: op16MonkeyDLuffy095I18n,
 };

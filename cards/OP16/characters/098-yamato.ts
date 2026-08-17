@@ -27,5 +27,35 @@ export const op16Yamato098: CharacterCard = {
   attribute: "strike",
   effect:
     "[On Play] Draw 1 card and trash 1 card from your hand.\n[Activate: Main] You may trash this Character: Play up to 1 black [Yamato] with a cost of 8 from your trash.",
+  effects: {
+    effects: [
+      {
+        trigger: "onPlay",
+        actions: [
+          { action: "draw", player: "self", amount: 1 },
+          { action: "trashFromHand", player: "self", amount: 1 },
+        ],
+      },
+      {
+        trigger: "activateMain",
+        costs: [{ cost: "trashThisCard" }],
+        actions: [
+          {
+            action: "play",
+            source: { player: "self", zone: "trash" },
+            count: { amount: 1, upTo: true },
+            // Ruling #1008: "a cost of 8" is exactly 8 -- neither a Yamato at 7 or less nor one
+            // at 9 or more may be chosen (不能). `eq`, not `gte`.
+            filters: [
+              { filter: "color", value: "black" },
+              { filter: "name", value: "Yamato" },
+              { filter: "cost", comparison: "eq", value: 8 },
+            ],
+          },
+        ],
+        optional: true,
+      },
+    ],
+  },
   i18n: op16Yamato098I18n,
 };
