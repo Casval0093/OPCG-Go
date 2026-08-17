@@ -28,9 +28,9 @@ describe("OP16-082 Kin'emon", () => {
     const kinEmonId = engine.findCardInZone("south", "character", op16KinEmon082);
 
     const view = engine.getView("south");
-    expect(
-      view.players.south.characters.find((card) => card?.instanceId === kinEmonId)?.cost,
-    ).toBe(7);
+    expect(view.players.south.characters.find((card) => card?.instanceId === kinEmonId)?.cost).toBe(
+      7,
+    );
     // The [On Play] is gated on the Leader's type: no search happened at all.
     expect(view.players.south.deckCount).toBe(2);
     expect(view.prompts).toHaveLength(0);

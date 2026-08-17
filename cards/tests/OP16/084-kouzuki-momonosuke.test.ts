@@ -84,8 +84,9 @@ describe("OP16-084 Kouzuki Momonosuke", () => {
         .getView("south")
         .players.south.characters.find((card) => card?.instanceId === momonosukeId)?.cost,
     ).toBe(25);
-    expect(engine.getState().players.south.activeDon + engine.getState().players.south.restedDon)
-      .toBe(10);
+    expect(
+      engine.getState().players.south.activeDon + engine.getState().players.south.restedDon,
+    ).toBe(10);
 
     engine.activateEffect(momonosukeId, "activateMain", "south");
     engine.resolveDecision("effectOptional", { optionId: "yes" }, "south");

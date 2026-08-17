@@ -28,9 +28,7 @@ describe("OP16-081 Otama", () => {
     expect(selection).toMatchObject({ min: 0, max: 1 });
     // Proves `player: "opponent"`: our own cost-3 Nero is on the field and is not offered.
     expect(selection.candidates.map((candidate) => candidate.ref.id)).toEqual([targetId]);
-    expect(selection.candidates.map((candidate) => candidate.ref.id)).not.toContain(
-      ownCharacterId,
-    );
+    expect(selection.candidates.map((candidate) => candidate.ref.id)).not.toContain(ownCharacterId);
     engine.resolveDecision("effectTargetSelection", { selectedIds: [targetId] }, "south");
 
     let view = engine.getView("south");

@@ -59,9 +59,7 @@ describe("OP16-090 Tony Tony.Chopper", () => {
 
     const view = engine.getView("south");
     expect(view.players.north.trash.map((card) => card.instanceId)).toEqual([targetId]);
-    expect(view.players.north.characters.map((card) => card?.instanceId)).toContain(
-      tooExpensiveId,
-    );
+    expect(view.players.north.characters.map((card) => card?.instanceId)).toContain(tooExpensiveId);
     expect(view.players.south.characters.map((card) => card?.instanceId)).toContain(ownCheapId);
     expect(view.players.south.trash.map((card) => card.instanceId)).toEqual(
       expect.arrayContaining([firstDrawId, secondDrawId]),

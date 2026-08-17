@@ -59,9 +59,7 @@ describe("OP16-085 Kouzuki Momonosuke", () => {
     engine.resolveDecision("effectPlaySelection", { selectedIds: [eligibleIds[0]!] }, "south");
 
     const view = engine.getView("south");
-    expect(view.players.south.characters.map((card) => card?.instanceId)).toContain(
-      eligibleIds[0],
-    );
+    expect(view.players.south.characters.map((card) => card?.instanceId)).toContain(eligibleIds[0]);
     expect(view.players.south.trash.map((card) => card.instanceId)).not.toContain(eligibleIds[0]);
     expect(view.prompts).toHaveLength(0);
   });
