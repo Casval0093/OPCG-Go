@@ -158,9 +158,20 @@ four cheap counters and worsens the curve), but this run cannot say by how much.
 
 Fixed: `timeout` now means the turn budget only, `unfinished` means our ceiling or an engine
 give-up, and unfinished games are excluded from win rates and skipped in paired differences rather
-than scored as losses. The lesson is the same one as the earlier `termination` conflation, in a
-subtler place — **a tool limit that looks like a rules outcome will manufacture significant
-results.**
+than scored as losses.
+
+**Re-run on the same decks confirms the fix inverts the conclusion:**
+
+| | paired difference | verdict |
+|---|---|---|
+| before | **−28.50 pts**, CI [−33.95, −23.05] | "A′ is WORSE, significant at 95%" |
+| after | **−6.25 pts**, CI [−27.93, 15.43] | not significant — 14/30 pairs skipped as unfinished |
+
+The corrected run reports the unfinished rate loudly (46.67%) and says it does not know, which is
+the true answer from 16 usable pairs. The lesson is the same as the earlier `termination`
+conflation, one level down — **a tool limit that looks like a rules outcome will manufacture
+statistically significant results.** The first version of this harness would have told Ping, with
+95% confidence, to keep a card on the strength of an artefact.
 
 **Throughput reality check.** That run took **11,045 s for 800 games — 0.07 games/s**, against the
 ~2 games/s the section below assumes. Decks the policy cannot close are ~30x slower, because games
