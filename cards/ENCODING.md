@@ -699,6 +699,68 @@ a `TargetFilter` case in `matchesTargetFilter` (`effects/targeting.ts`) that rea
   `Parameters<typeof OnePieceTestEngine.create>[0]["character"]` does not typecheck — the
   parameter is optional, so the type includes `undefined`.
 
+### Writing tests that survive `mutation_check.py`
+
+**Never run tests against an engine clone while `mutation_check.py` is running on it.** The tool works
+by rewriting card sources in place, running that card's tests, and restoring — so for the whole of its
+run the grafted definitions under `vendor/` are intermittently mutated. A concurrent `vp test run`
+therefore fails on whichever card is currently perturbed, with a real-looking assertion error, and the
+failures move between files run to run. This produced two rounds of chasing phantom defects. Either
+wait for the mutation run to finish, or give the concurrent work its own `cp -Rc` clone.
+
+**Do not pipe `mutation_check.py` through `tail` and then read `$?`** — you get `tail`'s exit status,
+which is always 0, and the run looks like a pass while the survivor list scrolls past. The tool's own
+contract is correct (exit 1 whenever a mutant survives); it is the pipeline that lies. Redirect to a
+file and check the exit code, then read the file:
+
+```bash
+./.venv/bin/python tools/mutation_check.py --set OP16 --engine <path> > /tmp/mut.txt 2>&1
+echo "EXIT=$?"    # 1 means at least one mutant survived
+tail -30 /tmp/mut.txt
+```
+
+This cost a wrong "all mutants killed" claim once already. Quote the summary line, and check the code.
+
+
+Task 4's first mutation run killed only **56 of 74** mutants across 20 cards. All 18 survivors were
+the same four mistakes, and they are worth internalising before writing a single test — fixing them
+afterwards cost more than writing them right would have.
+
+1. **A candidate list does not pin a `value`.** Nine of the 18 survivors were `value N -> N-1000` on a
+   power modifier, because every test asserted *who* got boosted and none asserted *how much*. Do not
+   read the number back off a projection either — `thisBattle` and `thisTurn` modifiers are gone by the
+   time control returns to the test. **Make the magnitude decide a battle.** Pitch the attacker at
+   exactly `defenderPower + (the next-lower value)`; since `attackPower >= defensePower` is a hit, the
+   real value holds and the mutated one connects:
+
+   | Boost to pin | Defender | Attacker to use | Fixture |
+   |---|---|---|---|
+   | +1000 | 5000 Leader | 5000 | `op03Namule007` |
+   | +2000 | 5000 Leader | 6000 | `op02Atmos003` |
+   | +3000 | 5000 Leader | 7000 | `op02Kingdew006` |
+   | +4000 | 5000 Leader | 8000 | `op02Thatch007` |
+
+   Then assert `lifeCount` is unchanged. `[Counter]` blocks are where this bites hardest, because it is
+   tempting to stop once the candidate list looks right.
+
+2. **A threshold needs an eligible body EXACTLY ON the boundary.** `power lte 6000` with a 4000 body in
+   the candidates survives a mutation to `lte 5000`. Put a 6000 body in and it dies. Below-the-line
+   bodies prove the filter exists; only an on-the-line body proves the *number*.
+
+3. **`gte` and `lte` are indistinguishable at the boundary.** `zoneCount gte 15` tested at exactly 15
+   also satisfies `lte 15`. Add a case well clear of the line (20) so only one operator holds.
+
+4. **Duplicated blocks have their own filters and need their own fixtures.** A `[Main]` and a
+   `[Trigger]` that print the same action are two separate objects with two separate copies of every
+   filter. `OP15-115`'s `[Trigger]` cost filter survived both deletion and inversion because that test
+   had a single cost-4 Character on the field with nothing to exclude.
+
+**A surviving mutant is not always a bad test — sometimes it is a redundant encoding.** Two of Task
+3's survivors were filters that could not possibly matter: a `trait` filter on a `zoneCount gte 1` that
+was already implied by a companion `eq 0` check, and a `lifeCount` condition the engine's own
+availability check already enforced. There the right fix is to **delete the redundancy from the
+encoding**, not to invent a test for it. Ask which it is before reaching for a new fixture.
+
 ### Prompt intents, and which shape produces which
 
 Guessing these costs a test run each. The full list of real intent strings is

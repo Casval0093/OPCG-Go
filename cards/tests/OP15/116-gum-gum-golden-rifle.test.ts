@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vite-plus/test";
 import {
   op02Atmos003,
+  op02Thatch007,
   op03Genzo046,
   op15Brook022,
   op15GumGumGoldenRifle116,
@@ -62,22 +63,25 @@ describe("OP15-116 Gum-Gum Golden Rifle", () => {
     expect(view.players.south.hand).toHaveLength(1);
   });
 
-  test("[Counter] gives the Leader +4000 with no Leader-type requirement", () => {
+  test("[Counter] gives the Leader exactly +4000 -- surviving an 8000 attacker, which +3000 would not", () => {
+    // The MAGNITUDE, not just the target: asserting a candidate list leaves `value` free. The
+    // attacker is pitched at exactly the defender's power + the NEXT-LOWER value, so the real value
+    // and a mutated one give opposite outcomes (`attackPower >= defensePower` is a hit).
     const engine = OnePieceTestEngine.create(
-      { leaderCardId: op15Krieg001, character: [{ card: op03Genzo046, playedOnTurn: 0 }] },
+      { leaderCardId: op15Krieg001, character: [{ card: op02Thatch007, playedOnTurn: 0 }] },
+      // A Krieg Leader on the defending side also proves the [Counter] half carries no type condition.
       { leaderCardId: op15Krieg001, hand: [CARD], activeDon: 1 },
       { firstPlayer: "north", activeSeat: "south" },
     );
-    const attackerId = engine.findCardInZone("south", "character", op03Genzo046);
+    const attackerId = engine.findCardInZone("south", "character", op02Thatch007);
     const counterId = engine.findCardInZone("north", "hand", CARD);
     const lifeBefore = engine.getView("north").players.north.lifeCount;
 
     engine.declareAttack(attackerId, engine.leader("north"), "south");
     engine.resolveDecision("battleCounter", { selectedIds: [counterId] }, "north");
 
-    // Genzo attacks at 4000 into a 5000 Leader and never connected anyway, so the durable proof is
-    // that the Counter resolved without a prompt of its own (the target is the Leader, count 1, so it
-    // auto-resolves) and no Life was lost.
+    // Thatch 8000 vs the Leader at 5000 + 4000 = 9000. The target is the Leader with count 1, so the
+    // boost auto-resolves without a prompt.
     expect(engine.getView("north").players.north.lifeCount).toBe(lifeBefore);
   });
 });

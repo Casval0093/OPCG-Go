@@ -1,8 +1,11 @@
 import { describe, expect, test } from "vite-plus/test";
 import {
+  eb03Viola030,
   op02Atmos003,
   op02LandOfWano048,
   op03Genzo046,
+  op03Namule007,
+  op04CorridaColiseum096,
   op10BlueGilly054,
   op15AndNoOneElseCanHaveItItSOurMementoOfHim054,
   op15Krieg001,
@@ -18,29 +21,44 @@ describe("OP15-054 And No One Else Can Have It! It's Our Memento of Him", () => 
     const engine = OnePieceTestEngine.create(
       {
         leaderCardId: op15Lucy002,
-        hand: [CARD, op10BlueGilly054],
+        // One legal play plus one counterexample per filter on the action. With only Blue Gilly in
+        // hand all three filters were free and all three mutants survived:
+        //   op03Namule007            cost 3, Whitebeard Pirates -> wrong trait
+        //   eb03Viola030             cost 5, Dressrosa          -> wrong cost
+        //   op04CorridaColiseum096   cost 1, Dressrosa, STAGE   -> wrong cardCategory
+        // The last must be a Stage, not an Event: candidatesForPlayAction hard-filters the pool to
+        // stage-or-character before `cardCategory` is consulted, so an Event proves nothing.
+        hand: [CARD, op10BlueGilly054, op03Namule007, eb03Viola030, op04CorridaColiseum096],
         activeDon: 4,
-        deck: [op03Genzo046, op02Atmos003, op03Genzo046],
+        // Non-Dressrosa draws, so the two cards drawn cannot themselves become play candidates.
+        deck: [op02Atmos003, op02Atmos003, op02Atmos003],
       },
       {},
       { firstPlayer: "north", activeSeat: "south" },
     );
     const blueGillyId = engine.findCardInZone("south", "hand", op10BlueGilly054);
+    const wrongTraitId = engine.findCardInZone("south", "hand", op03Namule007);
+    const wrongCostId = engine.findCardInZone("south", "hand", eb03Viola030);
+    const wrongCategoryId = engine.findCardInZone("south", "hand", op04CorridaColiseum096);
 
     engine.playCard(CARD, "south");
     engine.resolveDecision("effectActionChoice", { optionId: "0" }, "south");
 
-    // Draw 2 then trash 1 of the 4 cards now in hand.
+    // Draw 2, then trash 1 -- one of the drawn Atmos copies, so the counterexamples stay in hand.
     engine.resolveDecision(
       "effectTrashFromHandSelection",
-      { selectedIds: [engine.findCardInZone("south", "hand", op03Genzo046)] },
+      { selectedIds: [engine.findCardInZone("south", "hand", op02Atmos003)] },
       "south",
     );
 
     const play = engine.pendingDecision("effectPlaySelection", "south").steps[0];
     expect(play?.kind).toBe("selectEntity");
     if (play?.kind !== "selectEntity") throw new Error("Expected the hand-play choice.");
-    expect(play.candidates.map((candidate) => candidate.ref.id)).toContain(blueGillyId);
+    const candidateIds = play.candidates.map((candidate) => candidate.ref.id);
+    expect(candidateIds).toEqual([blueGillyId]);
+    expect(candidateIds).not.toContain(wrongTraitId);
+    expect(candidateIds).not.toContain(wrongCostId);
+    expect(candidateIds).not.toContain(wrongCategoryId);
     engine.resolveDecision("effectPlaySelection", { selectedIds: [blueGillyId] }, "south");
 
     expect(engine.findCardInZone("south", "character", op10BlueGilly054)).toBe(blueGillyId);

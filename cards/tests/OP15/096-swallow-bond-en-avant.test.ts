@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vite-plus/test";
 import {
   op02Atmos003,
+  op02Kingdew006,
   op03Genzo046,
   op15Brook022,
   op15Krieg001,
@@ -41,6 +42,32 @@ describe("OP15-096 Swallow Bond en Avant", () => {
 
     expect(engine.getView("south").players.south.deckCount).toBe(8);
     expect(engine.getView("south").prompts).toHaveLength(0);
+  });
+
+  test("[Counter] gives exactly +3000 -- enough to survive a 7000 attacker, which +2000 would not be", () => {
+    // The MAGNITUDE, not just the target: asserting a candidate list leaves `value` free. The
+    // attacker is pitched at exactly the defender's power + the NEXT-LOWER value, so the real value
+    // and a mutated one give opposite outcomes (`attackPower >= defensePower` is a hit).
+    const engine = OnePieceTestEngine.create(
+      { leaderCardId: op15Krieg001, character: [{ card: op02Kingdew006, playedOnTurn: 0 }] },
+      { leaderCardId: op15Krieg001, hand: [CARD, op03Genzo046], activeDon: 1 },
+      { firstPlayer: "north", activeSeat: "south" },
+    );
+    const attackerId = engine.findCardInZone("south", "character", op02Kingdew006);
+    const counterId = engine.findCardInZone("north", "hand", CARD);
+    const lifeBefore = engine.getView("north").players.north.lifeCount;
+
+    engine.declareAttack(attackerId, engine.leader("north"), "south");
+    engine.resolveDecision("battleCounter", { selectedIds: [counterId] }, "north");
+    engine.resolveDecision("effectOptional", { optionId: "yes" }, "north");
+    engine.resolveDecision(
+      "effectTargetSelection",
+      { selectedIds: [engine.leader("north")] },
+      "north",
+    );
+
+    // Kingdew 7000 vs the Leader at 5000 + 3000 = 8000.
+    expect(engine.getView("north").players.north.lifeCount).toBe(lifeBefore);
   });
 
   test("[Counter] trashes 1 card from hand to give +3000, with no Leader-type requirement", () => {

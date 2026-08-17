@@ -1,5 +1,12 @@
 import { describe, expect, test } from "vite-plus/test";
-import { op03Genzo046, op03Merry052, op15ElThor075, op15Enel058, op15Krieg001 } from "@tcg/op-cards";
+import {
+  op02Atmos003,
+  op03Genzo046,
+  op03Merry052,
+  op15ElThor075,
+  op15Enel058,
+  op15Krieg001,
+} from "@tcg/op-cards";
 
 import { OnePieceTestEngine } from "../../../src/index.ts";
 
@@ -66,5 +73,37 @@ describe("OP15-075 El Thor", () => {
 
     expect(engine.getView("south").prompts).toHaveLength(0);
     expect(engine.getView("south").players.south.activeDon).toBe(1);
+  });
+
+  test("[Counter] gives exactly +2000 and only to a card named [Enel]", () => {
+    // The [Counter] block had no test at all, so both its `name` filter and its `value` were free.
+    // Atmos attacks at 6000 into the Enel Leader at 5000: +2000 makes 7000 and holds, +1000 makes
+    // 6000 and `attackPower >= defensePower` still connects.
+    const engine = OnePieceTestEngine.create(
+      { leaderCardId: op15Krieg001, character: [{ card: op02Atmos003, playedOnTurn: 0 }] },
+      { leaderCardId: op15Enel058, hand: [op15ElThor075], activeDon: 1, character: [op02Atmos003] },
+      { firstPlayer: "north", activeSeat: "south" },
+    );
+    const attackerId = engine.findCardInZone("south", "character", op02Atmos003);
+    const counterId = engine.findCardInZone("north", "hand", op15ElThor075);
+    const notEnelId = engine.findCardInZone("north", "character", op02Atmos003);
+    const lifeBefore = engine.getView("north").players.north.lifeCount;
+
+    engine.declareAttack(attackerId, engine.leader("north"), "south");
+    engine.resolveDecision("battleCounter", { selectedIds: [counterId] }, "north");
+
+    const boost = engine.pendingDecision("effectTargetSelection", "north").steps[0];
+    expect(boost?.kind).toBe("selectEntity");
+    if (boost?.kind !== "selectEntity") throw new Error("Expected the [Enel] boost target.");
+    // The Leader is named Enel; Atmos is not. Drop the `name` filter and Atmos joins the list.
+    expect(boost.candidates.map((candidate) => candidate.ref.id)).toEqual([engine.leader("north")]);
+    expect(boost.candidates.map((candidate) => candidate.ref.id)).not.toContain(notEnelId);
+    engine.resolveDecision(
+      "effectTargetSelection",
+      { selectedIds: [engine.leader("north")] },
+      "north",
+    );
+
+    expect(engine.getView("north").players.north.lifeCount).toBe(lifeBefore);
   });
 });

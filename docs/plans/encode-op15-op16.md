@@ -201,14 +201,39 @@ clone per batch** — no shared mutable state at all.
 Each task: encode every effect in its batch, one test per card, all passing. Batches are grouped so
 one agent sees mechanically related cards.
 
-| Task | Batch | Cards |
-|---|---|---|
-| 3 | OP15 leaders | 6 |
-| 4 | OP15 events + stage | 20 |
-| 5–10 | OP15 characters, 6 batches | ~87 |
-| 11 | OP16 leaders | 6 |
-| 12 | OP16 events + stages | 18 |
-| 13–18 | OP16 characters, 6 batches | ~86 |
+**Batches are now colour-grouped, and the exact card lists are settled** (below). Colour is the right
+axis because an archetype's cards interact with each other — one agent holding a whole colour sees the
+"if you have [Name]" pairs and the shared trait filters, which is where the mis-encodings cluster.
+
+Counts exclude the 5 Task-2 reference cards and the 15 genuinely vanilla Characters
+(OP15: 6, OP16: 9 — no printed effect at all, nothing to encode).
+
+| Task | Batch | Cards | Status |
+|---|---|---|---|
+| 3 | OP15 leaders | 6 (5 encoded, `OP15-058` fully parked) | **done** — 25 tests, 20/20 mutants killed |
+| 4 | OP15 events + stage | 20 | **done** — 94 tests |
+| 11 + 12 | OP16 leaders (5) + stages (2) + events (15) | 22 | dispatched |
+| 13 | OP16 yellow characters | 13 | dispatched — 9 are the B/Y Teach list |
+| 14 | OP16 black characters | 17 | dispatched |
+| 15 | OP16 red characters | 14 | `003 005 006 007 008 009 010 011 012 013 015 017 018 118` |
+| 16 | OP16 green characters | 12 | `024 025 026 027 030 031 032 033 034 035 036 037` |
+| 17 | OP16 blue characters | 14 | `042 043 044 045 047 048 049 050 051 052 053 054 055 056` |
+| 18 | OP16 purple characters | 13 | `063 064 065 066 067 068 069 070 071 072 073 074 075` |
+| 5 | OP15 red characters | 15 | `003 004 005 006 007 008 009 010 011 012 013 014 015 017 018` |
+| 6 | OP15 green characters | 13 | `023 024 025 026 027 028 029 031 032 033 034 035 036` |
+| 7 | OP15 blue characters | 13 | `040 041 042 043 044 045 046 047 048 050 051 052 053` |
+| 8 | OP15 purple characters | 15 | `059 060 061 063 064 065 066 067 068 069 070 071 072 073 118` |
+| 9 | OP15 black characters | 15 | `079 080 081 082 083 084 085 086 087 088 090 091 092 093 094` |
+| 10 | OP15 yellow characters | 16 | `099 100 101 102 103 104 105 106 108 109 110 111 112 113 114 119` |
+
+**How a batch is dispatched.** One agent per batch, several agents at a time, each in its own git
+worktree with its own copy-on-write engine clone — `./scripts/new_encode_worktree.sh <batch-name>`
+creates both and proves the clone grafts. The standing instructions are
+`docs/plans/BATCH-AGENT-BRIEF.md`; a dispatch adds only the workspace paths, the card list, the
+priority order within the batch, and any card-specific warnings. Agents commit to their own branch and
+never merge — branches are collected centrally, which is safe because the batches are disjoint file
+sets. **Agents must not edit `cards/ENCODING.md`**: every batch would conflict on it, so they report
+findings and those are consolidated centrally.
 
 **Priority within the batches:** `OP16-001` Ace and the B/Y Teach reference list (§7 of
 `docs/research-findings.md`) are the cards that unblock the first real experiment. Task 11 and

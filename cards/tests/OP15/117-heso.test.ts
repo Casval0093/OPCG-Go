@@ -49,7 +49,9 @@ describe("OP15-117 Heso!!", () => {
     // 1 rested DON!! from the fixture, plus the 1 active DON!! that paying this Event's cost rested,
     // minus the 1 handed to Wyper.
     expect(view.players.south.restedDon).toBe(1);
-    expect(view.players.south.characters.find((card) => card?.instanceId === wyperId)?.attachedDon).toBe(1);
+    expect(
+      view.players.south.characters.find((card) => card?.instanceId === wyperId)?.attachedDon,
+    ).toBe(1);
   });
 
   test("[Trigger] draws 2 only for a [Sky Island] Leader", () => {

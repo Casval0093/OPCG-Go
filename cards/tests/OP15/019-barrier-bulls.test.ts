@@ -66,9 +66,8 @@ describe("OP15-019 Barrier Bulls", () => {
 
     // Atmos is 6000 base; -4000 leaves 2000.
     expect(
-      engine
-        .getView("north")
-        .players.north.characters.find((card) => card?.instanceId === atmosId)?.power,
+      engine.getView("north").players.north.characters.find((card) => card?.instanceId === atmosId)
+        ?.power,
     ).toBe(2000);
   });
 });

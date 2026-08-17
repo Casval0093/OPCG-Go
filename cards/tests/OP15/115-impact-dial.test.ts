@@ -47,13 +47,28 @@ describe("OP15-115 Impact Dial", () => {
         life: [CARD, op03Genzo046, op03Genzo046, op03Genzo046],
         deck: [op03Genzo046, op02Atmos003],
       },
-      { character: [{ card: op02Atmos003, playedOnTurn: 0 }] },
+      {
+        // TWO bodies, not one. The [Trigger] block has its OWN copy of the `cost lte 4` filter, and
+        // with a single cost-4 Character on the field nothing constrained it -- both deleting the
+        // filter and flipping it to `gte` survived mutation. Thatch at cost 6 is what pins it.
+        character: [
+          { card: op02Atmos003, playedOnTurn: 0 },
+          { card: op02Thatch007, playedOnTurn: 0 },
+        ],
+      },
       { firstPlayer: "south", activeSeat: "north" },
     );
     const atmosId = engine.findCardInZone("north", "character", op02Atmos003);
+    const thatchId = engine.findCardInZone("north", "character", op02Thatch007);
 
     engine.declareAttack(atmosId, engine.leader("south"), "north");
     engine.resolveDecision("lifeTrigger", { optionId: "activate" }, "south");
+
+    const ko = engine.pendingDecision("effectTargetSelection", "south").steps[0];
+    expect(ko?.kind).toBe("selectEntity");
+    if (ko?.kind !== "selectEntity") throw new Error("Expected the Trigger's K.O. target.");
+    expect(ko.candidates.map((candidate) => candidate.ref.id)).toEqual([atmosId]);
+    expect(ko.candidates.map((candidate) => candidate.ref.id)).not.toContain(thatchId);
     engine.resolveDecision("effectTargetSelection", { selectedIds: [atmosId] }, "south");
 
     expect(engine.findCardInZone("north", "trash", op02Atmos003)).toBe(atmosId);

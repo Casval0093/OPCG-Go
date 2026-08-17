@@ -58,14 +58,22 @@ describe("OP15-057 Dressrosa Kingdom", () => {
         // auto-pays and the filter would go untested. The Character must not be offered.
         hand: [op04Spiderweb035, op04ColorsTrap074, op03Genzo046],
       },
-      {},
+      // A 6000 attacker is what pins `value: 2000`: against a 5000 Leader, +2000 makes 7000 and holds,
+      // while +1000 makes 6000 and `attackPower >= defensePower` still connects. A 5000 Leader attacker
+      // could not tell the two apart, and the mutant survived until this was changed.
+      { character: [{ card: op02Atmos003, playedOnTurn: 0 }] },
       { firstPlayer: "south", activeSeat: "north" },
     );
     const spiderwebId = engine.findCardInZone("south", "hand", op04Spiderweb035);
     const colorsTrapId = engine.findCardInZone("south", "hand", op04ColorsTrap074);
     const genzoId = engine.findCardInZone("south", "hand", op03Genzo046);
 
-    engine.declareAttack(engine.leader("north"), engine.leader("south"), "north");
+    const lifeBefore = engine.getView("south").players.south.lifeCount;
+    engine.declareAttack(
+      engine.findCardInZone("north", "character", op02Atmos003),
+      engine.leader("south"),
+      "north",
+    );
     engine.resolveDecision("effectOptional", { optionId: "yes" }, "south");
 
     const cost = engine.pendingDecision("effectCostTrashFromHand", "south").steps[0];
@@ -87,5 +95,6 @@ describe("OP15-057 Dressrosa Kingdom", () => {
     const view = engine.getView("south");
     expect(view.players.south.stage?.rested).toBe(true);
     expect(view.players.south.hand).toHaveLength(2);
+    expect(view.players.south.lifeCount).toBe(lifeBefore);
   });
 });

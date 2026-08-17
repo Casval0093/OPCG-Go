@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vite-plus/test";
 import {
   op02Atmos003,
+  op02Thatch007,
   op10BlueGilly054,
   op15ItSAnOrderDoNotDefyMe038,
   op15Krieg001,
@@ -14,6 +15,32 @@ import { OnePieceTestEngine } from "../../../src/index.ts";
 // cards/ENCODING.md). Nothing here should be read as covering it.
 
 describe("OP15-038 It's an Order! Do Not Defy Me!!!", () => {
+  test("[Counter] gives exactly +4000 -- enough to survive an 8000 attacker, which +3000 would not be", () => {
+    // The MAGNITUDE, not just the target. Asserting the candidate list leaves `value` free: a
+    // mutation from +4000 to +3000 survives every list-shaped assertion. The attacker is pitched at
+    // exactly the defender's power + 3000 so the two values give opposite outcomes -- `attackPower >=
+    // defensePower` is a hit, so at +3000 this connects and at +4000 it does not.
+    const engine = OnePieceTestEngine.create(
+      { leaderCardId: op15Krieg001, character: [{ card: op02Thatch007, playedOnTurn: 0 }] },
+      { leaderCardId: op15Krieg001, hand: [op15ItSAnOrderDoNotDefyMe038], activeDon: 1 },
+      { firstPlayer: "north", activeSeat: "south" },
+    );
+    const attackerId = engine.findCardInZone("south", "character", op02Thatch007);
+    const counterId = engine.findCardInZone("north", "hand", op15ItSAnOrderDoNotDefyMe038);
+    const lifeBefore = engine.getView("north").players.north.lifeCount;
+
+    engine.declareAttack(attackerId, engine.leader("north"), "south");
+    engine.resolveDecision("battleCounter", { selectedIds: [counterId] }, "north");
+    engine.resolveDecision(
+      "effectTargetSelection",
+      { selectedIds: [engine.leader("north")] },
+      "north",
+    );
+
+    // Thatch 8000 vs the Krieg Leader at 5000 + 4000 = 9000.
+    expect(engine.getView("north").players.north.lifeCount).toBe(lifeBefore);
+  });
+
   test("[Counter] gives +4000 to a [Krieg] card, and only to a [Krieg] card", () => {
     const engine = OnePieceTestEngine.create(
       { leaderCardId: op15Krieg001, character: [{ card: op10BlueGilly054, playedOnTurn: 0 }] },

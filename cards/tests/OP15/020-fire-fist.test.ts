@@ -58,7 +58,11 @@ describe("OP15-020 Fire Fist", () => {
     // Two opponent Characters, only one of them debuffed. Relax the `power lte 0` filter and the
     // candidate list widens to both, so this goes red.
     const engine = OnePieceTestEngine.create(
-      { leaderCardId: op15Krieg001, hand: [op15FireFist020, op03Genzo046, op02Atmos003], activeDon: 7 },
+      {
+        leaderCardId: op15Krieg001,
+        hand: [op15FireFist020, op03Genzo046, op02Atmos003],
+        activeDon: 7,
+      },
       { character: [op10BlueGilly054, op02Atmos003] },
       { firstPlayer: "north", activeSeat: "south" },
     );

@@ -35,7 +35,9 @@ describe("OP15-074 Varie", () => {
     const view = engine.getView("south");
     expect(view.players.south.hand).toHaveLength(1);
     // Genzo's printed cost is 2; +2 makes it 4.
-    expect(view.players.south.characters.find((card) => card?.instanceId === genzoId)?.cost).toBe(4);
+    expect(view.players.south.characters.find((card) => card?.instanceId === genzoId)?.cost).toBe(
+      4,
+    );
     // The DON!! went back to the DON!! deck rather than to the rested pile.
     expect(view.players.south.activeDon).toBe(0);
     expect(view.players.south.restedDon).toBe(0);
@@ -77,6 +79,33 @@ describe("OP15-074 Varie", () => {
 
     expect(engine.getView("south").players.south.hand).toHaveLength(0);
     expect(engine.getView("south").prompts).toHaveLength(0);
+  });
+
+  test("[Counter] gives exactly +2000 -- enough to survive a 6000 attacker, which +1000 would not be", () => {
+    // The MAGNITUDE, not just the target. Asserting the candidate list leaves `value` free: a
+    // mutation from +2000 to +1000 survives every list-shaped assertion. The attacker is pitched at
+    // exactly the defender's power + 1000 so the two values give opposite outcomes -- `attackPower >=
+    // defensePower` is a hit, so at +1000 this connects and at +2000 it does not.
+    const engine = OnePieceTestEngine.create(
+      { leaderCardId: op15Krieg001, character: [{ card: op02Atmos003, playedOnTurn: 0 }] },
+      { leaderCardId: op15Enel058, hand: [op15Varie074], activeDon: 1 },
+      { firstPlayer: "north", activeSeat: "south" },
+    );
+    const attackerId = engine.findCardInZone("south", "character", op02Atmos003);
+    const counterId = engine.findCardInZone("north", "hand", op15Varie074);
+    const lifeBefore = engine.getView("north").players.north.lifeCount;
+
+    engine.declareAttack(attackerId, engine.leader("north"), "south");
+    engine.resolveDecision("battleCounter", { selectedIds: [counterId] }, "north");
+    engine.resolveDecision(
+      "effectTargetSelection",
+      { selectedIds: [engine.leader("north")] },
+      "north",
+    );
+
+    // Atmos 6000 vs the Enel Leader at 5000 + 2000 = 7000. Unboosted, or boosted by only 1000, this
+    // attack connects and costs a Life.
+    expect(engine.getView("north").players.north.lifeCount).toBe(lifeBefore);
   });
 
   test("[Counter] boosts only a card named [Enel]", () => {

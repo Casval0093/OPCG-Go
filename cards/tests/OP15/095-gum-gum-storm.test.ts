@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vite-plus/test";
 import {
   op02Atmos003,
+  op02Thatch007,
   op03Genzo046,
   op15Brook022,
   op15GumGumStorm095,
@@ -66,6 +67,51 @@ describe("OP15-095 Gum-Gum Storm", () => {
 
     expect(engine.getView("south").players.south.leader.power).toBe(5000);
     expect(engine.getView("south").prompts).toHaveLength(0);
+  });
+
+  test("well ABOVE the threshold still works -- pins `gte`, which `lte` would invert", () => {
+    // 14 cards in the trash satisfies `gte 15` and `lte 15` alike (14 + this card = 15), so the
+    // boundary test above cannot tell the comparison operators apart. 20 cards can: `gte 15` holds and
+    // `lte 15` does not.
+    const engine = stormWithTrash(20);
+
+    engine.playCard(CARD, "south");
+    engine.resolveDecision("effectOptional", { optionId: "yes" }, "south");
+    engine.resolveDecision(
+      "effectTargetSelection",
+      { selectedIds: [engine.leader("south")] },
+      "south",
+    );
+
+    expect(engine.getView("south").players.south.leader.power).toBe(8000);
+  });
+
+  test("[Counter] gives exactly +4000 -- surviving an 8000 attacker, which +3000 would not", () => {
+    // Pins the [Counter]'s `value`: Thatch 8000 into a 5000 Leader is held at +4000 (9000) and
+    // connects at +3000 (8000 >= 8000).
+    const engine = OnePieceTestEngine.create(
+      { leaderCardId: op15Krieg001, character: [{ card: op02Thatch007, playedOnTurn: 0 }] },
+      {
+        leaderCardId: op15Krieg001,
+        hand: [CARD],
+        activeDon: 1,
+        trash: Array.from({ length: 14 }, () => op03Genzo046),
+      },
+      { firstPlayer: "north", activeSeat: "south" },
+    );
+    const attackerId = engine.findCardInZone("south", "character", op02Thatch007);
+    const counterId = engine.findCardInZone("north", "hand", CARD);
+    const lifeBefore = engine.getView("north").players.north.lifeCount;
+
+    engine.declareAttack(attackerId, engine.leader("north"), "south");
+    engine.resolveDecision("battleCounter", { selectedIds: [counterId] }, "north");
+    engine.resolveDecision(
+      "effectTargetSelection",
+      { selectedIds: [engine.leader("north")] },
+      "north",
+    );
+
+    expect(engine.getView("north").players.north.lifeCount).toBe(lifeBefore);
   });
 
   test("[Counter] has no trait filter and no DON!! cost -- any Leader or Character, +4000", () => {
