@@ -594,6 +594,61 @@ the target's *ownership* scoping with an opponent body instead.
 **"a cost of N" / "power N" is `eq`.** Confirmed again on Rebecca (费用为3). Same reading as
 rulings #962/#963. A bare number in card text is an equality unless a comparison word is printed.
 
+## OP16 Leaders, Events and Stages (22 cards) — lessons
+
+**A card gated on N separate conditions needs N negative fixtures, one per condition.**
+`mutation_check.py` deletes each `{ filter: … }` object independently, so on `OP16-040` (two `hasCard`
+conditions, one per printed name) every test that had *both* names present left the first filter
+unkillable — the second condition carried the gate on its own and deleting the first changed nothing.
+This is the general shape, not a quirk. Write one case per condition in which *that* condition is the
+one that fails. This was the batch's only survivor and it was fixed and re-run to 8/8.
+
+**`whenCharacterRemoved` is the cause-agnostic departure trigger** — `battle.ts` fires it on a battle
+K.O. and `enqueueCharacterRemovalEffects` fires it for any Character an effect moved out of the
+character zone, K.O.'d, trashed, bounced or decked. That breadth is what "removed from the field" /
+离开场上 needs. Adding `causedBy: "opponent"` narrows it to the `OP10-042` Usopp wording ("by your
+opponent's effect") and breaks ruling #988, which says `OP16-041` Buggy fires on **your own** effect
+returning your Character to hand. Same-shaped cards, opposite filters — read the printed text.
+
+**Setting an impossible DON!! count in a fixture is how you tell `eq N` from `gte N`.** "If you have 10
+DON!! cards on your field" is `donFieldCount eq 10` by all five existing precedents, but since the DON!!
+deck holds ten, `gte 10` is behaviourally identical in real play and the mutant is unkillable.
+`activeDon: 11` in the fixture is uncapped (`test-fixtures.ts` assigns it directly) and kills it — the
+same licence as the synthetic-Leader-in-hand trick.
+
+**`cardCategory: "character"` next to a `power` filter is redundant — but only for Events and Stages.**
+`basePower()` hard-zeroes those, so `power eq 8000` already excludes them. It does **not** exclude a
+**Leader**, which is exactly why `OP16-002` Izo's `cardCategory` filter is load-bearing and needs the
+synthetic-Leader-in-hand fixture. So: keep it where a Leader could sneak in, drop it where only
+Events/Stages would be, and never add it next to a power filter expecting Events to prove it.
+
+**New prompt intents.** `setActive` on `zones: ["costArea"]` with `count.upTo` publishes
+`effectSetActiveDon` first (`chooseOption`, capped by the printed "up to N", not by the rested DON!!
+available). `removeFromLife` with `count.upTo` publishes `effectRemoveFromLifeCount`. Both are easy to
+miss because the prompt you are looking for is the one *after* them.
+
+**`remainderPosition: "bottom"` prompts for an order only when 2+ cards remain** (a single remainder
+auto-places), and the remainder lands *behind* whatever the search never looked at — so assert the whole
+deck array, not a `slice(-N)`.
+
+**`negateEffects` is provable through `expectFailure`.** Negate a Character with an `[Activate: Main]`,
+then `expectFailure({ type: "activateEffect", …, trigger: "activateMain" }).reason` is
+`"This card does not have that activation timing."` (the shape `op10-098-liberation.test.ts` uses).
+
+**Two harness traps.** State arrays are frozen — `state.players.south.hand.sort()` throws
+`TypeError: Cannot assign to read only property '0'`; copy first. And `characterArea` carries `null` for
+empty slots, so filter with `(entry): entry is string => entry !== null` before indexing.
+
+**Fixture gaps in the vanilla pool.** There is **no** "Admiral"-trait card anywhere in OP01–OP14/EB/PRB/
+ST01, and no vanilla Character named Monkey.D.Luffy or Mr.3(Galdino) — spread a vanilla body and
+override `traits`/`name`/`i18n.en.name` (remembering both name fields). The vanilla pool tops out at
+**cost 8**, so a "cost of 8 or less" boundary needs a synthetic cost-9 twin. Cards with a real
+`[Trigger]` and nothing else, ideal inert `hasTrigger` fixtures: `op01Carrot009`, `op01Kawamatsu037`,
+`op01Monet082`, `op01Speed104`, `op02Sentomaru104`.
+
+**`differentNames` reads `card.name`; the `name` *filter* reads `i18n.en.name`.** Two different fields,
+equal by construction in generated cards but not on a hand-spread synthetic.
+
 ## OP16 yellow Characters (13 cards) — lessons
 
 **A `[Trigger]` resolves AFTER its own card has left the Life area, so a Life-count condition does not
