@@ -208,9 +208,9 @@ describe("OP16-080 Marshall.D.Teach", () => {
     // ... and the used-up ability leaves Pizarro to die to the 5000-power attacker's tie.
     engine.resolveDecision("battleCounter", { selectedIds: [] }, "north");
     expect(
-      engine.getView("north").players.north.characters.some(
-        (card) => card?.instanceId === pizarroId,
-      ),
+      engine
+        .getView("north")
+        .players.north.characters.some((card) => card?.instanceId === pizarroId),
     ).toBe(false);
   });
 });
