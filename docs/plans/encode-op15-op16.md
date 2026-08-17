@@ -235,6 +235,25 @@ never merge — branches are collected centrally, which is safe because the batc
 sets. **Agents must not edit `cards/ENCODING.md`**: every batch would conflict on it, so they report
 findings and those are consolidated centrally.
 
+**How a batch is collected.** Do not trust the agent's report on its own — the whole reason
+`mutation_check.py` exists is that this project's most frequent defect is a check that looks like it
+passed. Re-run the gate centrally:
+
+```bash
+git merge --no-ff claude/encode-<batch>          # disjoint files, so conflicts should be none
+./.venv/bin/python tools/graft_cards.py
+cd vendor/.../packages/engine && ./node_modules/.bin/vp test run     # whole suite
+./node_modules/.bin/vp check && (cd ../cards && ./node_modules/.bin/vp check)
+# then, and only once nothing else is running against this clone:
+./.venv/bin/python tools/mutation_check.py --set OP16 --engine <path> > /tmp/mut.txt 2>&1; echo "EXIT=$?"
+```
+
+A conflict here means the batches were not disjoint after all — stop and work out why rather than
+resolving it, because overlapping batches mean two agents encoded the same card differently.
+
+Consolidate each agent's reported findings into `cards/ENCODING.md` and its parked clauses into the
+parked table, then delete the worktree (`git worktree remove <path>`).
+
 **Priority within the batches:** `OP16-001` Ace and the B/Y Teach reference list (§7 of
 `docs/research-findings.md`) are the cards that unblock the first real experiment. Task 11 and
 Task 13 should take them first.
