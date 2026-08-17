@@ -92,6 +92,10 @@ describe("OP15-057 Dressrosa Kingdom", () => {
       "south",
     );
 
+    // Close the Counter Step so the battle actually finalises -- otherwise the lifeCount assertion
+    // below reads a mid-battle state and holds regardless of the boost's value.
+    engine.resolveDecision("battleCounter", { selectedIds: [] }, "south");
+
     const view = engine.getView("south");
     expect(view.players.south.stage?.rested).toBe(true);
     expect(view.players.south.hand).toHaveLength(2);

@@ -95,7 +95,9 @@ describe("OP15-095 Gum-Gum Storm", () => {
         leaderCardId: op15Krieg001,
         hand: [CARD],
         activeDon: 1,
-        trash: Array.from({ length: 14 }, () => op03Genzo046),
+        // 20, not 14: at exactly the threshold `gte 15` and `lte 15` are both satisfied, so 14 (+ this
+        // card = 15) pins neither operator. Well clear of the line, only `gte` holds.
+        trash: Array.from({ length: 20 }, () => op03Genzo046),
       },
       { firstPlayer: "north", activeSeat: "south" },
     );

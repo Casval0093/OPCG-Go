@@ -701,12 +701,25 @@ a `TargetFilter` case in `matchesTargetFilter` (`effects/targeting.ts`) that rea
 
 ### Writing tests that survive `mutation_check.py`
 
-**Never run tests against an engine clone while `mutation_check.py` is running on it.** The tool works
-by rewriting card sources in place, running that card's tests, and restoring — so for the whole of its
-run the grafted definitions under `vendor/` are intermittently mutated. A concurrent `vp test run`
-therefore fails on whichever card is currently perturbed, with a real-looking assertion error, and the
-failures move between files run to run. This produced two rounds of chasing phantom defects. Either
-wait for the mutation run to finish, or give the concurrent work its own `cp -Rc` clone.
+**While `mutation_check.py` is running, touch nothing in that engine clone — above all, do not run
+`graft_cards.py`.** The tool works by rewriting a card's source in place, rerunning that card's tests,
+and restoring. That has two consequences, and the second is the dangerous one:
+
+- A concurrent `vp test run` fails on whichever card is momentarily perturbed, with a convincing
+  assertion error that moves between files run to run. Merely annoying — it looks like a defect that
+  isn't there.
+- **A concurrent `graft_cards.py` re-copies `cards/` over `vendor/` and silently reverts the live
+  mutation.** The test then passes against unmutated code and the tool reports a **surviving mutant**
+  that is nothing of the kind. This is a *false accusation against a load-bearing test*, and it is
+  worse than the first case because the natural response — rewriting a test that was already fine —
+  produces churn and can talk you into weakening a good assertion.
+
+This is not hypothetical: it manufactured 5 phantom survivors on Task 4, and the way it was caught was
+hand-mutating one of the accused cards (`OP15-096`) and watching its test go red exactly as it should.
+**When a survivor looks wrong, hand-mutate that one card and check, before rewriting the test.**
+
+If concurrent work is unavoidable, give it its own `cp -Rc` clone — that is the whole reason each
+parallel batch gets one.
 
 **Do not pipe `mutation_check.py` through `tail` and then read `$?`** — you get `tail`'s exit status,
 which is always 0, and the run looks like a pass while the survivor list scrolls past. The tool's own
