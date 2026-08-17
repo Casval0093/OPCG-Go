@@ -26,5 +26,29 @@ export const op16BoaHancock032: CharacterCard = {
   attribute: "special",
   effect:
     "[Unblockable] (This card cannot be blocked.)\n[On Play] Up to 1 of your opponent's Characters other than [Monkey.D.Luffy] cannot be rested until the end of your opponent's next End Phase.",
+  effects: {
+    keywords: ["unblockable"],
+    effects: [
+      {
+        trigger: "onPlay",
+        // Same shape as OP13/characters/032-nico-robin.ts, with the printed cost restriction
+        // replaced by this card's printed name exclusion. "other than [Monkey.D.Luffy]" is a
+        // bracketed card NAME, so `excludeName` (which reads cardNames(), i.e. printed name
+        // plus any granted alternate names) rather than a trait.
+        actions: [
+          {
+            action: "cannotBeRested",
+            target: {
+              player: "opponent",
+              zones: ["character"],
+              count: { amount: 1, upTo: true },
+              filters: [{ filter: "excludeName", value: "Monkey.D.Luffy" }],
+            },
+            duration: "untilEndOfOpponentNextEndPhase",
+          },
+        ],
+      },
+    ],
+  },
   i18n: op16BoaHancock032I18n,
 };

@@ -27,5 +27,31 @@ export const op16Mr3Galdino037: CharacterCard = {
   attribute: "special",
   effect:
     "[On Play] If your Leader has the [Impel Down] type, rest up to 1 of your opponent's Characters with a cost of 5 or less.",
+  effects: {
+    effects: [
+      {
+        trigger: "onPlay",
+        // A LEADING "If your Leader is/has ..." gates the whole block, so it belongs in
+        // `conditions` rather than on the action (rulings #899/#944 are the worked cases for
+        // that split). `leaderTrait` reads the effect controller's own Leader, which is the
+        // `player: "self"` scoping ruling #986 pinned for OP16-040's name check on this card.
+        // `match: "includes"` is load-bearing, not decoration: older sets store a Leader's
+        // traits as ONE concatenated string, e.g. OP02-049 Emporio.Ivankov's
+        // ["Revolutionary Army Impel Down"], which an exact match would never find.
+        conditions: [{ condition: "leaderTrait", trait: "Impel Down", match: "includes" }],
+        actions: [
+          {
+            action: "rest",
+            target: {
+              player: "opponent",
+              zones: ["character"],
+              count: { amount: 1, upTo: true },
+              filters: [{ filter: "cost", comparison: "lte", value: 5 }],
+            },
+          },
+        ],
+      },
+    ],
+  },
   i18n: op16Mr3Galdino037I18n,
 };
