@@ -116,9 +116,36 @@ def clean_text(text: str | None) -> str:
     return re.sub(r"[ \t]+", " ", text).strip()
 
 
+# The literal "[Trigger]" plays two different roles in card text, and only one
+# of them is a section heading.
+#
+#   heading  -- opens the card's own Trigger box. Upstream always places it at
+#               the start of the text or after a clause boundary: a full stop, a
+#               closing ")" or "]", the bare "-" that stands for a blank main
+#               ability, or a line break.
+#   keyword  -- names *other* cards' Trigger abilities, mid-sentence, always
+#               straight after a word: "trash 1 card with a [Trigger] from your
+#               hand", "activates an Event or [Trigger]".
+#
+# Cutting at the first literal match treated a keyword reference as a heading:
+# the rest of that sentence was lost out of `effect` into `trigger`, and where a
+# real Trigger box followed, it was glued onto the fragment. Requiring the match
+# not to follow a word separates the two roles. Checked over every record in the
+# dataset: it accepts every heading (489 en / 491 jp), including the four
+# non-full-stop anchors above, and rejects every keyword reference (30 en /
+# 31 jp). 24 cards were being split in the wrong place, 3 of them in OP15/OP16.
+#
+# The first *heading* is the split point, not the last match: a Trigger box may
+# itself contain a keyword reference ("[Trigger] Play up to 1 Character card
+# with 5000 power or less and a [Trigger] from your hand"). No en card has two
+# headings; the one jp card that does (OP01-071) has its single Trigger box
+# printed twice upstream, so either choice yields the same `effect`.
+TRIGGER_HEADING_RE = re.compile(r"(?<!\w)(?<!\w[ \t])\[Trigger\]\s*")
+
+
 def split_trigger(effect: str) -> tuple[str, str]:
     """Separate the [Trigger] clause, which the engine stores in its own field."""
-    match = re.search(r"\[Trigger\]\s*", effect)
+    match = TRIGGER_HEADING_RE.search(effect)
     if not match:
         return effect, ""
     return effect[: match.start()].strip(), effect[match.end() :].strip()

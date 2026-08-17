@@ -1882,8 +1882,8 @@
   "counter": null,
   "life": 4,
   "blockIcon": 5,
-  "effect": "[Opponent's Turn] All of your Characters gain +1 cost.\n[On Your Opponent's Attack] [Once Per Turn] You may trash 1 card with a",
-  "trigger": "from your hand: Change the target of that attack to this Leader or to one of your [Blackbeard Pirates] type Character cards.",
+  "effect": "[Opponent's Turn] All of your Characters gain +1 cost.\n[On Your Opponent's Attack] [Once Per Turn] You may trash 1 card with a [Trigger] from your hand: Change the target of that attack to this Leader or to one of your [Blackbeard Pirates] type Character cards.",
+  "trigger": "",
   "isAlternateArt": false,
   "setName": "-THE TIME OF BATTLE- [OP-16]",
   "imageUrl": "https://en.onepiece-cardgame.com/images/cardlist/card/OP16-080.png"
@@ -2707,8 +2707,8 @@
   "counter": null,
   "life": null,
   "blockIcon": 5,
-  "effect": "[Main] If your Leader has the [Blackbeard Pirates] type, add up to 1 card with a",
-  "trigger": "other than [Black Vortex] from your trash to your hand. [Trigger] Negate the effect of up to 1 of your opponent's Leader or Character cards during this turn.",
+  "effect": "[Main] If your Leader has the [Blackbeard Pirates] type, add up to 1 card with a [Trigger] other than [Black Vortex] from your trash to your hand.",
+  "trigger": "Negate the effect of up to 1 of your opponent's Leader or Character cards during this turn.",
   "isAlternateArt": false,
   "setName": "-THE TIME OF BATTLE- [OP-16]",
   "imageUrl": "https://en.onepiece-cardgame.com/images/cardlist/card/OP16-115.png"
@@ -2755,8 +2755,8 @@
   "counter": null,
   "life": null,
   "blockIcon": 5,
-  "effect": "[Main] You may trash 1 card with a",
-  "trigger": "from your hand: Negate the effects of up to 1 of your opponent's Characters with a cost of 8 or less during this turn. [Trigger] Add up to 1 [Blackbeard Pirates] type card from your trash to your hand.",
+  "effect": "[Main] You may trash 1 card with a [Trigger] from your hand: Negate the effects of up to 1 of your opponent's Characters with a cost of 8 or less during this turn.",
+  "trigger": "Add up to 1 [Blackbeard Pirates] type card from your trash to your hand.",
   "isAlternateArt": false,
   "setName": "-THE TIME OF BATTLE- [OP-16]",
   "imageUrl": "https://en.onepiece-cardgame.com/images/cardlist/card/OP16-117.png"
