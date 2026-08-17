@@ -616,6 +616,54 @@ the target's *ownership* scoping with an opponent body instead.
 **"a cost of N" / "power N" is `eq`.** Confirmed again on Rebecca (费用为3). Same reading as
 rulings #962/#963. A bare number in card text is an equality unless a comparison word is printed.
 
+## OP16 blue Characters (14 cards) — lessons
+
+**Sometimes the correct encoding is the ABSENCE of a filter, and only a ruling can tell you.**
+`OP16-045` Crocodile and `OP16-050` Miss Olive both print "return 1 of your Characters with a cost of 2
+or more". Rulings **#989** and **#992** both say you may return **this Character itself**. The obvious
+model, `OP08-047` Jozu, prints *"other than this Character"* and carries `excludeSelf` — copy it and
+you silently break both rulings, and no reading of the printed text catches it. Test it by paying the
+cost with the card itself and asserting the effect still resolves.
+
+**A permanent `modifyPower`/`modifyCost`/`modifyCounter` is SILENTLY IGNORED unless its target is
+`self: true` or `count: { amount: "all" }`.** `getPermanentModifierTotal` (`effects/permanent.ts`) has
+`if (action.target.count.amount !== "all" && !action.target.self) continue;`. A `permanentEffects`
+entry written with `count: { amount: 1 }` over another zone compiles, type-checks, raises no capability
+issue, and never applies. Watch for it on anything printed "your Leader gains +N power".
+
+**`copyPower` vs `setBasePowerFrom` is decided by one word of printed text.** `copyPower` reads
+`getCardPower(source)` (current, with modifiers) and always applies to the card bearing the effect;
+`setBasePowerFrom` reads `basePower(source)` (printed) and takes an explicit target. Tell:
+*"the power of X"* → `copyPower` (`OP04-069`, `OP16-055`, `OP16-104`); *"the same as X's base power"* →
+`setBasePowerFrom` (`OP06-009`, `OP14-053`).
+
+**Attached DON!! gives its +1000 only while its controller is the ACTIVE seat** —
+`getCardPower` is `basePower + (state.activeSeat === instance.controller ? attachedDon * 1000 : 0)`.
+ENCODING already notes attached DON!! physically survives the opponent's turn; the power does not. So a
+`[DON!! xN] [Opponent's Turn]` assertion must not expect the DON!!'s own +1000, and DON!! on the
+opponent's board cannot be used to make its power differ from base during your turn.
+
+**An `anyOf` group with zero filters matches everything** (`groupMatches` starts `true` and ANDs). That
+is what lets `mutation_check.py` kill filters nested inside an `anyOf`: deleting one empties its group
+and the whole `anyOf` goes vacuous. One fixture that makes the *unfiltered* pool payable kills every
+such mutant at once.
+
+**An `optional` block whose costs cannot be paid publishes no `effectOptional` confirm at all**
+(`canPayCosts` runs before the prompt is created). So "the cost filter is load-bearing" is testable
+with no candidate list: build a fixture where nothing can pay and assert `view.prompts` is empty —
+every way of breaking the filter makes something payable and turns it red.
+
+**`order: "any"` on `returnToDeck` is only consulted when `position` is also `"any"`.** On a card
+printed "at the **bottom** … in any order" the field is inert; ordering happens instead because
+`selectionAlreadyProvidesOwnerOrder` treats selection order as placement order when all targets come
+from one player's hand and that player chooses. The `effectReturnToDeckOwnerOrder` prompt appears only
+for targets from the *trash* — copying `OP11-072`'s prompt sequence onto a hand-zone card fails.
+
+**Two projection traps.** `battleBlocker` candidates include a synthetic `"skip"` entry, so an exact
+`toEqual([id])` fails — filter it first. And a projected *opponent* hand has `instanceId: null` on every
+card, so asserting a bounced Character reached their hand must read
+`getState().players.<seat>.hand`.
+
 ## OP16 purple Characters (13 cards) — lessons
 
 **A WHOLE COLOUR can be invisible to `mutation_check.py`.** Seven of the thirteen purple Characters

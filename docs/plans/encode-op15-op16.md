@@ -217,7 +217,7 @@ Counts exclude the 5 Task-2 reference cards and the 15 genuinely vanilla Charact
 | 14 | OP16 black characters | 17 | **done** — nothing parked |
 | 15 | OP16 red characters | 14 | dispatched — `003 005 006 007 008 009 010 011 012 013 015 017 018 118` |
 | 16 | OP16 green characters | 12 | dispatched — `024 025 026 027 030 031 032 033 034 035 036 037` |
-| 17 | OP16 blue characters | 14 | dispatched — `042 043 044 045 047 048 049 050 051 052 053 054 055 056` |
+| 17 | OP16 blue characters | 14 | **done** — nothing parked; full sweep 189/189 mutants |
 | 18 | OP16 purple characters | 13 | **done** — nothing parked; 56 hand mutants (7 of 13 cards are invisible to the tool) |
 | 5 | OP15 red characters | 15 | `003 004 005 006 007 008 009 010 011 012 013 014 015 017 018` |
 | 6 | OP15 green characters | 13 | `023 024 025 026 027 028 029 031 032 033 034 035 036` |
