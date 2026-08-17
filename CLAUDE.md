@@ -75,8 +75,17 @@ Keep the two bodies of evidence clearly separated when writing anything.
   See `docs/research-findings.md` §5.
 - **Rotation is live since 2026-04-01.** Standard = Block 2+ only. OP01–OP04 and ST01–ST09 are dead.
 - **Banlist:** OP06-086 Gecko Moria, OP07-045 Jinbe, EB01-059 Kingdom Come, OP02-117 Ice Age.
-- **Ladder data understates value/control decks.** Bo1, speed-rewarded, complex decks piloted worse
-  by the median ladder player. Treat resource-rotation archetypes as a *lower bound*, always.
+- **Ladder data understates value/control decks — but only half of that applies to THIS event.**
+  The original reasoning was: ladder is Bo1, rewards speed, and complex decks are piloted worse by
+  the median ladder player. **The target event is Bo1 with a 30-minute clock** (Ping, 2026-08-17),
+  so the Bo1/speed half is *format-matched* — a 213k-game Bo1 matrix predicts this event better
+  than tournament Bo3 data would. Correct for **population and piloting skill only.** Do not also
+  correct for Bo1-ness; that double-counts and biases the analysis toward the slow value decks a
+  30-minute round punishes. (The earlier "treat as a lower bound, *always*" was written before the
+  format was known.)
+- **The 30-minute clock is a format-level edge for Ace, independent of preference.** Tempo closes
+  inside the round; attrition may not. It cuts against Teach and Big Mom, the two decks the raw EV
+  table favours and the two the research notes describe as attrition engines.
 - **Engine throughput: ~2–4 games/s single-core, host-dependent.** The 2.80 figure was measured on
   another machine and is not comparable across hosts; only within-run ratios are. Full-strength
   ISMCTS remains ~2 orders of magnitude out of reach. **But throughput has not been the binding
@@ -273,10 +282,13 @@ python3 tools/coverage_report.py --exclude-promos # encoding backlog
 
 ## Open questions only Ping can answer
 
-1. **Target event and date** (店赛 / 标准对战会 / 旗舰赛), and Bo1 or Bo3? — **the binding unknown.**
-   The engine cannot contribute to any event inside ~6 weeks: SC OP17 lands ~2026-08-23, Bandai
-   publishes 2026-08-28, and encoding ~360 cards runs weeks past that. For a near event the
-   deliverable is a frozen list plus reps, and the engine is building for the *next* format.
+1. **Target event and date** (店赛 / 标准对战会 / 旗舰赛)? — **the binding unknown.** (Format is
+   settled: **Bo1, Swiss + top cut, 30-minute rounds**, Ping 2026-08-17 — he has an event
+   announcement in hand, so the date is probably knowable.) The engine cannot contribute to any
+   event inside ~6 weeks:
+   SC OP17 lands ~2026-08-23, Bandai publishes 2026-08-28, and encoding runs weeks past that. For
+   a near event the deliverable is a frozen list plus reps, and the engine builds for the *next*
+   format.
 2. Acquisition budget ceiling (RMB)
 3. Is SC OP17 the same list as JP/EN OP17, or does it carry SC-exclusive content? (The 08-17
    parity confirmation was scoped to banlist and rotation only — this is still open.)

@@ -20,6 +20,7 @@ Determine and field the highest-EV deck in the SC format, continuously, across s
 | Engine base | **Fork `TheCardGoat/tcg-engines` (MIT)** — audit complete. MOOgiwara rejected (AGPL, 30% MVP) |
 | Effect encoding | Adopt the engine's existing compositional DSL; LLM-author the gaps with generated tests |
 | Persistence & compute | This repo; heavy self-play on user hardware |
+| Match format | **Bo1, Swiss + top cut, 30-min rounds** (Ping, 2026-08-17). No side deck — Constructed locks the deck all event |
 | Objective function | Field-weighted expected match win rate vs the real SC field, split by play/draw |
 | Role of that objective | **Diagnostic, not selective** (2026-08-17). It forecasts the field and arms a tripwire; it does not choose the archetype. Tripwire is qualitative: structural deficiency is decisional, a points gap is not. See `CLAUDE.md`. |
 | Validation | Per-card assertion tests → Comprehensive Rules conformance → meta calibration |
@@ -66,6 +67,85 @@ simulation is required, so encoding OP15/16/17 into the engine is the critical p
   official Bandai list. See `tools/import_cards.py` and the README. OP17 is not yet published
   by Bandai, so it is pending a date, not pending a method.
 
+## Match format: Bo1, Swiss + top cut, 30-minute rounds
+
+标准赛制 · 1V1 · 一局定胜负 (BO1) · 瑞士轮 + 淘汰赛机制 · 每局 30 分钟.
+Ping, 2026-08-17, from the event announcement. **This supersedes a Bo3 note recorded earlier the
+same day.** The 30-minute clock is the part that matters most, and it was not previously known.
+
+**1. Swiss validates the objective function.** Swiss pairs you against a roughly random sample of
+the field over N rounds. That is *literally* what `tools/ev_analysis.py` computes — field-weighted
+expected win rate. The objective function was chosen before the format was known and happens to be
+exactly right for it. Single-elimination would have argued for a different target (beat the
+specific decks that top-cut); Swiss does not.
+
+**2. The 30-minute clock is a structural bias toward tempo, and it favours Ace.** A deck that wins
+slowly can fail to close inside the round. This is a real, format-level edge for the archetype
+already chosen on preference — and unlike preference, it is not a matter of taste. It cuts directly
+against the decks the raw EV table favours: **Teach and Big Mom are attrition decks**, and Big Mom
+is explicitly a "life-cycling attrition engine … wins by attrition" (§5). Attrition plans are the
+ones a clock punishes.
+
+**3. Bo1 raises variance, so EV margin matters more than EV rank.** One game decides each round;
+there is no second game to correct a bad draw or a bad play/draw assignment. A 51% deck and a 55%
+deck are much closer in outcome over 5–7 Bo1 rounds than the numbers suggest. Consistency across
+the field beats a spiky edge against part of it.
+
+**4. It does not change the tech-slot maths.** No side deck in Constructed regardless, so
+`ΔEV(c) = Σ share × ΔWR` is untouched. Bo1 vs Bo3 was never the variable there.
+
+### Why `ΔWR` is taken on game rates, and when that would be wrong
+
+Raised in review on PR #3 against the superseded Bo3 draft: a simulator emits a per-game win
+probability `p`, and under Bo3 the match rate is `3p² − 2p³`, so a constant game-rate delta does
+not map to a constant match-rate delta. The formula is right, and this is worth writing down
+because **it would have been a real defect had the format stayed Bo3.**
+
+What decides it is *where* the non-linearity sits.
+
+- **Per-matchup transforms can reorder candidates.** Under Bo3 you convert each matchup's `p`
+  before the weighted sum, and the slope `6p(1−p)` varies across matchups — 1.50 at `p=0.50`
+  against 0.96 at `p=0.80`. A card swinging a coinflip matchup by 5 points would be worth
+  materially more than one swinging a lopsided matchup by 5 points, and summing raw game-rate
+  deltas would rank them equal. That is a genuine reordering.
+- **Aggregate monotone transforms cannot reorder.** They rescale.
+
+**Under Bo1 the per-matchup transform is the identity** — match win rate *is* game win rate — so
+`ΔWR` on game rates is exactly right, and no conversion belongs in the pipeline. Adding one would
+distort the result rather than improve it.
+
+The only non-linearity left is aggregate: with Swiss + top cut, what you actually want is
+`P(make the cut)`, a binomial in your overall match win rate `p̄`. Over 5 rounds cutting at 4+ wins:
+
+| `p̄` → `p̄+0.05` | `P(cut)` | gain | amplification |
+|---|---|---|---|
+| 0.35 → 0.40 | 0.054 → 0.087 | +3.3 pts | 0.66× |
+| 0.50 → 0.55 | 0.188 → 0.256 | +6.9 pts | 1.37× |
+| 0.60 → 0.65 | 0.337 → 0.428 | +9.2 pts | 1.83× |
+
+**This does not change which tech card wins.** Every candidate shifts the same `p̄` from the same
+baseline through the same monotone function, so the ordering by `Σ share × ΔWR` is preserved. What
+it changes is what an edge is *worth*: a point of match win rate buys nearly **3× more** top-cut
+probability to a 60% deck than to a 35% deck. Use it to judge whether a marginal slot is worth
+chasing — never to re-rank the slots.
+
+### The ladder-bias correction must be reduced, not applied
+
+`§1` of `docs/research-findings.md` discounts the matchup matrix because it comes from ranked
+ladder: *"ladder is Bo1, rewards speed"*, therefore value and control decks are understated and
+should be treated as a lower bound.
+
+**Half of that justification just became an argument for trusting the data.** The target event is
+Bo1 with a 30-minute clock — the same conditions that produce the ladder's speed bias. A matrix
+built from 213,084 **Bo1** games is *format-matched* to this event in a way tournament Bo3 data
+would not be.
+
+What survives of the seam is **population**, not format: ladder players are not the tournament
+field, and median ladder piloting differs from event piloting. Correct for that. **Do not** also
+correct for Bo1-ness — for this event that is signal, not noise. Applying both corrections
+double-counts and would push the analysis toward exactly the slow value decks a 30-minute Bo1
+round punishes.
+
 ## Legal-pool parity with EN/JP — confirmed 2026-08-17
 
 Ping: **SC matches the other regions on banlist and rotation.** So the four bans and Block 2+ apply
@@ -86,8 +166,8 @@ which is the gap that still matters for share-weighting.
 
 ## Open inputs needed
 
-1. **Target event and date** (店赛 / 标准对战会 / 旗舰赛), and whether it is Bo1 or Bo3 — *now the
-   binding unknown; it decides whether the engine track is relevant this cycle at all*
+1. **Target event and date** (店赛 / 标准对战会 / 旗舰赛) — *the binding unknown; it decides whether
+   the engine track is relevant this cycle at all.* Format is settled: **Bo3**.
 2. Acquisition budget ceiling (RMB)
 3. Is SC OP17 the same list as JP/EN OP17, or does it carry SC-exclusive content? *(the 08-17
    confirmation was scoped to banlist and rotation, so this is still open)*
