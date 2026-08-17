@@ -71,6 +71,37 @@ def _mask_comments(src: str) -> str:
     return "".join(out)
 
 
+def _filter_spans(scan: str) -> list[tuple[int, int, str]]:
+    """Every `{ filter: "..." ... }` object, as (start, end, filter name).
+
+    `end` swallows a following comma so deleting the span leaves valid TypeScript in both the
+    inline (`[{ a }, { b }]`) and block layouts. Nested braces are matched properly, so a filter
+    containing an object literal is removed whole rather than clipped.
+    """
+    spans = []
+    for m in re.finditer(r'\{\s*filter:\s*"(\w+)"', scan):
+        depth = 0
+        i = m.start()
+        while i < len(scan):
+            if scan[i] == "{":
+                depth += 1
+            elif scan[i] == "}":
+                depth -= 1
+                if depth == 0:
+                    break
+            i += 1
+        if depth != 0:
+            continue  # unbalanced; skip rather than emit a mutant that will not compile
+        end = i + 1
+        j = end
+        while j < len(scan) and scan[j] in " \t":
+            j += 1
+        if j < len(scan) and scan[j] == ",":
+            end = j + 1
+        spans.append((m.start(), end, m.group(1)))
+    return spans
+
+
 def _mutants(src: str) -> list[Mutant]:
     """Generate perturbations of a card's encoding, each targeting a real past defect.
 
@@ -82,9 +113,15 @@ def _mutants(src: str) -> list[Mutant]:
 
     # 1. Delete each filter object. Catches "this filter is never consulted" — the cardCategory
     #    case, and any filter a test's fixtures happen to satisfy either way.
-    for m in re.finditer(r"[ \t]*\{\s*filter:\s*\"(\w+)\"[^{}]*\},?\n", scan):
+    #
+    #    Brace-matched rather than regexed to a line shape. An earlier version required the closing
+    #    `}` to be followed by an optional comma and a newline, which silently skipped the inline
+    #    form `filters: [{ filter: "name", value: "Bunkov" }]` — the exact shape both decisive name
+    #    filters in this set use. The tool reported "all mutants killed" while never testing whether
+    #    a name restriction was protected at all: the tool had the very blind spot it exists to find.
+    for start, end, name in _filter_spans(scan):
         out.append(
-            Mutant(f"delete filter:{m.group(1)} @{_at(src, m.start())}", src[: m.start()] + src[m.end() :])
+            Mutant(f"delete filter:{name} @{_at(src, start)}", src[:start] + src[end:])
         )
 
     # 2. Flip comparisons. `eq` -> `gte` is the exact shape of ruling #962: "power 8000" means
@@ -191,8 +228,15 @@ def main() -> int:
         print("no hand-authored encodings found — nothing to check")
         return 0
 
-    # The engine reads grafted copies, so each mutant is written to the vendor path and reverted.
-    vendor_cards = os.path.join(repo, CARDS_VENDOR)
+    # Mutants must be written into the cards package of the SELECTED engine. Deriving this from
+    # `repo` instead broke the documented parallel-clone workflow outright: with `--engine` pointing
+    # at a private clone, mutations landed in the repo's vendor tree while the tests ran against the
+    # clone's untouched encodings, so every mutant was reported as a survivor. `packages/cards` is a
+    # sibling of `packages/engine`, so resolve it from there.
+    vendor_cards = os.path.join(os.path.dirname(os.path.abspath(engine)), "cards", "src", "cards")
+    if not os.path.isdir(vendor_cards):
+        print(f"cards package not found next to the engine: {vendor_cards}", file=sys.stderr)
+        return 1
     survivors: list[tuple[str, str]] = []
     total = 0
 
