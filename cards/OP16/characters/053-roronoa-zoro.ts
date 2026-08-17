@@ -25,5 +25,14 @@ export const op16RoronoaZoro053: CharacterCard = {
   traits: ["Dressrosa", "Supernovas", "Straw Hat Crew"],
   attribute: "slash",
   effect: "[When Attacking] If you have 6 or less cards in your hand, draw 1 card.",
+  effects: {
+    effects: [
+      {
+        trigger: "whenAttacking",
+        conditions: [{ condition: "handCount", player: "self", comparison: "lte", value: 6 }],
+        actions: [{ action: "draw", player: "self", amount: 1 }],
+      },
+    ],
+  },
   i18n: op16RoronoaZoro053I18n,
 };

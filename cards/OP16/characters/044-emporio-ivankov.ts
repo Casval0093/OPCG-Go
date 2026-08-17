@@ -27,5 +27,9 @@ export const op16EmporioIvankov044: CharacterCard = {
   attribute: "special",
   effect:
     "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)",
+  effects: {
+    // The parenthetical is the printed reminder text for [Blocker], not a second ability.
+    keywords: ["blocker"],
+  },
   i18n: op16EmporioIvankov044I18n,
 };
