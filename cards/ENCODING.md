@@ -594,6 +594,52 @@ the target's *ownership* scoping with an opponent body instead.
 **"a cost of N" / "power N" is `eq`.** Confirmed again on Rebecca (费用为3). Same reading as
 rulings #962/#963. A bare number in card text is an equality unless a comparison word is printed.
 
+## OP16 black Characters (17 cards) — lessons
+
+**"If you have X" is not always your own field, and the English print can be flatly wrong.**
+`OP16-081` Otama prints *"If **you** have a Character with a cost of 8 or more"* on Bandai's own list
+and on Limitless. Ruling **#1003** contradicts it: the SC is 场上存在费用为8或更高的角色的场合 — "there is a
+Character with a cost of 8 or more **on the field**", no owner — and the Q&A asks the exact case (my
+field has none, my opponent's does) and answers 是的，可以. This is a step past the Antlerkov lesson:
+there the English was *ambiguous* about whether the Leader counted; here it names the wrong **player**.
+**`existsOnField` is the only condition that can scan both fields** — its `player` is optional and
+defaults to `"any"`, whereas `hasCard`'s is mandatory. Precedent: `OP02-102` Smoker. Read the SC text
+for the *owner* as well as the zone.
+
+**Which card type exercises a `cardCategory` filter depends on the action.** The `play`-needs-a-Stage
+note above is specific to `play`, whose candidate pool is pre-filtered to character-or-stage. Two other
+shapes have no type pre-filter, so an **Event** is a genuine false positive there and is the right
+fixture: a `trashFromHand` **cost** (scans the whole hand — `OP16-083`, `OP16-092`), and a
+`returnToHand` **target** over `zones: ["trash"]` (`OP16-097`).
+
+**Two printed-keyword firsts.** `[Rush: Character]` is its own `Keyword` value, `rushCharacter`,
+distinct from `rush` — it permits attacking Characters on the turn played but still not the Leader
+(`OP16-089` Mihawk). `[Unblockable]` had never appeared in a printed `keywords` array before
+`OP16-096` Yamato; every prior use was granted. Neither has a projected field, so prove them
+functionally: for unblockable, attack into an **active** `[Blocker]` and assert the blocker step never
+opened, *paired with a control on the same fixture without the keyword* — otherwise "no prompt" is
+indistinguishable from a broken fixture.
+
+**A condition-gated `activateMain` is rejected at the command with a quotable reason.**
+`expectFailure({ type: "activateEffect", … }).reason` is `"The activation conditions are not met."`
+(or `"The activation costs cannot be paid."`). Tighter than probing `getLegalCommands`, and it kills
+threshold mutants directly. Keep `getLegalCommands` for `oncePerTurn`, where the first activation must
+succeed.
+
+**A defender with a non-empty hand opens a `battleCounter` step before damage resolves** — so any
+`[On K.O.]` waits on it. Resolve `{ selectedIds: [] }` for the defending seat, or give that player no
+hand. Most existing engine tests hide this by leaving the opponent's hand empty.
+
+**`search` prompts list every looked-at card with a per-candidate `legal` flag**, unlike an action's
+target selection. Assert exclusions via `candidates.find(c => c.ref.id === x)?.legal`, because
+`not.toContain` on the ids passes vacuously. Also assert how many cards reached the trash — that is the
+only thing pinning `lookCount`, which the mutation checker never perturbs.
+
+**`giveDon` with `donState: "rested"` reads `player.restedDon`**, not `activeDon`, so seed it
+separately. And paying a card's own cost *rests* that DON!! — after playing a cost-3 body with
+`activeDon: 3, restedDon: 2`, `restedDon` is 5. Read it back after the play rather than asserting the
+fixture value.
+
 ## Task 4 — OP15 events + stage (20 cards)
 
 **An Event is already in its own trash when its `[Main]` resolves — so a "cards in your trash"
@@ -739,10 +785,24 @@ Task 4's first mutation run killed only **56 of 74** mutants across 20 cards. Al
 the same four mistakes, and they are worth internalising before writing a single test — fixing them
 afterwards cost more than writing them right would have.
 
+0. **The tool is blind to small and negative numbers — those are entirely on you.** The numeric
+   operator matches `value:\s*(\d{3,6})\b`, so it generates **no** mutant for a negative magnitude
+   (`value: -4000`, `value: -2`), for a cost threshold (`value: 8`, `value: 20`), or for any two-digit
+   number. On a card whose decisive numbers are debuffs or costs rather than power buffs, "every mutant
+   killed" says *nothing* about those thresholds. Several OP15 events (`OP15-019` −4000, `OP15-020`
+   −8000, `OP15-021` −3000, `OP15-076` −1000, `OP15-074` +2 cost) passed the gate with their magnitudes
+   never probed. **Write the boundary fixture by hand there** — a body exactly on the line plus one
+   clear of it — and treat a green mutation report as covering only the filters and comparisons.
+
 1. **A candidate list does not pin a `value`.** Nine of the 18 survivors were `value N -> N-1000` on a
-   power modifier, because every test asserted *who* got boosted and none asserted *how much*. Do not
-   read the number back off a projection either — `thisBattle` and `thisTurn` modifiers are gone by the
-   time control returns to the test. **Make the magnitude decide a battle.** Pitch the attacker at
+   power modifier, because every test asserted *who* got boosted and none asserted *how much*.
+   For a `thisBattle` modifier you cannot read the number back off a projection — it is created and
+   expired inside the same call that resolves the last prompt. **A `thisTurn` modifier is different and
+   IS readable**: `ProjectedCard.power` / `.cost` are `getCardPower()` / `getCardCost()`
+   (`projection.ts`), so a `thisTurn` value can be asserted as an exact number off `getView`, and
+   asserted *gone* after `endTurn`. That is the stronger assertion — use it whenever the duration
+   allows, and reserve the battle trick below for `thisBattle`. **Make the magnitude decide a battle.**
+   Pitch the attacker at
    exactly `defenderPower + (the next-lower value)`; since `attackPower >= defensePower` is a hit, the
    real value holds and the mutated one connects:
 
