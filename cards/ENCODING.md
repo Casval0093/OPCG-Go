@@ -616,6 +616,58 @@ the target's *ownership* scoping with an opponent body instead.
 **"a cost of N" / "power N" is `eq`.** Confirmed again on Rebecca (费用为3). Same reading as
 rulings #962/#963. A bare number in card text is an equality unless a comparison word is printed.
 
+## OP15 yellow Characters (16 cards) — lessons
+
+**`data/rulings-sc.json` has one confirmed MISATTRIBUTED ruling — read the quoted card text, not the
+ID you asked for.** Ruling seq **939** is filed under `card_id: "OP15-106"` (Octoballoon) but quotes
+杰丽·邦妮 and asks a Bonney question; it belongs to **`OP15-105`**. So Octoballoon has *no* genuine
+ruling and Bonney has two, one of them findable only under the wrong card. A central audit — consecutive
+`seq` numbers sharing an SC card-name prefix but filed under different card IDs, minus the pairs that
+are genuinely two printings of one character — finds **exactly one** such case in all 1,358 rulings, so
+this is rare rather than systemic. The mitigation is already the standing rule at the top of this file:
+the quoted SC text at the head of each entry is the specification, and checking it is free.
+
+**"Removed by your opponent" and "removed by your opponent's EFFECT" are different encodings, and the
+English barely separates them.** `OP15-098` Luffy is 因对方 — cause-agnostic → `replacedEvent:
+"leaveField"` + `eventFilter: { causedBy: "opponent" }`, and ruling #957 confirms a battle K.O. counts.
+`OP15-105` Bonney is 因对方的**效果** → `replacedEvent: "removeFromField"` + `source: "opponentEffect"`,
+which `findRemovalReplacement` gates on `koCause === "effect"`, so a battle K.O. correctly finds
+nothing. One set apart, near-identical English, opposite encodings — **test the battle direction
+explicitly**, because it is a silent pass under the wrong choice.
+
+**A `turnLifeFaceUp` cost enforces its own "you may not" rulings in both directions.** `canPayCosts`
+rejects it when `life.length < count` *and* when the top cards are already in the requested state. That
+single check is the whole of rulings #934 (`faceUp: false`, unusable when already face-down) and #942
+(`faceUp: true`, unusable when already face-up), plus the 0-Life half of both. **Never add a
+`faceUpLife` or `lifeCount` condition beside one** — unkillable mutant, the trap #933 set on OP15-098.
+Fixture Life cards default to face-**down**, so a `faceUp: false` cost needs
+`life: [{ card: X, faceUp: true }, …]` to be exercisable at all.
+
+**`dynamicCost` is the primitive for "a cost equal to or less than your opponent's Life."** It reads
+`baseCost(card)` against a live count, so both sides move. To prove the source is `opponentLifeCount`
+rather than `selfLifeCount`, set the two Life totals apart **and crossing** — south 2, north 5 makes a
+cost-4 body legal under one reading and produces no prompt at all under the other.
+
+**A bracketed proper noun in an "A or B" filter is not always the same kind of check on both sides.**
+`OP15-101` Kalgara reveals "[Mont Blanc Noland] or [Shandian Warrior] type cards": the first is a
+**name** (no card carries a Mont Blanc Noland *trait*), the second a **trait**. Neither disjunct
+subsumes the other, which is what makes both killable.
+
+**A cheaper `power`-vs-`basePower` discriminator than the synthetic body:** a real 6000-base
+`[Sky Island]` card (`op12Seto103`) plus one `attachDon` **on your own turn** reads 7000 current / 6000
+base. (Note the projected field is `players.<seat>.characters`, plural — `character` is the *fixture*
+key, and confusing them yields "Cannot read properties of undefined".)
+
+**`getLegalCommands` returns descriptors whose card field is `sourceId`, not `sourceInstanceId`** — the
+command you *send* uses one name, the descriptor you *filter* uses the other. And `engine.exec` THROWS
+on a rejected command, so a negative assertion must use `engine.expectFailure` to read a `reason`.
+
+**Fixture additions.** Vanilla `[Sky Island]`: `op06Genbo105` (3/5000), `op12Seto103` (5/6000),
+`op12Wyper114` (6/7000) — all concatenated traits, so `match: "includes"` is mandatory. `[Sky Island]`
+Stages, cost 1: `op05UpperYard117`, `op06TheArkMaxim117` — the fixtures that make a `cardCategory:
+"character"` filter on a `play` action killable. `[Shandian Warrior]` Leader: `op08Kalgara098` only,
+which doubles as a real Leader *named* Kalgara for a `zones: ["leader","character"]` name target.
+
 ## OP16 red Characters (14 cards) — lessons
 
 **`OP16-008` Squard is the one card printing BOTH power filters, and they differ on purpose.** Its
@@ -1040,6 +1092,16 @@ carry an inline `// PARKED` note, because they have an `effects` block to protec
 a `TargetFilter` case in `matchesTargetFilter` (`effects/targeting.ts`) that reads it.
 
 ## Engine limitations found (not encoding choices, not DSL gaps)
+
+- **Simultaneous removals charge one replacement payment EACH; ruling #938 says one payment covers the
+  whole event.** Measured, not inferred: a synthetic `returnToHand` of `count: { amount: 2 }` against an
+  `OP15-105` Bonney board at 4 Life published **two** `effectRemovalReplacement` prompts and charged
+  **two** Life cards (4 → 3 → 2) to save both Characters. The SC answer is that you add **1** Life card
+  and keep both. This is not a DSL gap — `ReplacementEffect` has no vocabulary for "one application
+  covers a simultaneous event"; it is how `findRemovalReplacement`'s per-instance search is driven by
+  its callers. Same family as Marco's #971, which this file previously recorded as *reviewed, not
+  verified* — the divergence is now measured on a different card. No test enshrines the current
+  behaviour.
 
 - **`trashFromDeck` mills nothing when the deck is shorter than the requested amount.**
   `effects/actions.ts` computes `maximum = min(amount, deck.length)` and then returns early
