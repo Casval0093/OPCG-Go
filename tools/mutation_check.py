@@ -37,7 +37,9 @@ import subprocess
 import sys
 
 ENGINE_DEFAULT = "vendor/tcg-engines/submodules/one-piece/packages/engine"
-CARDS_VENDOR = "vendor/tcg-engines/submodules/one-piece/packages/cards/src/cards"
+# The cards package is deliberately NOT a constant: it is resolved as a sibling of whichever engine
+# --engine selects. A repo-relative constant here is what made mutants land in the wrong tree while
+# the tests ran in a clone, reporting every mutant as a survivor.
 TYPES = ("leaders", "characters", "events", "stages")
 
 
