@@ -84,19 +84,22 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   <https://github.com/TheCardGoat/tcg-engines/pull/216>. That does not reopen the `orderCards`
   decision: Ping's 2026-08-17 "stays local" call stands for that one, and `patch_engine.py` remains
   permanent regardless of whether #216 merges.
-- **The engine suite covers far less than its green count suggests: 1953 per-card test files never
+- **The engine suite covers far less than its green count suggests: 1972 per-card test files never
   run.** `packages/engine/vite.config.ts` sets `test.include` to `tests/cards/**` plus four named
-  files — **not** `src/cards/**`. Arithmetic confirms it exactly: 1600 files under `tests/cards/`
-  + 4 named = **1604, the file count the suite reports**. Meanwhile `src/cards/` holds **2065**
-  test files, only 45 of whose basenames appear in `tests/cards/` at all, leaving **1953 cards
-  whose tests have no running counterpart**. They are **not broken** — temporarily adding
-  `src/cards/OP12/**/*.test.ts` took the suite 1601 → 1701 files and 3370 → 3503 tests, all
-  passing. This is *why* the search-to-hand bug survived: `OP12-086` Koala's own test is one of the
-  1953. **Consequence for us: "engine suite 3370 pass" is not the conformance baseline it looks
-  like** for any set whose coverage lives only under `src/cards/`. Our own OP15/OP16 tests are
-  grafted to `tests/cards/OP15|OP16` and DO run — that part is fine. Staged as Finding 2 in
-  `docs/upstream/README.md`. Only OP12 was sampled; a bulk enable may surface pre-existing failures
-  elsewhere.
+  files — **not** `src/cards/**`, where **2065** test files live. Only 26 of their basenames appear
+  under `tests/cards/` at all, leaving **1972 with no running counterpart**. They are **not
+  broken** — enabling `src/cards/OP12/**/*.test.ts` adds **+100 files / +132 tests, all passing**.
+  This is *why* the search-to-hand bug survived: `OP12-086` Koala's own test is one of the 1972.
+  Filed upstream as <https://github.com/TheCardGoat/tcg-engines/issues/217>.
+  **Measure this in a CLEAN upstream clone, never in `vendor/`.** An earlier version of this note
+  said 1953 / overlap 45 / `1600 + 4 = 1604`; those were measured in our own tree, whose
+  `tests/cards/` carries ~212 grafted OP15/OP16 files, and they were **wrong for upstream** — they
+  briefly shipped in the PR body before being corrected. Pristine arithmetic:
+  **1384 + 4 = 1388**, which is exactly the file count a stock `vp test run` reports.
+  **Consequence for us: "engine suite 3370 pass" is not the conformance baseline it looks like** for
+  any set whose coverage lives only under `src/cards/`. Our own OP15/OP16 tests are grafted to
+  `tests/cards/OP15|OP16` and DO run — that part is fine. Only OP12 was sampled; a bulk enable may
+  surface pre-existing failures elsewhere.
 - **Real Block 2+ decks now simulate end to end**, 400/400 `rules-win`, median 9 turns.
 - **Do not calibrate on ST01.** The play/draw gap is **54.5 pts** on ST01, **26.7** on a vanilla
   Block 2+ pile, and **8.5 pts** on a real Block 2+ deck — the last of which is plausible. The gap
@@ -361,16 +364,18 @@ The `tools/` tests are stdlib `unittest`, matching the tools' own stdlib-only co
    ~3.4x; and the calibration evidence that would trigger Option A/B is **much weaker than it
    looked** — the play/draw gap is 8.5 pts on a real Block 2+ deck, not the 54.5 pts ST01 showed.
    Measure policy *quality* before spending on speed.
-5. **File Finding 2 upstream as its own issue — the only upstream piece still outstanding.**
-   The search-to-hand fix is **done**: draft PR
-   <https://github.com/TheCardGoat/tcg-engines/pull/216>, 2 files, +56/−3, `mergeable`, validated in
-   a clean upstream clone (`ci:one-piece:check` 10/10). Deliberately a **draft**, per their
-   `CONTRIBUTING.md` rule for broad-impact behavior changes — promoting it to ready-for-review is a
-   separate decision. What is *not* filed is Finding 2: **1953 per-card test files that never
-   execute**, which currently rides along only as a closing note in #216 and is easy for a reviewer
-   to skip. It is the more valuable of the two findings and deserves its own issue. Note only OP12
-   was sampled, so a bulk `include` change may surface pre-existing failures elsewhere.
-   Staging record and full argument: `docs/upstream/README.md`.
+5. **Both upstream items are sent — nothing outstanding, just waiting on maintainers.**
+   - Fix: <https://github.com/TheCardGoat/tcg-engines/pull/216> — 2 files, +56/−3, `MERGEABLE`,
+     **ready for review** (opened as a draft per their `CONTRIBUTING.md`, promoted once issue #217
+     took the one open design question off it). Validated in a clean upstream clone:
+     `ci:one-piece:check` 10/10, `vp check` clean, test red without the fix.
+   - Test wiring: <https://github.com/TheCardGoat/tcg-engines/issues/217>.
+
+   **Temper expectations on both.** The public repo is an export mirror of a private canonical one:
+   of 211 PRs, the recent merged ones are all `eduardomoroni` / `TheCardGoat-BOT` "Public sync"
+   commits, with no external-contributor PRs in that history, and only 5 issues have ever been
+   opened. Neither may get a response, and that is not a reason to re-litigate the work.
+   Record: `docs/upstream/README.md`.
 
 ## Open questions only Ping can answer
 
