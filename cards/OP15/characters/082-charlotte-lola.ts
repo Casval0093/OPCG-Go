@@ -27,5 +27,36 @@ export const op15CharlotteLola082: CharacterCard = {
   attribute: "slash",
   effect:
     "[On Play] Trash 3 cards from the top of your deck.\n[On K.O.] Add up to 1 of your Character cards with a cost of 8 or less from your trash to your hand.",
+  effects: {
+    effects: [
+      {
+        trigger: "onPlay",
+        actions: [{ action: "trashFromDeck", player: "self", amount: 3 }],
+      },
+      {
+        // Ruling #922: this may add ITSELF (可以) -- Lola is cost 4, and she is already in the
+        // trash by the time her own [On K.O.] resolves. Same zone fact as Absalom's #918. No
+        // `excludeSelf`.
+        trigger: "onKo",
+        actions: [
+          {
+            action: "returnToHand",
+            target: {
+              player: "self",
+              zones: ["trash"],
+              count: { amount: 1, upTo: true },
+              filters: [
+                // Load-bearing next to a `cost` filter, unlike next to a `power` filter: Events
+                // and Stages have real printed costs, and a `returnToHand` target over the trash
+                // has no card-type pre-filter (the pre-filter is specific to `play`).
+                { filter: "cardCategory", value: "character" },
+                { filter: "cost", comparison: "lte", value: 8 },
+              ],
+            },
+          },
+        ],
+      },
+    ],
+  },
   i18n: op15CharlotteLola082I18n,
 };

@@ -27,5 +27,19 @@ export const op15Sanji081: CharacterCard = {
   attribute: "strike",
   effect:
     "[On Play] If your Leader has the [Straw Hat Crew] type, trash 5 cards from the top of your deck.",
+  effects: {
+    effects: [
+      {
+        // The Leader check LEADS the sentence and there is no cost colon, so it gates the whole
+        // block (`conditions`), not just the payload -- the OP15-116 / ruling #944 placement.
+        // Contrast OP15-085 Chopper in this same batch, where it sits after the colon.
+        trigger: "onPlay",
+        // `match: "includes"` is behavioural, not decoration: older Leaders store traits as one
+        // concatenated string (op09MonkeyDLuffy061 is ["Straw Hat Crew The Four Emperors"]).
+        conditions: [{ condition: "leaderTrait", trait: "Straw Hat Crew", match: "includes" }],
+        actions: [{ action: "trashFromDeck", player: "self", amount: 5 }],
+      },
+    ],
+  },
   i18n: op15Sanji081I18n,
 };
