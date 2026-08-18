@@ -14,16 +14,18 @@
     "missing), rulings (SC ruling numbers that constrain what the primitive must do), blocks (other",
     "cards waiting on the same primitive)."
   ],
-  "generated_from": "Tasks 3, 4, 11-18 (all OP15 leaders/events/stage, all OP16) + OP15 yellow — 2026-08-18",
+  "generated_from": "Tasks 3, 4, 11-18 + OP15 yellow/red — 2026-08-18",
   "missing_primitives": [
     {
       "id": "attachedDonTargetFilter",
       "summary": "A TargetFilter over a candidate's attached DON!! count.",
       "detail": "instance.attachedDon exists in engine state, but matchesTargetFilter (effects/targeting.ts) has no case for it. givenDonCount is a Condition over a player's total, not a per-candidate filter.",
-      "wanted_rank": 1,
+      "wanted_rank": 2,
       "blocks": [
         "OP15-001",
-        "OP15-038"
+        "OP15-038",
+        "OP15-015",
+        "OP15-018"
       ]
     },
     {
@@ -144,6 +146,29 @@
       "wanted_rank": 14,
       "blocks": [
         "OP15-119"
+      ]
+    },
+    {
+      "id": "giveDonSourcePlayer",
+      "summary": "A source-player for giveDon: the opponent's DON!!, or DON!! bound to the chosen target's owner.",
+      "detail": "giveDon (effects/actions.ts) always draws from getPlayer(state, controller); GiveDonAction has no source-player field, and the giveDon COST is narrower still (your own ACTIVE DON!! to your own Leader/Character). Two facets needed: a fixed OPPONENT source, and an OWNER-BOUND source that follows the chosen target's controller. NOTE player: 'any' is WRONG, not approximate -- rulings #856/#864/#868/#874 answer 不能 to cross-side giving while #854/#862/#865/#872 allow both same-side directions, so 'any' encodes a card that does not exist.",
+      "wanted_rank": 1,
+      "blocks": [
+        "OP15-003",
+        "OP15-008",
+        "OP15-010",
+        "OP15-012",
+        "OP15-015",
+        "OP15-017"
+      ]
+    },
+    {
+      "id": "perTargetAttachedDonScaling",
+      "summary": "A modifyPower whose magnitude varies PER TARGET by that target's attached DON!! count.",
+      "detail": "Every modifyPower scaling hook computes one value applied uniformly: valuePerCardGroup divides a global count, restedDonGroupSize reads the controller's own pool, distributedValues needs authoring-time magnitudes. Sibling of attachedDonTargetFilter in the same way distinctNameCountScaling is of distinctNameCountCondition.",
+      "wanted_rank": 15,
+      "blocks": [
+        "OP15-008"
       ]
     }
   ],
@@ -339,6 +364,88 @@
         960
       ],
       "note": "The [Rush]-at-6-DON!! half IS encoded and tested. #947/#948/#949 pin that activating a [Main] from trash, or a [Trigger], is NOT activating an Event."
+    },
+    {
+      "card": "OP15-003",
+      "name": "Alvida",
+      "coverage": "partial",
+      "clause": "[Activate: Main] [Once Per Turn] You may give 1 of your opponent's rested DON!! cards to 1 of your opponent's Characters: Give up to 1 rested DON!! card to its owner's Leader or 1 of their Characters.",
+      "primitive": "giveDonSourcePlayer",
+      "rulings": [
+        857
+      ]
+    },
+    {
+      "card": "OP15-008",
+      "name": "Krieg",
+      "coverage": "partial",
+      "clause": "[On Play] Give up to 3 of your opponent's rested DON!! cards to 1 of your opponent's Characters.",
+      "primitive": "giveDonSourcePlayer",
+      "rulings": [
+        858
+      ]
+    },
+    {
+      "card": "OP15-008",
+      "name": "Krieg",
+      "coverage": "partial",
+      "clause": "[Activate: Main] [Once Per Turn] If this Character was played on this turn, give all of your opponent's Characters -1000 power during this turn for every DON!! card given to that Character.",
+      "primitive": "perTargetAttachedDonScaling",
+      "rulings": []
+    },
+    {
+      "card": "OP15-010",
+      "name": "Nezumi",
+      "coverage": "none",
+      "clause": "[Activate: Main] [Once Per Turn] Give up to 1 rested DON!! card to its owner's Leader or 1 of their Characters.",
+      "primitive": "giveDonSourcePlayer",
+      "rulings": []
+    },
+    {
+      "card": "OP15-012",
+      "name": "Buggy",
+      "coverage": "partial",
+      "clause": "[When Attacking] Give up to 1 rested DON!! card to its owner's Leader or 1 of their Characters.",
+      "primitive": "giveDonSourcePlayer",
+      "rulings": []
+    },
+    {
+      "card": "OP15-015",
+      "name": "Higuma",
+      "coverage": "none",
+      "clause": "[On Play] Give up to 1 of your opponent's rested DON!! cards to 1 of your opponent's Characters.",
+      "primitive": "giveDonSourcePlayer",
+      "rulings": [
+        871
+      ]
+    },
+    {
+      "card": "OP15-015",
+      "name": "Higuma",
+      "coverage": "none",
+      "clause": "Then, give -1000 power during this turn to up to 1 of your opponent's Characters with a DON!! card given.",
+      "primitive": "attachedDonTargetFilter",
+      "rulings": [
+        871
+      ]
+    },
+    {
+      "card": "OP15-017",
+      "name": "Morgan",
+      "coverage": "partial",
+      "clause": "[Activate: Main] [Once Per Turn] You may give 1 of your opponent's rested DON!! cards to 1 of your opponent's Characters: Give up to 1 rested DON!! card to its owner's Leader or 1 of their Characters.",
+      "primitive": "giveDonSourcePlayer",
+      "rulings": [
+        875
+      ]
+    },
+    {
+      "card": "OP15-018",
+      "name": "Mohji",
+      "coverage": "none",
+      "clause": "[When Attacking] K.O. up to 1 of your opponent's Characters with 3000 power or less with a DON!! card given.",
+      "primitive": "attachedDonTargetFilter",
+      "rulings": []
     }
   ]
 }

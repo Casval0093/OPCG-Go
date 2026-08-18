@@ -616,6 +616,50 @@ the target's *ownership* scoping with an opponent body instead.
 **"a cost of N" / "power N" is `eq`.** Confirmed again on Rebecca (费用为3). Same reading as
 rulings #962/#963. A bare number in card text is an equality unless a comparison word is printed.
 
+## OP15 red Characters (15 cards) — lessons
+
+**`giveDon` is controller-sourced, full stop, and it parks a whole sub-theme.** The *target* may be an
+opponent's card, but the DON!! can only ever be **yours** — `giveDon` reads
+`getPlayer(state, controller)` and `GiveDonAction` has no source-player field. Six of these fifteen
+cards print the opposite. **Do not reach for `player: "any"`**: rulings #856/#864/#868/#874 all answer
+不能 to cross-side giving while #854/#862/#865/#872 allow both same-side directions, so `"any"` encodes
+a card that does not exist rather than approximating one. Registered as `giveDonSourcePlayer`, now the
+most-blocked primitive in `data/parked-clauses.json`.
+
+**A "wrong X" fixture must be right about everything EXCEPT X.** This batch's only mutation survivor
+(`OP15-014`, `delete filter:cardCategory`) came from a fixture that was wrong-category *and*
+wrong-trait: the trait filter excluded it either way, so `cardCategory` was never consulted and
+deleting it changed nothing. The general shape of a false-negative fixture, and worth checking whenever
+a filter mutant survives on a card whose test "obviously" covers it.
+
+**A `power lte N` filter matches Events and Stages — the mirror of the OP16 note.** `basePower()`
+hard-zeroes non-Character/Leader cards, and 0 satisfies `lte`. So "`cardCategory: "character"` next to
+a `power` filter is redundant except against a Leader" holds only for `eq` and `gte`; under **`lte`** it
+is load-bearing against Events too, and an Event in hand is the right fixture — no synthetic Leader
+needed.
+
+**`activateEvent`'s candidate pool is NOT pre-narrowed by card type**, unlike `play`. It scans the whole
+hand and rejects a non-Event at *execution* time with a bare `return false`, so a mis-scoped pool is a
+silent no-op rather than an error — and its `cardCategory` filter therefore needs a **Character**
+fixture, the opposite of the "use a Stage, never an Event" rule for `play`.
+
+**"If your Leader has 0 power or less" is reachable, and no Condition reads a Leader's power.**
+GENERAL ruling #4 keeps a 0-or-less card on the field, so the state is real; `cardState` only ever
+addresses `"this"`, so the check goes through `hasCard` over `zone: "leader"` carrying a `power` filter
+(precedent `OP05-009` Toh-Toh). `value: 0` generates no numeric mutant, but `comparison: "lte" -> "gte"`
+does — and one negative fixture (the same real Leader at its printed 5000) kills that *and*
+`delete filter:power` together.
+
+**A hand card's projected `cost` is the DISCOUNTED cost**, which is how to pin a "give this card in your
+hand −N cost" magnitude that is doubly invisible to the mutation tool (negative and single-digit).
+Back it with the till: paying rests the DON!!, so a discounted cost-2 body played from `activeDon: 2`
+must leave `activeDon: 0` / `restedDon: 2`. A −1 discount makes the play illegal and a −3 leaves 1
+active, so the pair pins the number from both sides.
+
+**"No card was drawn" must be asserted on `deckCount`, not hand length** — a Leader taking damage moves
+a Life card into its controller's hand, so a negative control for an `[On K.O.] Draw 1` looks like a
+draw if you count the hand.
+
 ## OP15 yellow Characters (16 cards) — lessons
 
 **`data/rulings-sc.json` has one confirmed MISATTRIBUTED ruling — read the quoted card text, not the
@@ -1101,7 +1145,11 @@ a `TargetFilter` case in `matchesTargetFilter` (`effects/targeting.ts`) that rea
   covers a simultaneous event"; it is how `findRemovalReplacement`'s per-instance search is driven by
   its callers. Same family as Marco's #971, which this file previously recorded as *reviewed, not
   verified* — the divergence is now measured on a different card. No test enshrines the current
-  behaviour.
+  behaviour. **Independently confirmed by a second batch on a different card**: ruling #861 says one
+  `OP15-009` Koby Leader −2000 keeps BOTH simultaneously removed Characters and is all-or-nothing, and
+  `promptForEffectRemovalReplacement` (`effects/actions.ts`) takes a single `targetId` plus a
+  `remainingTargetIds` list and prompts per instance — so the engine offers the replacement twice,
+  charges twice, and lets you save just one. Two agents, two cards, same mechanism.
 
 - **`trashFromDeck` mills nothing when the deck is shorter than the requested amount.**
   `effects/actions.ts` computes `maximum = min(amount, deck.length)` and then returns early
