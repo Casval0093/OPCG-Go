@@ -1,0 +1,10 @@
+{
+  "name": "council:tempo-vs-resources",
+  "callBudgetPerGame": 400,
+  "proposers": [
+    { "name": "tempo", "lens": "tempo" },
+    { "name": "resources", "lens": "attrition" }
+  ],
+  "adjudicator": { "name": "adjudicator" },
+  "playbook": "This deck wins by pressuring Life on a curve and closing before the 30-minute round expires. Develop a body every turn you can. Attach DON to the attacker that threatens the most, not to the Leader, unless the Leader's attack is the one that connects. Hold at least one Counter card in hand once the opponent has an attacker that can trade with your best body. Do not attack into a board where the attack bounces off — a wasted attack is a wasted turn under the clock."
+}

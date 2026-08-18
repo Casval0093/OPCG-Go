@@ -1,0 +1,10 @@
+{
+  "name": "opcg-arena",
+  "private": true,
+  "type": "module",
+  "description": "Arena deps live here, not in the vendored engine. scripts/arena.sh copies arena/ (including node_modules) into the engine, so Node resolves them from arena/node_modules \u2014 the closest node_modules to the importing file. The vendored engine's package.json is never touched. openai is present because DeepSeek is OpenAI-compatible and ships no SDK of its own; DeepSeek's own docs prescribe the OpenAI SDK with a base_url override.",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.116.0",
+    "openai": "^6.9.0"
+  }
+}
