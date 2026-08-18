@@ -1,8 +1,26 @@
 # Upstream-ready findings for `TheCardGoat/tcg-engines`
 
-Prepared 2026-08-19. **Nothing here has been sent.** No fork, no branch, no PR, no issue — opening
-those publishes under Ping's GitHub identity, which is his call to make, not this repo's. Everything
-below is staged so that sending it is a copy-paste, and so that *not* sending it costs nothing.
+Prepared 2026-08-19.
+
+## Status
+
+| Finding | State |
+|---|---|
+| 1 — search-to-hand slot gate | **SENT.** Draft PR <https://github.com/TheCardGoat/tcg-engines/pull/216> (Ping authorised 2026-08-19) |
+| 2 — 1953 per-card tests never run | **NOT sent as an issue.** Included as a closing note in PR #216 only. |
+
+Fork: <https://github.com/Casval0093/tcg-engines>, branch `fix/search-to-hand-slot-gate`, commit
+`bf3931b6c`. Opened as a **draft** because `CONTRIBUTING.md` says to: *"Open an issue or draft PR for
+behavior changes with broad impact."* 171 encodings qualifies. It is draft on purpose — do not
+promote it to ready-for-review without deciding that is what you want.
+
+The PR was built and validated in a **clean clone of upstream**, not in `vendor/`: our tree carries
+the grafted OP15/OP16 cards, the copied sim test files and both local patches, so a gate run there
+would have proved nothing about the PR. Validation in the clean clone: `pnpm run ci:one-piece:check`
+10/10 tasks, `vp check` clean on both files, engine suite 2631 → 2632 (verified by removing the new
+test file and re-counting, so the added test is provably in the run).
+
+The rest of this file is the original staging record, kept because it is the argument the PR makes.
 
 Context for why this directory exists at all: Ping decided 2026-08-17 that the `orderCards` fix
 **stays local** (`docs/plans/encode-op15-op16.md`), which makes `tools/patch_engine.py` permanent
@@ -92,11 +110,19 @@ if a bulk run turns up pre-existing failures in sets other than OP12 (only OP12 
 
 ---
 
-## To send it (Ping's call)
+## Already sent — how it was assembled
+
+Finding 1 is PR #216; the commands below are the record of how, not a to-do.
 
 ```bash
-gh repo fork TheCardGoat/tcg-engines --clone --remote
+gh repo fork TheCardGoat/tcg-engines --clone=false
+git clone https://github.com/Casval0093/tcg-engines.git      # clean tree, NOT vendor/
 cd tcg-engines && git checkout -b fix/search-to-hand-slot-gate
 git apply /path/to/OPCG-Go/docs/upstream/search-to-hand-slot-gate.patch
-# then paste 086-koala.test.ts.snippet into the Koala test file, per its header note
+# regression test placed at packages/engine/tests/cards/OP12/086-koala.test.ts --
+# NOT at the src/cards path in 086-koala.test.ts.snippet, which vite.config.ts does not run
+cd submodules/one-piece && pnpm install --ignore-scripts && pnpm run ci-check
 ```
+
+**If Finding 2 is ever filed as an issue, note it is unfiled today** — PR #216 carries it only as a
+closing note, which is easy for a reviewer to skip.

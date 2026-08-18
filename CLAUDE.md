@@ -80,9 +80,10 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   with a `search` action** (every one that reveals to hand), and only 19 are OP15/OP16 — the other
   152 are upstream's own cards. Fix is patch 2 in `tools/patch_engine.py`; A/B on the 10-game Ace
   mirror with the arena's masking retry disabled: **`illegal-command=1` → `rules-win=10`**. Engine
-  suite 3370 pass / 0 fail. Whether *this* one goes upstream is **open** — Ping's 2026-08-17 "stays
-  local" call was about `orderCards`; it has not been re-asked for a bug that breaks 152 of
-  upstream's own cards. Do not assume either answer.
+  suite 3370 pass / 0 fail. **Sent upstream as a draft PR 2026-08-19 on Ping's authorisation** —
+  <https://github.com/TheCardGoat/tcg-engines/pull/216>. That does not reopen the `orderCards`
+  decision: Ping's 2026-08-17 "stays local" call stands for that one, and `patch_engine.py` remains
+  permanent regardless of whether #216 merges.
 - **The engine suite covers far less than its green count suggests: 1953 per-card test files never
   run.** `packages/engine/vite.config.ts` sets `test.include` to `tests/cards/**` plus four named
   files — **not** `src/cards/**`. Arithmetic confirms it exactly: 1600 files under `tests/cards/`
@@ -360,14 +361,16 @@ The `tools/` tests are stdlib `unittest`, matching the tools' own stdlib-only co
    ~3.4x; and the calibration evidence that would trigger Option A/B is **much weaker than it
    looked** — the play/draw gap is 8.5 pts on a real Block 2+ deck, not the 54.5 pts ST01 showed.
    Measure policy *quality* before spending on speed.
-5. **Ask Ping whether the search-to-hand fix goes upstream — and only that one.** Both findings are
-   staged, verified and unsent in `docs/upstream/` (patch applies clean to a pristine upstream tree;
-   regression test written against upstream's own `OP12-086` Koala). The old item here
-   said "send the `orderCards` fix upstream"; that was **stale and contradicted the owner**, who
-   decided 2026-08-17 that it stays local (`docs/plans/encode-op15-op16.md`). Both fixes live in
-   `tools/patch_engine.py`, which is permanent infrastructure, so nothing is blocked either way.
-   The new fix is worth re-asking about on facts the first decision did not have: it is ~1 line and
-   breaks **152 of upstream's own cards**, not just ours. Not a next action until he answers.
+5. **File Finding 2 upstream as its own issue — the only upstream piece still outstanding.**
+   The search-to-hand fix is **done**: draft PR
+   <https://github.com/TheCardGoat/tcg-engines/pull/216>, 2 files, +56/−3, `mergeable`, validated in
+   a clean upstream clone (`ci:one-piece:check` 10/10). Deliberately a **draft**, per their
+   `CONTRIBUTING.md` rule for broad-impact behavior changes — promoting it to ready-for-review is a
+   separate decision. What is *not* filed is Finding 2: **1953 per-card test files that never
+   execute**, which currently rides along only as a closing note in #216 and is easy for a reviewer
+   to skip. It is the more valuable of the two findings and deserves its own issue. Note only OP12
+   was sampled, so a bulk `include` change may surface pre-existing failures elsewhere.
+   Staging record and full argument: `docs/upstream/README.md`.
 
 ## Open questions only Ping can answer
 
