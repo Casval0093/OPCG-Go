@@ -210,14 +210,92 @@ the OP15/OP16 encodings.
 **Wilson intervals** throughout, not the normal approximation, since win rates near 0 and 1 appear
 in the play/draw split.
 
+## Policy quality, step 1: the dominance ladder
+
+`./scripts/policy_ladder.sh [GAMES] [DECK]`, 200 games per pair, deck
+`sim/decks/mihawk-green-proxy.json`, 2026-08-19. **Both seats play the same deck, so the deck cancels
+and the win rate is a read on the policy rather than on the list.** This required per-deck strategies
+(`--strategy-a` / `--strategy-b`); the policy binds to the *deck*, not the seat, because `aSeat`
+alternates by game index to control turn order and a seat-bound policy would make deck A swap
+policies mid-run.
+
+| A | B | A wins | 95% CI |
+|---|---|---|---|
+| valueRanked | passOnly | 100.0% | 98.1 – 100 |
+| valueRanked | random | 100.0% | 98.1 – 100 |
+| valueRanked | firstLegal | 96.0% | 92.3 – 98.0 |
+| **valueRanked** | **greedy** | **71.5%** | **64.9 – 77.3** |
+| greedy | random | 100.0% | 98.1 – 100 |
+| greedy | firstLegal | 94.0% | 89.8 – 96.5 |
+| random | firstLegal | 2.5% | 1.1 – 5.7 |
+| firstLegal | passOnly | 100.0% | 98.1 – 100 |
+
+> **This table is being replaced.** It is 8 of the 10 pairs, and it was measured *before* patch 4,
+> i.e. on an engine that handed the player on the play **2 DON!! on turn one instead of 1**. A full
+> round robin is re-running on the corrected engine; treat every number here as provisional.
+
+**No total order may be read off this table.** An earlier version stated
+`passOnly < random < firstLegal < greedy < valueRanked`, which asserted **`passOnly < random` from no
+measurement at all** — that pair was never played, and `firstLegal` beating both of them does not
+order them against each other. Pairwise policy strength **need not be transitive**; cycles are normal
+among heuristics. What the 8 pairs do support individually: `valueRanked` > `greedy` > `firstLegal` >
+`random`, and `firstLegal` > `passOnly`.
+
+**Two prior assumptions were refuted, both of which had been written down as if known.**
+
+- **`firstLegal` beats `random` 97.5%** — the reverse of the assumed ordering. Picking the first legal
+  command is accidentally competent because the legal-command list leads with plays and attacks, while
+  `random` throws turns away on `endTurn`/pass. **So `random`, not `firstLegal`, is the honest
+  "no policy" control**, and `firstLegal` is not the trivial baseline it looks like.
+- **`passOnly` produces 0 timeouts** — not the round-clock double-losses that were predicted. Across
+  all 1600 ladder games there were **zero** timeouts; a player that only passes loses outright. Still
+  a useful control, just not for the stated reason.
+
+**The pair that mattered came out in the default's favour.** `valueRanked` beats `greedy` **71.5%
+[64.9, 77.3]** — the interval excludes 50% decisively, so the extra machinery is worth roughly 21
+points and the sim's default policy is **not** "greedy wearing a hat."
+
+### What this does not establish
+
+It is a **floor test**. It shows the ladder is ordered and that `valueRanked` is the strongest of five
+simple heuristics. **Being best-of-five weak heuristics is not evidence of playing well**, and nothing
+here licenses trusting a tech-slot ΔWR.
+
+**A ceiling inference was drawn here and is RETRACTED.** It read: a 21-point gap between the top two
+rungs means the policy is nowhere near saturated, because a near-ceiling policy would have the next
+rung close behind. **That reasoning is invalid** and labelling it "inference" did not rescue it. The
+gap between rung N and rung N−1 measures the *spacing of five arbitrarily chosen heuristics*, not the
+distance from rung N to the ceiling: **if `valueRanked` were already optimal and `greedy` simply poor,
+the same 21 points would appear.** The premise that rungs are evenly spaced up to the ceiling is
+unfounded — the rungs were picked by hand from whatever the engine happened to ship.
+
+Nothing in this experiment bears on absolute quality, and **no ladder result may be used to argue for
+or against buying throughput.** Distance from the ceiling requires a ceiling: steps 2 (puzzle suite),
+4 (oracle agreement) or 5 (human benchmark).
+
+**The decision rule survives on independent grounds, which is why the retraction does not change
+it.** "Measure quality before buying speed" rests on the bias argument — a policy that cannot use a
+conditional card systematically under-reports every tech card's ΔWR, and precision does not repair
+bias. That argument never depended on the ladder.
+
+Next: step 2, the puzzle suite, which is the first measurement that can say something about absolute
+quality rather than relative ordering.
+
 ## What is not done
 
-- **No *meta* matchup yet.** Block 2+ decks now simulate fine, but every deck in the current field
-  is OP15/OP16 and those cards are still shells — Task 1 generated definitions, not encodings. The
-  Mihawk proxy deck is built from OP09–OP14 cards precisely because those are encoded today.
+- **No *meta* matchup yet — but the blocker is gone.** This used to read "every deck in the current
+  field is OP15/OP16 and those cards are still shells". **That is no longer true:** OP15/OP16
+  encoding completed and was verified 2026-08-19 (119 imported = 119 definitions per set, 0 cards
+  unencoded-and-unparked). The Mihawk proxy deck is still OP09–OP14 only because it predates that.
+  Real deck-vs-deck calibration against the EN ladder matrix is now *available* and simply has not
+  been run — that is step 3 of the policy-quality plan.
 - The `orderCards` fix uses identity order, which is legal but not a policy. Ordering
   top-of-deck cards deliberately is real strategy and is unimplemented.
-- Policy quality is unmeasured. A plausible play/draw split is a sanity check, not a skill test.
+- Policy quality has a **floor** but no **ceiling**. The dominance ladder above orders the five
+  policies and shows `valueRanked` clears `greedy` by ~21 points, so it is not broken and not
+  trivial. Nothing yet speaks to absolute quality — a plausible play/draw split is a sanity check,
+  not a skill test, and neither is beating four weaker heuristics. Steps 2–5 of the plan in CLAUDE.md
+  are what would close this.
 - The turns-to-minutes mapping is unmeasured, so the timeout column is a knob, not a prediction.
 - The bot does not value Life, which the elimination-bracket tiebreak rewards.
 - Mulligan policy is whatever the engine's default is; the Comprehensive Rules allow one
