@@ -6,8 +6,25 @@ Prepared 2026-08-19.
 
 | Finding | State |
 |---|---|
-| 1 — search-to-hand slot gate | **SENT.** Draft PR <https://github.com/TheCardGoat/tcg-engines/pull/216> (Ping authorised 2026-08-19) |
-| 2 — 1953 per-card tests never run | **NOT sent as an issue.** Included as a closing note in PR #216 only. |
+| 1 — search-to-hand slot gate | **SENT.** PR <https://github.com/TheCardGoat/tcg-engines/pull/216> — ready for review, `MERGEABLE`, 2 files, +56/−3 |
+| 2 — 1972 per-card tests never run | **SENT.** Issue <https://github.com/TheCardGoat/tcg-engines/issues/217> |
+
+Ping authorised sending 2026-08-19 and delegated the issue/promote calls.
+
+**#216 was opened as a draft and later promoted to ready for review.** The draft was to satisfy
+`CONTRIBUTING.md` ("Open an issue or draft PR for behavior changes with broad impact"); it was
+promoted once #217 carried the one genuinely open design question, leaving a small, validated,
+conservative diff. Reversible — it can be converted back to draft.
+
+**Temper expectations.** The public repo is an export mirror: of 211 PRs, the recent merged ones are
+all `eduardomoroni` / `TheCardGoat-BOT` "Public sync" commits with no external-contributor PRs in
+that history, and only 5 issues have ever been opened. Silence is the likely outcome.
+
+**The Finding 2 numbers in the original staging text below were WRONG and are corrected in #217.**
+They were measured in our tree, whose `tests/cards/` carries ~212 grafted OP15/OP16 files. Pristine
+upstream: 2065 under `src/cards/`, 1384 under `tests/cards/`, `1384 + 4 = 1388` (exactly the stock
+suite's file count), 26 basenames overlapping, **1972** orphaned. Enabling `src/cards/OP12/**` adds
++100 files / +132 tests, all passing. **Measure upstream facts in a clean clone, never in `vendor/`.**
 
 Fork: <https://github.com/Casval0093/tcg-engines>, branch `fix/search-to-hand-slot-gate`, commit
 `bf3931b6c`. Opened as a **draft** because `CONTRIBUTING.md` says to: *"Open an issue or draft PR for
@@ -91,13 +108,16 @@ test: { include: [
 
 `src/cards/**/*.test.ts` is not covered. Measured:
 
-| | count |
+> **SUPERSEDED — these were measured in our contaminated tree. Correct pristine figures are in the
+> Status block above and in issue #217. Kept only to show what the error was.**
+
+| | count (WRONG for upstream) |
 |---|---|
 | test files under `src/cards/` | 2065 |
-| test files under `tests/cards/` | 1600 |
-| `1600 + 4` named files | **1604 — exactly the file count the suite reports** |
-| basenames present in both trees | 45 |
-| basenames only under `src/cards/` (no counterpart anywhere) | **1953** |
+| test files under `tests/cards/` | ~~1600~~ → 1384 |
+| `1600 + 4` named files | ~~1604~~ → **1388** |
+| basenames present in both trees | ~~45~~ → 26 |
+| basenames only under `src/cards/` | ~~1953~~ → **1972** |
 
 So this is not a completed migration with leftovers; 1953 cards' tests have no running counterpart.
 **They are not broken, either** — temporarily adding `"src/cards/OP12/**/*.test.ts"` to `include`
