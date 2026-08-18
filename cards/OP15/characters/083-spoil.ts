@@ -27,5 +27,43 @@ export const op15Spoil083: CharacterCard = {
   attribute: "wisdom",
   effect:
     "[On Play] Trash 3 cards from the top of your deck.\n[Activate: Main] You may trash this Character: If you have 15 or more cards in your trash, give up to 1 rested DON!! card to 1 of your Leader or Character cards.",
+  effects: {
+    effects: [
+      {
+        trigger: "onPlay",
+        actions: [{ action: "trashFromDeck", player: "self", amount: 3 }],
+      },
+      {
+        // Ruling #923 is decisive about WHERE the count lives, and it is not the block.
+        // At 14 cards in the trash the activation is legal and the DON!! is given (可以),
+        // because trashing this Character to pay the cost is the 15th card. The engine
+        // evaluates `block.conditions` twice, both times BEFORE any cost is paid -- once at the
+        // command (engine/commands.ts rejects with "The activation conditions are not met.")
+        // and once at the head of `processQueuedEffectBlock` -- while an ACTION's own
+        // `condition` is evaluated in `processQueuedEffectAction`, after `payCosts`. So a
+        // block-level `zoneCount gte 15` would refuse the activation at exactly the trash count
+        // the ruling says works. Same post-colon placement as OP16-065 / OP04-060 Crocodile,
+        // reached here by a stronger argument than the printed comma: the cost feeds the count.
+        trigger: "activateMain",
+        costs: [{ cost: "trashThisCard" }],
+        actions: [
+          {
+            action: "giveDon",
+            target: { player: "self", zones: ["leader", "character"], count: { amount: 1 } },
+            count: { amount: 1, upTo: true },
+            donState: "rested",
+            condition: {
+              condition: "zoneCount",
+              player: "self",
+              zone: "trash",
+              comparison: "gte",
+              value: 15,
+            },
+          },
+        ],
+        optional: true,
+      },
+    ],
+  },
   i18n: op15Spoil083I18n,
 };
