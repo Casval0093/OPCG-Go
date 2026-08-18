@@ -76,10 +76,15 @@ import { otherSeat } from "../../src/shared.ts";
 import type { MatchConfig, MatchSeat } from "../../src/types.ts";
 import type { OnePieceBotStrategy } from "../../src/automation/bot-strategies.ts";
 
-// Ordered weakest -> strongest as the ladder EXPECTS them to rank. That expectation is the thing
-// under test: a policy that cannot beat `random` and `firstLegal` by a wide margin is not a policy.
-// `passOnly` is the true floor and mostly produces round-clock timeouts (双方败北) rather than
-// losses, which is itself a useful control -- it shows the harness scores a non-player correctly.
+// MEASURED order, weakest -> strongest (policy_ladder.sh, 200 games/pair, 2026-08-19):
+//   passOnly  <  random  <  firstLegal  <  greedy  <  valueRanked
+// Two things this table's earlier comment asserted are REFUTED by that run, do not reinstate them:
+//   * `random` is NOT stronger than `firstLegal` -- firstLegal wins 97.5%. Picking the first legal
+//     command is accidentally competent because the command list leads with plays and attacks,
+//     whereas random constantly throws turns away on endTurn/pass. So `random`, not `firstLegal`,
+//     is the honest "no policy" control.
+//   * `passOnly` does NOT produce round-clock timeouts. 0 timeouts in all 1600 ladder games -- it
+//     loses outright. Still a useful control, just not for the reason first guessed.
 const STRATEGIES: Record<string, OnePieceBotStrategy> = {
   passOnly: passOnlyStrategy,
   firstLegal: firstLegalStrategy,
@@ -445,7 +450,12 @@ run(
       deckA: deckA.name,
       deckB: deckB.name,
       games,
-      strategy: strategyName,
+      // Record the per-deck policies, not just SIM_STRATEGY. An asymmetric run used to serialise
+      // as `strategy: "valueRanked"`, which silently hid which policy each deck actually played
+      // and made the results file misleading to anyone reading it later.
+      strategyA: strategyNameA,
+      strategyB: strategyNameB,
+      symmetricStrategy: strategyNameA === strategyNameB,
       turnBudget,
       seed0,
       baseline: base,

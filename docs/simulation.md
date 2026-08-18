@@ -197,14 +197,73 @@ the OP15/OP16 encodings.
 **Wilson intervals** throughout, not the normal approximation, since win rates near 0 and 1 appear
 in the play/draw split.
 
+## Policy quality, step 1: the dominance ladder
+
+`./scripts/policy_ladder.sh [GAMES] [DECK]`, 200 games per pair, deck
+`sim/decks/mihawk-green-proxy.json`, 2026-08-19. **Both seats play the same deck, so the deck cancels
+and the win rate is a read on the policy rather than on the list.** This required per-deck strategies
+(`--strategy-a` / `--strategy-b`); the policy binds to the *deck*, not the seat, because `aSeat`
+alternates by game index to control turn order and a seat-bound policy would make deck A swap
+policies mid-run.
+
+| A | B | A wins | 95% CI |
+|---|---|---|---|
+| valueRanked | passOnly | 100.0% | 98.1 – 100 |
+| valueRanked | random | 100.0% | 98.1 – 100 |
+| valueRanked | firstLegal | 96.0% | 92.3 – 98.0 |
+| **valueRanked** | **greedy** | **71.5%** | **64.9 – 77.3** |
+| greedy | random | 100.0% | 98.1 – 100 |
+| greedy | firstLegal | 94.0% | 89.8 – 96.5 |
+| random | firstLegal | 2.5% | 1.1 – 5.7 |
+| firstLegal | passOnly | 100.0% | 98.1 – 100 |
+
+Measured order: **passOnly < random < firstLegal < greedy < valueRanked.**
+
+**Two prior assumptions were refuted, both of which had been written down as if known.**
+
+- **`firstLegal` beats `random` 97.5%** — the reverse of the assumed ordering. Picking the first legal
+  command is accidentally competent because the legal-command list leads with plays and attacks, while
+  `random` throws turns away on `endTurn`/pass. **So `random`, not `firstLegal`, is the honest
+  "no policy" control**, and `firstLegal` is not the trivial baseline it looks like.
+- **`passOnly` produces 0 timeouts** — not the round-clock double-losses that were predicted. Across
+  all 1600 ladder games there were **zero** timeouts; a player that only passes loses outright. Still
+  a useful control, just not for the stated reason.
+
+**The pair that mattered came out in the default's favour.** `valueRanked` beats `greedy` **71.5%
+[64.9, 77.3]** — the interval excludes 50% decisively, so the extra machinery is worth roughly 21
+points and the sim's default policy is **not** "greedy wearing a hat."
+
+### What this does not establish
+
+It is a **floor test**. It shows the ladder is ordered and that `valueRanked` is the strongest of five
+simple heuristics. **Being best-of-five weak heuristics is not evidence of playing well**, and nothing
+here licenses trusting a tech-slot ΔWR.
+
+There is one *inference* worth drawing, labelled as inference rather than measurement: **a 21-point
+gap between the top two rungs suggests the policy is nowhere near saturated.** If `valueRanked` were
+close to a ceiling, the next rung down would sit close behind it; a large gap at the top of the ladder
+is the signature of a steep part of the curve, where further policy work still returns a lot. That is
+evidence *for* policy quality being the binding constraint, and *against* spending on throughput next
+— consistent with the decision rule in CLAUDE.md.
+
+Next: step 2, the puzzle suite, which is the first measurement that can say something about absolute
+quality rather than relative ordering.
+
 ## What is not done
 
-- **No *meta* matchup yet.** Block 2+ decks now simulate fine, but every deck in the current field
-  is OP15/OP16 and those cards are still shells — Task 1 generated definitions, not encodings. The
-  Mihawk proxy deck is built from OP09–OP14 cards precisely because those are encoded today.
+- **No *meta* matchup yet — but the blocker is gone.** This used to read "every deck in the current
+  field is OP15/OP16 and those cards are still shells". **That is no longer true:** OP15/OP16
+  encoding completed and was verified 2026-08-19 (119 imported = 119 definitions per set, 0 cards
+  unencoded-and-unparked). The Mihawk proxy deck is still OP09–OP14 only because it predates that.
+  Real deck-vs-deck calibration against the EN ladder matrix is now *available* and simply has not
+  been run — that is step 3 of the policy-quality plan.
 - The `orderCards` fix uses identity order, which is legal but not a policy. Ordering
   top-of-deck cards deliberately is real strategy and is unimplemented.
-- Policy quality is unmeasured. A plausible play/draw split is a sanity check, not a skill test.
+- Policy quality has a **floor** but no **ceiling**. The dominance ladder above orders the five
+  policies and shows `valueRanked` clears `greedy` by ~21 points, so it is not broken and not
+  trivial. Nothing yet speaks to absolute quality — a plausible play/draw split is a sanity check,
+  not a skill test, and neither is beating four weaker heuristics. Steps 2–5 of the plan in CLAUDE.md
+  are what would close this.
 - The turns-to-minutes mapping is unmeasured, so the timeout column is a knob, not a prediction.
 - The bot does not value Life, which the elimination-bracket tiebreak rewards.
 - Mulligan policy is whatever the engine's default is; the Comprehensive Rules allow one
