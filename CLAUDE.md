@@ -436,12 +436,18 @@ The `tools/` tests are stdlib `unittest`, matching the tools' own stdlib-only co
       `random vs passOnly`**, because when both sides are incompetent neither closes inside the clock
       and the result is 双方败北. Both the original claim ("mostly timeouts") and its first correction
       ("0 timeouts, loses outright") were wrong as stated; the second was measured only against
-      competent opponents. This validates the timeout model against the 30-minute rule;
+      competent opponents. **That 11% is sensitivity to `SIM_TURN_BUDGET` (40 turns), NOT a
+      real-world timeout rate** — the turns-to-minutes mapping is uncalibrated, so it must never be
+      quoted against the 30-minute clock. What it does show is narrower: the timeout **scoring path**
+      fires only when neither side can close, and scores a double loss rather than a win;
       (c) an 8-pair version of this claimed the same total order **while never having played
       `random` vs `passOnly`** — pairwise policy strength need not be transitive, so a total order
       may only be stated when every pair has been played. **Keep the round robin complete.**
-      **The first-turn DON!! fix did not move the ladder** — all pairs within noise of the pre-fix
-      run, because the mirror alternates seats so the surplus DON!! fell on both policies equally.
+      **The first-turn DON!! fix did not move the ladder — for the 8 pairs that have a pre-fix
+      number.** The pre-fix run covered only 8 of 10, so `greedy vs passOnly` and `random vs passOnly`
+      are first measurements, not re-measurements, and **the 22-timeout pair is one of them** — the
+      fix can be neither credited nor cleared there. For the 8, all within noise, because the mirror
+      alternates seats so the surplus DON!! fell on both policies equally.
       **A ceiling inference from the greedy gap is RETRACTED — do not re-derive it.** The gap between
       the top two rungs measures the spacing of five hand-picked heuristics, not the distance to a
       ceiling: an already-optimal `valueRanked` against a merely-poor `greedy` gives the same margin.

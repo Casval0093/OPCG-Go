@@ -257,19 +257,33 @@ default is **not** "greedy wearing a hat."
   table where passOnly only ever faced competent opponents. The round robin shows both were wrong as
   stated: **9 pairs produced 0 timeouts, and `random vs passOnly` produced 22 (11%)**. A competent
   opponent kills passOnly quickly; when *both* sides are incompetent neither can close inside the
-  clock and the result is 双方败北. **This is a genuine validation of the timeout model** — the
-  harness reproduces the exact failure the 30-minute round punishes, and it only appears when nobody
-  can win.
+  budget and the game is scored `timeout` = double loss.
+  **Do NOT call this a validation of the 30-minute clock.** An earlier version of this line did, and
+  it contradicted this document two sections away: the timeout trigger is `turns > turnBudget` with
+  `turnBudget` defaulting to **40 turns**, and "the turns-to-minutes mapping is unmeasured, so the
+  timeout column is a knob, not a prediction." **The 11% is a sensitivity to a configured threshold,
+  not a real-world timeout rate**, and it must not be quoted as one. What the run *does* support is
+  narrower and still worth having: the harness's timeout **scoring path** fires only when neither
+  side can close, and scores it as a double loss rather than a win — the right shape for 双方败北.
+  Whether 40 turns is the right threshold needs timed games.
 
 ### The first-turn DON!! fix did not move the ladder
 
 The first run of this table predates patch 4, on an engine that gave the player on the play **2
-DON!! on turn one instead of 1**. Re-measured post-fix, every pair is within noise of the old
-figures — `valueRanked vs greedy` 71.5% → 76.0% with overlapping intervals ([64.9, 77.3] vs
-[69.6, 81.4]), `firstLegal vs random` 97.5% → 98.0%, `greedy vs firstLegal` 94.0% → 92.0%. **The
-mirror design was robust to that rules defect**, as predicted: seats alternate, so the surplus DON!!
-fell on both policies equally. The numbers above are the post-fix ones regardless; the pre-fix run is
-not cited anywhere as evidence.
+DON!! on turn one instead of 1**. It also covered only **8 of the 10 pairs**, so the comparison below
+is restricted to those 8 — `greedy vs passOnly` and `random vs passOnly` have **no pre-fix baseline at
+all** and are first measurements, not re-measurements.
+
+Across the **8 repeated pairs**, every one is within noise of its old figure: `valueRanked vs greedy`
+71.5% → 76.0% with overlapping intervals ([64.9, 77.3] vs [69.6, 81.4]), `firstLegal vs random`
+97.5% → 98.0%, `greedy vs firstLegal` 94.0% → 92.0%, and the five 100% pairs unchanged. **For those 8,
+the mirror design was robust to the rules defect**, as predicted: seats alternate, so the surplus
+DON!! fell on both policies equally.
+
+**Nothing is claimed about the two new pairs**, and that matters here rather than being a technicality:
+**`random vs passOnly` is one of them, and it is the pair carrying all 22 timeouts.** There is no
+pre-fix number to compare it against, so the DON!! fix can be neither credited nor cleared for it.
+The numbers above are the post-fix ones throughout; the pre-fix run is cited as evidence nowhere.
 
 ### What this does not establish
 
