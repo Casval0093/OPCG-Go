@@ -177,4 +177,62 @@ describe("OP16-118 Portgas.D.Ace", () => {
       ...deckBefore.slice(0, 5),
     ]);
   });
+
+  // Regression: the arena hit `illegal-command` here on an Ace mirror. The search prompt offered
+  // five [Whitebeard Pirates] bodies and the engine then refused every one of them. The trait
+  // filter was never the problem -- `effectSearchSelection` in the engine's resolution.ts gates
+  // the selection on `getOpenCharacterSlots()` UNCONDITIONALLY, while the prompt in actions.ts
+  // only folds that count into capacity when `revealDestination === "character"`. Ace reveals to
+  // HAND, so a full board must be irrelevant; with 0 open slots the resolution rejected every
+  // Character selection the prompt had just marked legal.
+  test("[On Play] reveals to HAND even with a full character area (0 open slots)", () => {
+    const engine = OnePieceTestEngine.create(
+      {
+        leaderCardId: op16PortgasDAce001,
+        hand: [op16PortgasDAce118],
+        // Four bodies down; Ace itself takes the fifth and last slot, so the search resolves with
+        // zero open character slots.
+        character: [
+          { card: op03Camie101, playedOnTurn: 0 },
+          { card: op03Camie101, playedOnTurn: 0 },
+          { card: op03Camie101, playedOnTurn: 0 },
+          { card: op03Camie101, playedOnTurn: 0 },
+        ],
+        deck: deck(),
+        activeDon: op16PortgasDAce118.cost,
+      },
+      {},
+    );
+    const [first, luffy, thatch, genzo, doma] = engine.getState().players.south.deck as [
+      string,
+      string,
+      string,
+      string,
+      string,
+    ];
+
+    engine.playCard(op16PortgasDAce118, "south");
+    expect(
+      engine.getState().players.south.characterArea.filter((slot) => slot !== null),
+    ).toHaveLength(5);
+
+    const look = engine.pendingDecision("effectSearchSelection", "south").steps[0];
+    if (look?.kind !== "selectEntity") throw new Error("Expected Ace's look-at-5.");
+    // The prompt still marks the Characters legal -- this half was never broken.
+    expect(look.candidates.find((candidate) => candidate.ref.id === luffy)?.legal).toBe(true);
+    expect(look.candidates.find((candidate) => candidate.ref.id === thatch)?.legal).toBe(true);
+
+    // ...so resolving one of them must be ACCEPTED. This is what threw MoveFailedError.
+    engine.resolveDecision("effectSearchSelection", { selectedIds: [luffy] }, "south");
+    expect(engine.getState().players.south.hand).toContain(luffy);
+    expect(
+      engine.getState().players.south.characterArea.filter((slot) => slot !== null),
+    ).toHaveLength(5);
+
+    engine.resolveDecision(
+      "effectSearchRemainderOrder",
+      { selectedIds: [doma, genzo, thatch, first] },
+      "south",
+    );
+  });
 });

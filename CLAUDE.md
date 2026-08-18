@@ -12,8 +12,9 @@ Two tracks run in parallel:
 
 - **Research track** — mine real tournament + ladder data, compute field-weighted EV, recommend a deck. *Working today.*
 - **Engine track** — fork a rules engine, add search AI, simulate matchups for formats that have no
-  data yet. *In progress:* OP15/OP16 card shells generated, simulation harness working end to end
-  on Block 2+ decks. Remaining: encode OP15/OP16 effects, then a play policy worth trusting.
+  data yet. *Status 2026-08-18:* OP15/OP16 **encoded** (PR #11) and grafted; simulation harness works
+  end to end on Block 2+ decks; an arena for human/LLM play exists (`docs/arena.md`). Remaining: a
+  play policy worth trusting, and OP17 once Bandai publishes it.
 
 ## Ground truth: what is real vs what is not
 
@@ -24,8 +25,9 @@ them, and none should be without saying so explicitly.
 **Simulation started working on 2026-08-17** and its output lives only in `docs/simulation.md` and
 `sim/results/`. So far that is mirror matches used to validate the harness — 400-game ST01 and
 Mihawk mirrors — plus the prompt diagnostic. **No matchup between two different decks has been
-simulated**, because the current field is OP15/OP16 and those cards are shells, not encodings.
-Keep the two bodies of evidence clearly separated when writing anything.
+simulated** as of that date — the reason given then was that OP15/OP16 were shells, and **that reason
+expired on 2026-08-18 when PR #11 encoded them.** A cross-deck matchup is now buildable and simply has
+not been run. Keep the two bodies of evidence clearly separated when writing anything.
 
 ## Locked decisions
 
@@ -59,8 +61,41 @@ Keep the two bodies of evidence clearly separated when writing anything.
   `optionId`, which cannot express an ordering. `orderCards` failed **17/17**; every other kind
   passed, including `chooseOption`. The ~8-line fix is `tools/patch_engine.py`, re-applied by
   `scripts/bootstrap.sh` since `vendor/` is gitignored. A/B: 3/20 games completed → **20/20**.
-  Engine suite unchanged at 2632. **This belongs upstream** — tcg-engines is MIT and the bug is
-  theirs. See `docs/simulation.md`.
+  Engine suite unchanged at 2632. The bug is upstream's (tcg-engines is MIT), but **Ping decided
+  2026-08-17 NOT to send it upstream** — `docs/plans/encode-op15-op16.md`. `tools/patch_engine.py`
+  is therefore permanent, not a stopgap. See `docs/simulation.md`.
+- **A search that reveals to HAND was gated on open CHARACTER slots — FIXED 2026-08-18, do not
+  re-diagnose, and it is NOT a trait-filter bug.** `effectSearchSelection` in the engine's
+  `effects/resolution.ts` rejected a selection when
+  `selectedIds.filter(cardType === "character").length > openCharacterSlots`, applying that test to
+  **every** search regardless of `revealDestination`. Adding a card to your hand needs no board slot,
+  so with a full character area (0 open slots) the engine refused every Character the prompt had
+  just offered. The two halves disagreed: prompt creation in `effects/actions.ts` folds
+  `openCharacterSlots` into `destinationCapacity` **only** when `revealDestination === "character"`.
+  Surfaced on `OP16-118` Portgas.D.Ace as an `illegal-command` abort whose prompt offered five
+  [Whitebeard Pirates] bodies and refused four. **The trait filter was never wrong** — the prompt's
+  own `eligibleIds` was correct and every refused card was in it; all 104 trait/name filters across
+  `cards/OP15` + `cards/OP16` resolve to real catalog values, so there is no
+  "Whitebeard Piratess"-class typo in the encodings. Blast radius was **171 of the 185 encodings
+  with a `search` action** (every one that reveals to hand), and only 19 are OP15/OP16 — the other
+  152 are upstream's own cards. Fix is patch 2 in `tools/patch_engine.py`; A/B on the 10-game Ace
+  mirror with the arena's masking retry disabled: **`illegal-command=1` → `rules-win=10`**. Engine
+  suite 3370 pass / 0 fail. Whether *this* one goes upstream is **open** — Ping's 2026-08-17 "stays
+  local" call was about `orderCards`; it has not been re-asked for a bug that breaks 152 of
+  upstream's own cards. Do not assume either answer.
+- **The engine suite covers far less than its green count suggests: 1953 per-card test files never
+  run.** `packages/engine/vite.config.ts` sets `test.include` to `tests/cards/**` plus four named
+  files — **not** `src/cards/**`. Arithmetic confirms it exactly: 1600 files under `tests/cards/`
+  + 4 named = **1604, the file count the suite reports**. Meanwhile `src/cards/` holds **2065**
+  test files, only 45 of whose basenames appear in `tests/cards/` at all, leaving **1953 cards
+  whose tests have no running counterpart**. They are **not broken** — temporarily adding
+  `src/cards/OP12/**/*.test.ts` took the suite 1601 → 1701 files and 3370 → 3503 tests, all
+  passing. This is *why* the search-to-hand bug survived: `OP12-086` Koala's own test is one of the
+  1953. **Consequence for us: "engine suite 3370 pass" is not the conformance baseline it looks
+  like** for any set whose coverage lives only under `src/cards/`. Our own OP15/OP16 tests are
+  grafted to `tests/cards/OP15|OP16` and DO run — that part is fine. Staged as Finding 2 in
+  `docs/upstream/README.md`. Only OP12 was sampled; a bulk enable may surface pre-existing failures
+  elsewhere.
 - **Real Block 2+ decks now simulate end to end**, 400/400 `rules-win`, median 9 turns.
 - **Do not calibrate on ST01.** The play/draw gap is **54.5 pts** on ST01, **26.7** on a vanilla
   Block 2+ pile, and **8.5 pts** on a real Block 2+ deck — the last of which is plausible. The gap
@@ -220,12 +255,20 @@ Keep the two bodies of evidence clearly separated when writing anything.
   assumed 2–5x roughly holds in magnitude but its mechanism was wrong: per-command cost is flat,
   and the whole slowdown is game length (94.6 cmds/game vs 51.1). Effect resolution is not the
   bottleneck — state transitions are. See `docs/engine-audit.md`.
-- **The engine has no OP15/OP16/OP17 — only OP01–OP14, EB01–04, PRB01–02, ST01, DON.**
-  This blocks more than it looks. The B/Y Teach list cannot be built in the engine (10 of 14
-  slots plus leader `OP16-080` are missing), so "benchmark on the Teach deck" was never
-  available — having cards in `data/cards-OP16-en.json` is not the same as having them in
-  `@tcg/op-cards`. **`OP14-020` Mihawk IS in the engine; `OP16-001` Ace is not** — the secondary
-  archetype is the simulable one today.
+- **OP15 and OP16 ARE in the engine and encoded — this fact was stale and cost a session.**
+  Superseded 2026-08-18 by PR #11 ("Tasks 3-18 complete: all of OP15 and OP16 encoded, tested and
+  verified"). Measured after grafting: **246 card definitions across `cards/OP15` + `cards/OP16`,
+  212 carrying `effects:`** and the remaining 34 genuinely vanilla; engine catalog **2,537 cards**
+  (was 2,282). Known gaps are enumerated in `data/parked-clauses.json`, not left implicit.
+  **`OP16-001` Ace is in the engine AND encoded** — its `[Activate: Main]` resolves through
+  `grantKeyword`, and `sim/decks/ace-op16.json` is a legal 50-card mono-red Ace list that completes
+  games. So is `OP14-020` Mihawk. OP17 is still absent, because Bandai has not published it.
+  *The trap this leaves behind:* the old text was true when written and read as permanent, and a
+  session working on a branch cut before PR #11 measured "5 of 238 encoded" on its own stale tree
+  and reported Ace unplayable. **Before asserting what the engine lacks, check `git log main` and
+  re-graft** — `python3 tools/graft_cards.py` is idempotent and takes seconds.
+  Still true and worth keeping: having cards in `data/cards-OP16-en.json` is **not** the same as
+  having them in `@tcg/op-cards`; the graft step is what closes that gap.
 
 ## What the EV tooling is for — decided 2026-08-17
 
@@ -317,9 +360,14 @@ The `tools/` tests are stdlib `unittest`, matching the tools' own stdlib-only co
    ~3.4x; and the calibration evidence that would trigger Option A/B is **much weaker than it
    looked** — the play/draw gap is 8.5 pts on a real Block 2+ deck, not the 54.5 pts ST01 showed.
    Measure policy *quality* before spending on speed.
-5. **Send the `orderCards` fix upstream to `TheCardGoat/tcg-engines`.** MIT, the bug is theirs, the
-   fix is ~8 lines and A/B-proven (3/20 → 20/20 games completed). Currently carried locally in
-   `tools/patch_engine.py`.
+5. **Ask Ping whether the search-to-hand fix goes upstream — and only that one.** Both findings are
+   staged, verified and unsent in `docs/upstream/` (patch applies clean to a pristine upstream tree;
+   regression test written against upstream's own `OP12-086` Koala). The old item here
+   said "send the `orderCards` fix upstream"; that was **stale and contradicted the owner**, who
+   decided 2026-08-17 that it stays local (`docs/plans/encode-op15-op16.md`). Both fixes live in
+   `tools/patch_engine.py`, which is permanent infrastructure, so nothing is blocked either way.
+   The new fix is worth re-asking about on facts the first decision did not have: it is ~1 line and
+   breaks **152 of upstream's own cards**, not just ours. Not a next action until he answers.
 
 ## Open questions only Ping can answer
 
