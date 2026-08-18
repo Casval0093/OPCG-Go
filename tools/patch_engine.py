@@ -97,6 +97,84 @@ SEARCH_SLOTS_FIX = """        selectedIds.some((instanceId) => !playableEligible
             (instanceId) => getCardForInstance(state, instanceId).cardType === "character",
           ).length > openCharacterSlots) ||"""
 
+# --- Patch 3: the first player takes 2 DON!! on their first turn, and should take 1 -----------
+#
+# `finalizeBeginTurnRefresh` places `Math.min(2, player.donDeckCount)` every DON!! Phase with no
+# first-turn exception, so the player going first opens on 2 active DON!! instead of 1.
+#
+# The rule: a player places 2 DON!! from their DON!! deck each DON!! Phase, EXCEPT the first
+# player's first turn, when they place only 1. It is first-player compensation and it is the pair of
+# the skipped first draw, which this engine *does* implement (`skipFirstTurnDraw`,
+# Comprehensive Rules 6-3-1). Only half the compensation was there.
+#
+# Measured before the patch, Ace mirror, seed 7 (`turnNumber active=seat  north | south`):
+#   turn 1 active=north   north 2a/0r don (8 left) hand 5   <-- first player, should be 1a/9 left
+#   turn 2 active=south   south 2a/0r don (8 left) hand 6
+#
+# Why the condition is written this way: `state.config.firstPlayer` is authoritative by the time
+# turn 1 begins -- the 猜拳 winner's `chooseFirstPlayer` overwrites the config value during setup
+# (CLAUDE.md), so it names whoever actually leads. The alternative signal, `skipDraw`, would work
+# today because it is true exactly once per game, but it is derived from a config flag a caller can
+# switch off, which would silently take the DON!! rule with it. Turn number plus seat cannot be
+# misconfigured.
+#
+# THIS CHANGES EVERY PLAY/DRAW NUMBER MEASURED BEFORE IT. The first player has been running a turn-1
+# DON!! surplus, so the first-player advantage in docs/simulation.md is overstated by an unknown
+# amount and its 8.5-point Block 2+ gap needs re-measuring.
+
+FIRST_TURN_DON_ANCHOR = """  const player = getPlayer(state, seat);
+  const placedDon = Math.min(2, player.donDeckCount);"""
+
+FIRST_TURN_DON_FIX = """  const player = getPlayer(state, seat);
+  // OPCG-Go patch: the first player places only 1 DON!! on their first turn. A player places 2 each
+  // DON!! Phase otherwise. This is the pair of the skipped first draw (Comprehensive Rules 6-3-1),
+  // which this engine already implements via `skipFirstTurnDraw`; without this branch the leading
+  // player opens on 2 DON!! and gets half the compensation but none of the cost.
+  // `state.config.firstPlayer` is authoritative here: the 猜拳 winner's `chooseFirstPlayer`
+  // overwrites it during setup, so it names whoever actually leads.
+  const isFirstPlayersFirstTurn = state.turnNumber === 1 && seat === state.config.firstPlayer;
+  const placedDon = Math.min(isFirstPlayersFirstTurn ? 1 : 2, player.donDeckCount);"""
+
+
+# --- Patch 4: two upstream tests assert the pre-fix DON!! behaviour --------------------------
+#
+# Patch 3 makes the first player place 1 DON!! on their first turn. Two tests in
+# `tests/index.test.ts` were written against the old flat 2 and fail after it. Both are correcting
+# the TEST, not accommodating the fix -- they assert a state the official rules do not permit:
+#
+#   1. `supports accepting a mulligan...` asserts `players.south.activeDon === 2` immediately after
+#      startGame. South wins 猜拳 in `startGameCommands()` and chooses itself as first player, so the
+#      correct value is 1.
+#   2. `plays a stage, activates it, ...` plays two 1-cost cards (Otama, then Windmill Village) on
+#      south's first turn. On 1 DON!! the second play is refused, `stageArea` stays null, and the
+#      test dies on `Unknown card instance: null` rather than a clean assertion. Its subject is the
+#      stage's power projection, not the opening DON!! count, so it is given a turn cycle to breathe:
+#      south ends, north ends, and south acts on turn 3 with 3 DON!!.
+#
+# Note this is NOT the `skipFirstTurnDraw` flag being off. `src/shared.ts` defaults it to
+# `config.skipFirstTurnDraw ?? true`, so first-player compensation is ON in these tests -- they take
+# the skipped draw and still expect the un-reduced DON!!. That is upstream encoding the bug, which is
+# why patch 3 is unconditional rather than hung off that flag.
+
+MULLIGAN_DON_ANCHOR = """    expect(started.state.players.south.activeDon).toBe(2);"""
+
+MULLIGAN_DON_FIX = """    // OPCG-Go patch: south wins 猜拳 and chooses itself first, so it places 1 DON!!, not 2.
+    expect(started.state.players.south.activeDon).toBe(1);"""
+
+STAGE_TURN_ANCHOR = """  test("plays a stage, activates it, and projects the modified character power", () => {
+    const started = runCommands(createMatch(buildConfig()), startGameCommands());"""
+
+STAGE_TURN_FIX = """  test("plays a stage, activates it, and projects the modified character power", () => {
+    // OPCG-Go patch: this test plays two 1-cost cards, and the first player now opens on 1 DON!!.
+    // Give it a full turn cycle so south acts on turn 3 with 3 DON!! — the subject under test is the
+    // stage's power projection, not the opening DON!! count.
+    const started = runCommands(createMatch(buildConfig()), [
+      ...startGameCommands(),
+      { type: "endTurn", seat: "south" },
+      { type: "endTurn", seat: "north" },
+    ]);"""
+
+
 PATCHES = [
     {
         "name": "bot-harness: resolve orderCards prompts",
@@ -111,6 +189,22 @@ PATCHES = [
         "anchor": SEARCH_SLOTS_ANCHOR,
         "already": 'OPCG-Go patch: only a search that PLAYS what it reveals',
         "apply": lambda s: s.replace(SEARCH_SLOTS_ANCHOR, SEARCH_SLOTS_FIX, 1),
+    },
+    {
+        "name": "state: first player places 1 DON!! on their first turn, not 2",
+        "relpath": "src/state.ts",
+        "anchor": FIRST_TURN_DON_ANCHOR,
+        "already": "isFirstPlayersFirstTurn",
+        "apply": lambda s: s.replace(FIRST_TURN_DON_ANCHOR, FIRST_TURN_DON_FIX, 1),
+    },
+    {
+        "name": "tests: two upstream cases assert the pre-fix first-turn DON!! count",
+        "relpath": "tests/index.test.ts",
+        "anchor": MULLIGAN_DON_ANCHOR,
+        "already": "south wins 猜拳 and chooses itself first",
+        "apply": lambda s: s.replace(MULLIGAN_DON_ANCHOR, MULLIGAN_DON_FIX, 1).replace(
+            STAGE_TURN_ANCHOR, STAGE_TURN_FIX, 1
+        ),
     },
 ]
 
