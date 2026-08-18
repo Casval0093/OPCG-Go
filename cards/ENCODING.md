@@ -616,6 +616,42 @@ the target's *ownership* scoping with an opponent body instead.
 **"a cost of N" / "power N" is `eq`.** Confirmed again on Rebecca (费用为3). Same reading as
 rulings #962/#963. A bare number in card text is an equality unless a comparison word is printed.
 
+## OP15 purple Characters (15 cards) — lessons
+
+**A `returnDon` COST auto-pays only while one KIND of DON!! is held — and playing the card itself
+breaks that.** The gate is `options.length > amount && sourceKeys.size > 1`, so an all-active fixture
+auto-pays; but paying a card's own play cost *rests* those DON!!, so by the time an `[On Play] DON!! -N`
+resolves the player holds both kinds and a real `effectCostReturnDon` prompt appears. Resolve it with
+`{ selectedIds: ["active-don:0"] }`. **The `returnDon` ACTION has a looser gate** — it prompts whenever
+`options.length > amount`, with no `sourceKeys` check — so an all-active board that auto-pays a *cost*
+still publishes a choice for an *action* or a replacement.
+
+**`position: "topOrBottom"` is one destination for the whole group, and that IS the rule.** Ruling #906
+asks whether two looked-at cards may be split top and bottom: 不可以. Splitting is structurally
+inexpressible in that verb, which is why it is right rather than merely convenient.
+
+**A card gated on N `hasCard` conditions needs N negative fixtures AND N ruling fixtures — four boards
+for two names.** The tool deletes each `{ filter: "name" }` independently *and* narrows each
+`zone: "field"` independently. And **a single synthetic Leader cannot carry both names**: `cardNames()`
+is `[cardName(card), ...alternateNames]`, and a hand-spread Leader has no `alternateNames`.
+
+**A permanent `grantKeyword` over cards other than the source needs `count: { amount: "all" }`** —
+`permanentKeywordsFor` skips any target that is neither `"all"` nor `self: true`, the same guard
+`getPermanentModifierTotal` applies. So "all of your [X] cards **and this Character**" is always **two**
+actions; there is no filter meaning "is the source card" to OR into the first.
+
+**Keyword-grant tests need a control on the same fixture.** `[Unblockable]`: attack into an **active**
+`[Blocker]` and assert `battleBlocker` never opened, paired with a non-matching body that *does* open
+it. `[Double Attack]`: assert 2 Life lost — which requires the attacker to actually beat the defending
+Leader, so a 4000-power body needs an attached DON!! to reach 5000 or the test reads 0 either way.
+
+**Pre-OP15 fixtures with exactly the names OP15's Sky Island package keys on**, all `[On Play]`- or
+`[Trigger]`-only and therefore inert when placed directly on the field: `op05Ohm101`, `op05Satori105`,
+`op05Kotori103`, `op05Hotori111`, `op05Shura106`, `op05Holly110`. No synthetics needed for any of the
+name conditions. **Two inert sub-3000 K.O. targets**, filling the gap the red batch flagged:
+`op03Spandam086` (cost 1, power 2000) and `op03Corgy083` (cost 1, power 0) — between them they kill all
+three mutants on a `power lte 2000` filter.
+
 ## OP15 red Characters (15 cards) — lessons
 
 **`giveDon` is controller-sourced, full stop, and it parks a whole sub-theme.** The *target* may be an
@@ -1136,6 +1172,18 @@ carry an inline `// PARKED` note, because they have an `effects` block to protec
 a `TargetFilter` case in `matchesTargetFilter` (`effects/targeting.ts`) that reads it.
 
 ## Engine limitations found (not encoding choices, not DSL gaps)
+
+- **A `thisBattle` modifier created OUTSIDE a battle never expires at all.**
+  `expiresAtBattleId: state.battle?.id ?? null` records `null` in the main phase,
+  `cleanupBattleModifiers` matches on battle id, and `expiresAtTurn` is only set for `thisTurn`. So a
+  main-phase `thisBattle` debuff is effectively permanent — it survives later battles *and* turn end.
+  Practical consequence for tests: `thisTurn` vs `thisBattle` on an `[Activate: Main]` modifier is only
+  distinguishable by asserting the modifier is **gone after `endTurn`**; asserting that it survives a
+  battle proves nothing.
+- **`removeFromField` and `leaveField` become indistinguishable once `source: "opponentEffect"` is
+  set**, because `structuredSourceMatches` requires `koCause === "effect"`, which independently closes
+  the battle path that is the only place the two values differ. So the `OP15-098`-vs-`OP15-105`
+  distinction is only observable when the `source` is absent.
 
 - **Simultaneous removals charge one replacement payment EACH; ruling #938 says one payment covers the
   whole event.** Measured, not inferred: a synthetic `returnToHand` of `count: { amount: 2 }` against an
