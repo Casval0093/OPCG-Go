@@ -27,5 +27,32 @@ export const op15Cabaji005: CharacterCard = {
   attribute: "slash",
   effect:
     "[When Attacking] If your opponent has any DON!! cards given, this Character gains +2000 power during this turn.",
+  effects: {
+    effects: [
+      {
+        trigger: "whenAttacking",
+        // "your opponent has ANY DON!! cards given" is existence, not a count -- `donGiven`
+        // (effects/conditions.ts) is exactly that: it scans the named player's Leader plus every
+        // Character for `attachedDon > 0`. `givenDonCount ... gte 1` would be the same predicate
+        // written as arithmetic, but `donGiven` is the spelling that matches the printed wording.
+        // `player: "opponent"` is load-bearing: DON!! you have given your OWN cards must not
+        // satisfy it.
+        conditions: [{ condition: "donGiven", player: "opponent" }],
+        actions: [
+          {
+            action: "modifyPower",
+            target: {
+              player: "self",
+              zones: ["character"],
+              count: { amount: 1 },
+              self: true,
+            },
+            value: 2000,
+            duration: "thisTurn",
+          },
+        ],
+      },
+    ],
+  },
   i18n: op15Cabaji005I18n,
 };
