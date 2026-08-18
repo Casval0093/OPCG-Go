@@ -27,5 +27,44 @@ export const op15Hotori072: CharacterCard = {
   attribute: "special",
   effect:
     "[Activate: Main] DON!! -2, You may rest this Character: If you have [Kotori] and [Satori], give up to 1 of your opponent's Characters -3000 power during this turn.",
+  effects: {
+    effects: [
+      {
+        trigger: "activateMain",
+        costs: [{ cost: "returnDon", amount: 2 }, { cost: "restThisCard" }],
+        actions: [
+          {
+            action: "modifyPower",
+            target: { player: "opponent", zones: ["character"], count: { amount: 1, upTo: true } },
+            value: -3000,
+            duration: "thisTurn",
+            // Post-colon placement gates the payload only -- the costs are payable with neither
+            // name present and buy nothing. Ruling #911 is the twin of #905 on OP15-064 Kotori:
+            // a Leader with every card's name satisfies both names alone, so the scan must be
+            // `zone: "field"`, and 我方场上 pins `player: "self"`.
+            condition: {
+              condition: "compound",
+              operator: "and",
+              conditions: [
+                {
+                  condition: "hasCard",
+                  player: "self",
+                  zone: "field",
+                  filters: [{ filter: "name", value: "Kotori" }],
+                },
+                {
+                  condition: "hasCard",
+                  player: "self",
+                  zone: "field",
+                  filters: [{ filter: "name", value: "Satori" }],
+                },
+              ],
+            },
+          },
+        ],
+        optional: true,
+      },
+    ],
+  },
   i18n: op15Hotori072I18n,
 };

@@ -27,5 +27,29 @@ export const op15Goro065: CharacterCard = {
   attribute: "wisdom",
   effect:
     "[On Play] Reveal 1 card from the top of your deck. If the revealed card has a cost of 2 or less, add up to 1 DON!! card from your DON!! deck and rest it.",
+  effects: {
+    effects: [
+      {
+        trigger: "onPlay",
+        actions: [
+          {
+            // `revealFromDeck`, not `revealTopDeckCard`: the printed text gives no placement
+            // instruction, so the revealed card stays where it was. `revealFromDeck` finalizes at
+            // `position: "top"` unconditionally (effects/actions.ts); `revealTopDeckCard` demands
+            // a `finalPosition` and is the verb for cards that print "... and place it at the top
+            // or bottom" (OP08-049) or "Then, place the revealed card at the bottom" (OP04-011).
+            // Model: OP14EB04-044 Edward Newgate, the only other user of this action.
+            action: "revealFromDeck",
+            player: "self",
+            count: 1,
+            ifRevealedCardMatches: {
+              filters: [{ filter: "cost", comparison: "lte", value: 2 }],
+              actions: [{ action: "addDon", count: { amount: 1, upTo: true }, state: "rested" }],
+            },
+          },
+        ],
+      },
+    ],
+  },
   i18n: op15Goro065I18n,
 };
