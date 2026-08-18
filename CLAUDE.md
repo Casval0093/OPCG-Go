@@ -84,28 +84,28 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   <https://github.com/TheCardGoat/tcg-engines/pull/216>. That does not reopen the `orderCards`
   decision: Ping's 2026-08-17 "stays local" call stands for that one, and `patch_engine.py` remains
   permanent regardless of whether #216 merges.
-- **The engine suite covers far less than its green count suggests: 1972 per-card test files never
-  run.** `packages/engine/vite.config.ts` sets `test.include` to `tests/cards/**` plus four named
-  files — **not** `src/cards/**`, where **2065** test files live. Only 26 of their basenames appear
-  under `tests/cards/` at all, leaving **1972 with no running counterpart**. They are **not
-  broken** — enabling `src/cards/OP12/**/*.test.ts` adds **+100 files / +132 tests, all passing**.
-  This is *why* the search-to-hand bug survived: `OP12-086` Koala's own test is one of the 1972.
-  Filed upstream as <https://github.com/TheCardGoat/tcg-engines/issues/217>.
-  **RESOLVED on our side 2026-08-19 — patch 3 in `tools/patch_engine.py` turns them on, and the
-  earlier warning that a bulk enable "may surface pre-existing failures elsewhere" is RETRACTED: it
-  does not.** Measured: **1601 → 3666 files, 3370 → 6078 tests, 0 failures, 85s → 85s.** +2065 files
-  and +2708 tests for no measurable wall clock (`isolate: false`, and transform/import dominate).
-  Nothing needed fixing; they were only unwired. Our conformance baseline for OP01–OP14 roughly
-  doubled at zero cost — **quote 6078, not 3370, from here on.**
-  **Measure this in a CLEAN upstream clone, never in `vendor/`.** An earlier version of this note
-  said 1953 / overlap 45 / `1600 + 4 = 1604`; those were measured in our own tree, whose
-  `tests/cards/` carries ~212 grafted OP15/OP16 files, and they were **wrong for upstream** — they
-  briefly shipped in the PR body before being corrected. Pristine arithmetic:
-  **1384 + 4 = 1388**, which is exactly the file count a stock `vp test run` reports.
-  **Consequence for us: "engine suite 3370 pass" is not the conformance baseline it looks like** for
-  any set whose coverage lives only under `src/cards/`. Our own OP15/OP16 tests are grafted to
-  `tests/cards/OP15|OP16` and DO run — that part is fine. Only OP12 was sampled; a bulk enable may
-  surface pre-existing failures elsewhere.
+- **Upstream never ran ~2000 of its own per-card tests; we now do — FIXED 2026-08-19, quote 6078.**
+  `packages/engine/vite.config.ts` sets `test.include` to `tests/cards/**` plus four named files —
+  **not** `src/cards/**`, where **2065** test files live. Only 26 of their basenames appear under
+  `tests/cards/` at all, leaving **1972 with no running counterpart**. Pristine arithmetic confirms
+  the include list accounts for everything that ran: **1384 + 4 = 1388**, exactly the file count a
+  stock `vp test run` reports. **This is why the search-to-hand bug in patch 2 survived** —
+  `OP12-086` Koala's own test file is one of the 1972.
+  **Patch 3 in `tools/patch_engine.py` turns them all on: 1601 → 3666 files, 3370 → 6078 tests,
+  0 failures, 89s → 87s.** +2065 files and +2708 tests for no measurable wall clock (`isolate: false`,
+  and transform/import dominate). Nothing needed fixing; they were only unwired. Measured twice — by
+  hand-editing the include, then through `patch_engine.py` — identically. **Our OP01–OP14 conformance
+  baseline roughly doubled at zero cost, so quote 6078, not 3370.**
+  **An interim version of this note carried an OP12-only sample (+100 files / +132 tests) and warned
+  that a bulk enable "may surface pre-existing failures elsewhere". The full enable has been run and
+  nothing fails, so that caveat is VOID — do not reinstate it.**
+  **Measurement hygiene, learned the hard way: measure upstream facts in a CLEAN upstream clone,
+  never in `vendor/`.** An earlier version said 1953 orphaned / overlap 45 / `1600 + 4 = 1604`; those
+  were measured in our own tree, whose `tests/cards/` carries ~212 grafted OP15/OP16 files, and they
+  were wrong for upstream — they briefly shipped in the PR body before being corrected.
+  Upstream issue <https://github.com/TheCardGoat/tcg-engines/issues/217> still cites only the OP12
+  sample and repeats the caveat this note just voided; **the full-enable evidence has not been posted
+  there.**
 - **Real Block 2+ decks now simulate end to end**, 400/400 `rules-win`, median 9 turns.
 - **Do not calibrate on ST01.** The play/draw gap is **54.5 pts** on ST01, **26.7** on a vanilla
   Block 2+ pile, and **8.5 pts** on a real Block 2+ deck — the last of which is plausible. The gap
