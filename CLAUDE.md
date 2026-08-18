@@ -423,23 +423,37 @@ The `tools/` tests are stdlib `unittest`, matching the tools' own stdlib-only co
    Ping approved this sequence 2026-08-19. The audit's four options are all *throughput* levers, and
    **throughput buys precision, never freedom from bias.** A weak policy does not merely add noise to
    a tech-slot measurement; it biases it in a predictable direction — see the note below.
-   1. ~~**Dominance ladder**~~ — **DONE 2026-08-19**, `./scripts/policy_ladder.sh`, 200 games/pair.
-      **A total order was claimed and withdrawn: `passOnly < random` was never measured** (only 8 of
-      the 10 pairs were run, and `firstLegal` beating both does not order them against each other —
-      pairwise policy strength need not be transitive). The ladder is now a **full round robin**, and
-      is being re-run on the post-patch-4 engine because the first run predates the first-turn DON!!
-      fix. The pair that mattered went the default's way: **`valueRanked` beats `greedy` 71.5% [64.9, 77.3]**, so the
-      default is not "greedy wearing a hat". Two written-down assumptions were **refuted**:
-      `firstLegal` beats `random` 97.5% (so **`random` is the honest no-policy control**, because the
-      legal-command list leads with plays and attacks while random throws turns away on pass), and
-      `passOnly` produced **0 timeouts in 1600 games** rather than the predicted double-losses.
-      **Floor test only** — best-of-five weak heuristics is not evidence of playing well.
-      **A ceiling inference drawn from the 21-point gap is RETRACTED — do not re-derive it.** The
-      gap between the top two rungs measures the spacing of five hand-picked heuristics, not the
-      distance to the ceiling: an already-optimal `valueRanked` against a merely-poor `greedy`
-      produces the same 21 points. **No ladder result may be used to argue for or against buying
-      throughput.** The decision rule below survives untouched because it rests on the *bias*
-      argument, not on this. Full table and caveats: `docs/simulation.md`.
+   1. ~~**Dominance ladder**~~ — **DONE 2026-08-19**, `./scripts/policy_ladder.sh`, **full round
+      robin, all 10 pairs**, 200 games each, post-patch-4 engine.
+      **Measured total order: `passOnly < random < firstLegal < greedy < valueRanked`** — win counts
+      4-3-2-1-0, every pair decisive, **no cycles** (checked, not assumed). The pair that mattered
+      went the default's way: **`valueRanked` beats `greedy` 76.0% [69.6, 81.4]**, so the default is
+      not "greedy wearing a hat".
+      **Three things previously written here as known were refuted by measurement:**
+      (a) `firstLegal` beats `random` 98.0%, so **`random` is the honest no-policy control** — the
+      legal-command list leads with plays and attacks while random throws turns away on pass;
+      (b) `passOnly`'s timeouts are **opponent-dependent** — 0 in 9 pairs, but **22 (11%) in
+      `random vs passOnly`**, because when both sides are incompetent neither closes inside the clock
+      and the result is 双方败北. Both the original claim ("mostly timeouts") and its first correction
+      ("0 timeouts, loses outright") were wrong as stated; the second was measured only against
+      competent opponents. **That 11% is sensitivity to `SIM_TURN_BUDGET` (40 turns), NOT a
+      real-world timeout rate** — the turns-to-minutes mapping is uncalibrated, so it must never be
+      quoted against the 30-minute clock. What it does show is narrower: the timeout **scoring path**
+      fires only when neither side can close, and scores a double loss rather than a win;
+      (c) an 8-pair version of this claimed the same total order **while never having played
+      `random` vs `passOnly`** — pairwise policy strength need not be transitive, so a total order
+      may only be stated when every pair has been played. **Keep the round robin complete.**
+      **The first-turn DON!! fix did not move the ladder — for the 8 pairs that have a pre-fix
+      number.** The pre-fix run covered only 8 of 10, so `greedy vs passOnly` and `random vs passOnly`
+      are first measurements, not re-measurements, and **the 22-timeout pair is one of them** — the
+      fix can be neither credited nor cleared there. For the 8, all within noise, because the mirror
+      alternates seats so the surplus DON!! fell on both policies equally.
+      **A ceiling inference from the greedy gap is RETRACTED — do not re-derive it.** The gap between
+      the top two rungs measures the spacing of five hand-picked heuristics, not the distance to a
+      ceiling: an already-optimal `valueRanked` against a merely-poor `greedy` gives the same margin.
+      **No ladder result may be used to argue for or against buying throughput.** The decision rule
+      below survives untouched because it rests on the *bias* argument, not on this.
+      Full table: `docs/simulation.md`.
    2. **Puzzle suite** — 30–50 hand-built positions with an unambiguous best play (lethal on board,
       a blocker that must be used, a counter that must be played to survive, removal that must hit
       the one relevant body). Best value for effort: needs no opponent and no statistics, and

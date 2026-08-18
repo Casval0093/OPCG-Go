@@ -219,41 +219,71 @@ and the win rate is a read on the policy rather than on the list.** This require
 alternates by game index to control turn order and a seat-bound policy would make deck A swap
 policies mid-run.
 
-| A | B | A wins | 95% CI |
-|---|---|---|---|
-| valueRanked | passOnly | 100.0% | 98.1 – 100 |
-| valueRanked | random | 100.0% | 98.1 – 100 |
-| valueRanked | firstLegal | 96.0% | 92.3 – 98.0 |
-| **valueRanked** | **greedy** | **71.5%** | **64.9 – 77.3** |
-| greedy | random | 100.0% | 98.1 – 100 |
-| greedy | firstLegal | 94.0% | 89.8 – 96.5 |
-| random | firstLegal | 2.5% | 1.1 – 5.7 |
-| firstLegal | passOnly | 100.0% | 98.1 – 100 |
+| A | B | A wins | 95% CI | timeouts |
+|---|---|---|---|---|
+| valueRanked | greedy | **76.0%** | 69.6 – 81.4 | 0 |
+| valueRanked | firstLegal | 95.5% | 91.7 – 97.6 | 0 |
+| valueRanked | random | 100.0% | 98.1 – 100 | 0 |
+| valueRanked | passOnly | 100.0% | 98.1 – 100 | 0 |
+| greedy | firstLegal | 92.0% | 87.4 – 95.0 | 0 |
+| greedy | random | 100.0% | 98.1 – 100 | 0 |
+| greedy | passOnly | 100.0% | 98.1 – 100 | 0 |
+| firstLegal | random | 98.0% | 95.0 – 99.2 | 0 |
+| firstLegal | passOnly | 100.0% | 98.1 – 100 | 0 |
+| **random** | **passOnly** | **89.0%** | 83.9 – 92.6 | **22** |
 
-> **This table is being replaced.** It is 8 of the 10 pairs, and it was measured *before* patch 4,
-> i.e. on an engine that handed the player on the play **2 DON!! on turn one instead of 1**. A full
-> round robin is re-running on the corrected engine; treat every number here as provisional.
+**Total order, now measured rather than assumed:**
 
-**No total order may be read off this table.** An earlier version stated
-`passOnly < random < firstLegal < greedy < valueRanked`, which asserted **`passOnly < random` from no
-measurement at all** — that pair was never played, and `firstLegal` beating both of them does not
-order them against each other. Pairwise policy strength **need not be transitive**; cycles are normal
-among heuristics. What the 8 pairs do support individually: `valueRanked` > `greedy` > `firstLegal` >
-`random`, and `firstLegal` > `passOnly`.
+> **passOnly < random < firstLegal < greedy < valueRanked**
 
-**Two prior assumptions were refuted, both of which had been written down as if known.**
+All 10 pairs were played, every pair has a decisive winner, and the win counts come out 4-3-2-1-0
+with **no cycles**. That last part had to be checked rather than assumed: pairwise policy strength
+need not be transitive, and an earlier 8-pair version of this table stated the same order while
+never having played `random` against `passOnly`.
 
-- **`firstLegal` beats `random` 97.5%** — the reverse of the assumed ordering. Picking the first legal
-  command is accidentally competent because the legal-command list leads with plays and attacks, while
-  `random` throws turns away on `endTurn`/pass. **So `random`, not `firstLegal`, is the honest
-  "no policy" control**, and `firstLegal` is not the trivial baseline it looks like.
-- **`passOnly` produces 0 timeouts** — not the round-clock double-losses that were predicted. Across
-  all 1600 ladder games there were **zero** timeouts; a player that only passes loses outright. Still
-  a useful control, just not for the stated reason.
+**The pair that mattered went the default's way.** `valueRanked` beats `greedy` **76.0%
+[69.6, 81.4]** — the interval excludes 50% decisively, so the extra machinery is real and the sim's
+default is **not** "greedy wearing a hat."
 
-**The pair that mattered came out in the default's favour.** `valueRanked` beats `greedy` **71.5%
-[64.9, 77.3]** — the interval excludes 50% decisively, so the extra machinery is worth roughly 21
-points and the sim's default policy is **not** "greedy wearing a hat."
+**Two prior assumptions were refuted, both previously written down as if known.**
+
+- **`firstLegal` beats `random` 98.0%** — the reverse of the assumed ordering. Picking the first
+  legal command is accidentally competent because the legal-command list leads with plays and
+  attacks, while `random` throws turns away on `endTurn`/pass. **So `random`, not `firstLegal`, is
+  the honest "no policy" control**, and `firstLegal` is not the trivial baseline it looks like.
+- **`passOnly`'s timeout behaviour is opponent-dependent, which neither the original claim nor its
+  first correction got right.** The original comment said passOnly "mostly produces round-clock
+  timeouts"; the first correction replaced that with "0 timeouts, it loses outright", measured on a
+  table where passOnly only ever faced competent opponents. The round robin shows both were wrong as
+  stated: **9 pairs produced 0 timeouts, and `random vs passOnly` produced 22 (11%)**. A competent
+  opponent kills passOnly quickly; when *both* sides are incompetent neither can close inside the
+  budget and the game is scored `timeout` = double loss.
+  **Do NOT call this a validation of the 30-minute clock.** An earlier version of this line did, and
+  it contradicted this document two sections away: the timeout trigger is `turns > turnBudget` with
+  `turnBudget` defaulting to **40 turns**, and "the turns-to-minutes mapping is unmeasured, so the
+  timeout column is a knob, not a prediction." **The 11% is a sensitivity to a configured threshold,
+  not a real-world timeout rate**, and it must not be quoted as one. What the run *does* support is
+  narrower and still worth having: the harness's timeout **scoring path** fires only when neither
+  side can close, and scores it as a double loss rather than a win — the right shape for 双方败北.
+  Whether 40 turns is the right threshold needs timed games.
+
+### The first-turn DON!! fix did not move the ladder
+
+The first run of this table predates patch 4, on an engine that gave the player on the play **2
+DON!! on turn one instead of 1**. It also covered only **8 of the 10 pairs**, so the comparison below
+is restricted to those 8 — `greedy vs passOnly` and `random vs passOnly` have **no pre-fix baseline at
+all** and are first measurements, not re-measurements.
+
+Across the **8 repeated pairs**, every one is within noise of its old figure: `valueRanked vs greedy`
+71.5% → 76.0% with overlapping intervals ([64.9, 77.3] vs [69.6, 81.4]), `firstLegal vs random`
+97.5% → 98.0%, `greedy vs firstLegal` 94.0% → 92.0%, and the five 100% pairs unchanged. **For those 8,
+the mirror design was robust to the rules defect**, as predicted: seats alternate, so the surplus
+DON!! fell on both policies equally.
+
+**Nothing is claimed about the two new pairs**, and that matters here rather than being a technicality:
+**`random vs passOnly` is one of them, and it is the pair carrying all 22 timeouts.** There is no
+pre-fix number to compare it against, so the DON!! fix can be neither credited nor cleared for it.
+The numbers above are the post-fix ones throughout; the pre-fix run is cited as evidence nowhere.
 
 ### What this does not establish
 

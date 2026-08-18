@@ -76,15 +76,24 @@ import { otherSeat } from "../../src/shared.ts";
 import type { MatchConfig, MatchSeat } from "../../src/types.ts";
 import type { OnePieceBotStrategy } from "../../src/automation/bot-strategies.ts";
 
-// MEASURED order, weakest -> strongest (policy_ladder.sh, 200 games/pair, 2026-08-19):
+// MEASURED order, weakest -> strongest. Full round robin, all 10 pairs, 200 games each, on the
+// post-patch-4 engine (policy_ladder.sh, 2026-08-19; full table in docs/simulation.md):
 //   passOnly  <  random  <  firstLegal  <  greedy  <  valueRanked
-// Two things this table's earlier comment asserted are REFUTED by that run, do not reinstate them:
-//   * `random` is NOT stronger than `firstLegal` -- firstLegal wins 97.5%. Picking the first legal
+// Win counts 4-3-2-1-0, every pair decisive, no cycles -- checked, because pairwise policy strength
+// need not be transitive and an 8-pair version of this claimed the same order without ever having
+// played `random` vs `passOnly`.
+//
+// Two things earlier versions of THIS comment asserted are refuted. Do not reinstate either:
+//   * `random` is NOT stronger than `firstLegal` -- firstLegal wins 98.0%. Picking the first legal
 //     command is accidentally competent because the command list leads with plays and attacks,
 //     whereas random constantly throws turns away on endTurn/pass. So `random`, not `firstLegal`,
 //     is the honest "no policy" control.
-//   * `passOnly` does NOT produce round-clock timeouts. 0 timeouts in all 1600 ladder games -- it
-//     loses outright. Still a useful control, just not for the reason first guessed.
+//   * `passOnly`'s timeouts are OPPONENT-DEPENDENT, and the previous wording here ("0 timeouts in
+//     all 1600 games -- it loses outright") was itself measured only against competent opponents.
+//     Round robin: 0 timeouts in 9 pairs, but 22 (11%) in `random vs passOnly`. A competent opponent
+//     kills passOnly quickly; when BOTH sides are incompetent neither closes inside the turn budget.
+//     That 11% is sensitivity to `SIM_TURN_BUDGET` (40 turns), NOT a real-world timeout rate -- the
+//     turns-to-minutes mapping is uncalibrated, so do not quote it against the 30-minute clock.
 const STRATEGIES: Record<string, OnePieceBotStrategy> = {
   passOnly: passOnlyStrategy,
   firstLegal: firstLegalStrategy,
