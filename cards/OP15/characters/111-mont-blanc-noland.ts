@@ -27,5 +27,29 @@ export const op15MontBlancNoland111: CharacterCard = {
   attribute: "slash",
   effect:
     "[DON!! x1] [When Attacking] Up to 1 of your [Kalgara] cards gains [Rush] during this turn.\n(This card can attack on the turn in which it is played.)",
+  effects: {
+    effects: [
+      {
+        trigger: "whenAttacking",
+        conditions: [{ condition: "donAttached", amount: 1 }],
+        actions: [
+          {
+            action: "grantKeyword",
+            target: {
+              player: "self",
+              // "your [Kalgara] CARDS", not Characters: OP08-098 Kalgara is itself a Leader named
+              // Kalgara, so the Leader is inside the printed pool. Same call as OP16-039 and
+              // OP15-074 make for their own "[Name] cards" targets.
+              zones: ["leader", "character"],
+              count: { amount: 1, upTo: true },
+              filters: [{ filter: "name", value: "Kalgara" }],
+            },
+            keyword: "rush",
+            duration: "thisTurn",
+          },
+        ],
+      },
+    ],
+  },
   i18n: op15MontBlancNoland111I18n,
 };

@@ -27,5 +27,27 @@ export const op16Yamato096: CharacterCard = {
   attribute: "special",
   effect:
     "[Unblockable] (This card cannot be blocked.)\n[On K.O.] Play up to 1 [Yamato] with a cost of 6 or less from your trash.",
+  effects: {
+    // First card in the vendored engine to carry [Unblockable] as a *printed* keyword rather
+    // than a granted one. getKeywords (shared.ts) reads `effects.keywords` and queue.ts skips
+    // the blocker step for an unblockable attacker, so the static form works unchanged.
+    keywords: ["unblockable"],
+    effects: [
+      {
+        trigger: "onKo",
+        actions: [
+          {
+            action: "play",
+            source: { player: "self", zone: "trash" },
+            count: { amount: 1, upTo: true },
+            filters: [
+              { filter: "name", value: "Yamato" },
+              { filter: "cost", comparison: "lte", value: 6 },
+            ],
+          },
+        ],
+      },
+    ],
+  },
   i18n: op16Yamato096I18n,
 };

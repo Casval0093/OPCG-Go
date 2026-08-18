@@ -27,5 +27,37 @@ export const op15Holly071: CharacterCard = {
   attribute: "strike",
   effect:
     "All of your [Ohm] cards and this Character gain [Double Attack].\n(This card deals 2 damage.)\n[Opponent's Turn] All of your [Ohm] cards' base power and this Character's base power become 6000.",
+  // PARKED -- "[Opponent's Turn] All of your [Ohm] cards' base power and this Character's base
+  // power become 6000" is NOT encoded, for the same missing `setBasePowerLiteral` primitive that
+  // parks the twin clause on OP15-070 Fuza (and OP16-015/058/106, OP15-092). Ruling #910 is the
+  // twin of #909: a Leader that has every card's name reaches base power 6000 through this, so
+  // the primitive must span the leader zone. The [Double Attack] half IS encoded.
+  effects: {
+    permanentEffects: [
+      {
+        actions: [
+          {
+            // See OP15-070 Fuza for the two-action shape and why `count.amount: "all"` is
+            // required on the non-self half.
+            action: "grantKeyword",
+            target: {
+              player: "self",
+              zones: ["leader", "character"],
+              count: { amount: "all" },
+              filters: [{ filter: "name", value: "Ohm" }],
+            },
+            keyword: "doubleAttack",
+            duration: "permanent",
+          },
+          {
+            action: "grantKeyword",
+            target: { player: "self", zones: ["character"], count: { amount: 1 }, self: true },
+            keyword: "doubleAttack",
+            duration: "permanent",
+          },
+        ],
+      },
+    ],
+  },
   i18n: op15Holly071I18n,
 };

@@ -26,5 +26,39 @@ export const op16Borsalino073: CharacterCard = {
   attribute: "special",
   effect:
     "[On Play] Add up to 1 DON!! card from your DON!! deck and set it as active, and add up to 1 additional DON!! card and rest it.\n[End of Your Turn] DON!! -2: Set this Character as active. Then, this Character gains [Blocker] until the end of your opponent's next End Phase.",
+  effects: {
+    effects: [
+      {
+        // "add up to 1 ... active, and add up to 1 ADDITIONAL ... rested" is two separate addDon
+        // actions with different `state`, each prompting for its own count (OP14-031 King,
+        // OP09-061 Monkey.D.Luffy). It is not one addDon of 2.
+        trigger: "onPlay",
+        actions: [
+          { action: "addDon", count: { amount: 1, upTo: true }, state: "active" },
+          { action: "addDon", count: { amount: 1, upTo: true }, state: "rested" },
+        ],
+      },
+      {
+        // Ruling #998: an ALREADY-ACTIVE Borsalino may still use this to gain [Blocker] (是的，
+        // 可以). So no `state: "rested"` filter and no `cardState` condition — the setActive is
+        // simply allowed to do nothing, per GENERAL ruling #27.
+        trigger: "endOfYourTurn",
+        costs: [{ cost: "returnDon", amount: 2 }],
+        actions: [
+          {
+            action: "setActive",
+            target: { player: "self", zones: ["character"], count: { amount: 1 }, self: true },
+          },
+          {
+            action: "grantKeyword",
+            target: { player: "self", zones: ["character"], count: { amount: 1 }, self: true },
+            keyword: "blocker",
+            duration: "untilEndOfOpponentNextEndPhase",
+          },
+        ],
+        optional: true,
+      },
+    ],
+  },
   i18n: op16Borsalino073I18n,
 };

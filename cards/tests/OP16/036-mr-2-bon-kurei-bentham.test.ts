@@ -1,0 +1,73 @@
+import { describe, expect, test } from "vite-plus/test";
+import {
+  op02Atmos003,
+  op02EdwardNewgate001,
+  op02Kingdew006,
+  op03Namule007,
+  op16Mr2BonKureiBentham036,
+} from "@tcg/op-cards";
+
+import { OnePieceTestEngine } from "../../../src/index.ts";
+
+function benthamPower(engine: OnePieceTestEngine, instanceId: string): number {
+  const card = engine
+    .getView("south")
+    .players.south.characters.find((entry) => entry?.instanceId === instanceId);
+  if (!card || card.power === null) throw new Error("Bentham is not on the field.");
+  return card.power;
+}
+
+describe("OP16-036 Mr.2.Bon.Kurei(Bentham)", () => {
+  test("[On Play] rests an opponent Character of cost exactly 4 or below, never a cost-5 one", () => {
+    const engine = OnePieceTestEngine.create(
+      { hand: [op16Mr2BonKureiBentham036], activeDon: op16Mr2BonKureiBentham036.cost },
+      { character: [op03Namule007, op02Atmos003, op02Kingdew006] },
+      { firstPlayer: "north", activeSeat: "south" },
+    );
+    const cheapId = engine.findCardInZone("north", "character", op03Namule007); // cost 3
+    const onTheLineId = engine.findCardInZone("north", "character", op02Atmos003); // cost 4
+    const overTheLineId = engine.findCardInZone("north", "character", op02Kingdew006); // cost 5
+
+    engine.playCard(op16Mr2BonKureiBentham036, "south");
+
+    const target = engine.pendingDecision("effectTargetSelection", "south").steps[0];
+    expect(target).toMatchObject({ kind: "selectEntity", min: 0, max: 1 });
+    if (target?.kind !== "selectEntity") throw new Error("Expected Bentham's rest choice.");
+    // A body exactly on the line proves the number; the cost-3 body is what a `gte` reading
+    // would wrongly drop; the cost-5 body is what deleting the filter would wrongly add.
+    expect(target.candidates.map((candidate) => candidate.ref.id).sort()).toEqual(
+      [cheapId, onTheLineId].sort(),
+    );
+    expect(target.candidates.map((candidate) => candidate.ref.id)).not.toContain(overTheLineId);
+    engine.resolveDecision("effectTargetSelection", { selectedIds: [onTheLineId] }, "south");
+
+    expect(engine.getState().cards[onTheLineId]?.rested).toBe(true);
+    expect(engine.getState().cards[cheapId]?.rested).toBe(false);
+  });
+
+  test("[When Attacking] copies the OPPONENT's Leader's base power for the turn, then gives it back", () => {
+    // op02EdwardNewgate001 prints 6000 power; south's default Leader prints 5000. Every real
+    // Leader but four prints 5000, so a mismatched pair is the only way to tell "your
+    // opponent's Leader" from "your Leader" -- copying the wrong one would read 5000 here.
+    const engine = OnePieceTestEngine.create(
+      { character: [{ card: op16Mr2BonKureiBentham036, playedOnTurn: 0 }] },
+      {
+        leaderCardId: op02EdwardNewgate001,
+        life: [op03Namule007, op03Namule007, op03Namule007, op03Namule007, op03Namule007],
+      },
+      { firstPlayer: "north", activeSeat: "south" },
+    );
+    const benthamId = engine.findCardInZone("south", "character", op16Mr2BonKureiBentham036);
+
+    expect(benthamPower(engine, benthamId)).toBe(1000);
+
+    engine.declareAttack(benthamId, engine.leader("north"), "south");
+
+    // A `thisTurn` modifier is readable straight off the projection (unlike `thisBattle`),
+    // so the magnitude is asserted as an exact number.
+    expect(benthamPower(engine, benthamId)).toBe(6000);
+
+    engine.endTurn("south");
+    expect(benthamPower(engine, benthamId)).toBe(1000);
+  });
+});

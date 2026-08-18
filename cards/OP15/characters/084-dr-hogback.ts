@@ -27,5 +27,23 @@ export const op15DrHogback084: CharacterCard = {
   attribute: "wisdom",
   effect:
     "[On Play] If your Leader has the [Thriller Bark Pirates] type, trash 5 cards from the top of your deck.\n[On K.O.] If you have 6 or less cards in your hand, draw 1 card.",
+  effects: {
+    effects: [
+      {
+        trigger: "onPlay",
+        conditions: [
+          { condition: "leaderTrait", trait: "Thriller Bark Pirates", match: "includes" },
+        ],
+        actions: [{ action: "trashFromDeck", player: "self", amount: 5 }],
+      },
+      {
+        // Both checks lead their sentence and neither block has a cost, so both gate the block.
+        // (Contrast OP15-083 Spoil, whose count sits after a cost colon that feeds it.)
+        trigger: "onKo",
+        conditions: [{ condition: "handCount", player: "self", comparison: "lte", value: 6 }],
+        actions: [{ action: "draw", player: "self", amount: 1 }],
+      },
+    ],
+  },
   i18n: op15DrHogback084I18n,
 };

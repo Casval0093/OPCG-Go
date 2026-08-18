@@ -26,5 +26,37 @@ export const op15NicoRobin087: CharacterCard = {
   attribute: "strike",
   effect:
     "If you have 10 or more cards in your trash, this Character gains [Blocker].\n[On Play] Draw 2 cards and trash 2 cards from your hand.",
+  effects: {
+    // A CONDITIONAL keyword, so it belongs in `permanentEffects` rather than the flat
+    // `keywords` array -- `getPermanentKeywords` evaluates the block's `conditions` per lookup.
+    // Note this card's own [On Play] mills 2 cards from hand into the trash, so a board at 8
+    // can cross the line on the play that put Robin down.
+    permanentEffects: [
+      {
+        conditions: [
+          { condition: "zoneCount", player: "self", zone: "trash", comparison: "gte", value: 10 },
+        ],
+        actions: [
+          {
+            // `self: true` is mandatory, not stylistic: `getPermanentKeywords` skips any grant
+            // whose target is neither `self` nor `count.amount: "all"`, silently.
+            action: "grantKeyword",
+            target: { player: "self", zones: ["character"], count: { amount: 1 }, self: true },
+            keyword: "blocker",
+            duration: "permanent",
+          },
+        ],
+      },
+    ],
+    effects: [
+      {
+        trigger: "onPlay",
+        actions: [
+          { action: "draw", player: "self", amount: 2 },
+          { action: "trashFromHand", player: "self", amount: 2 },
+        ],
+      },
+    ],
+  },
   i18n: op15NicoRobin087I18n,
 };

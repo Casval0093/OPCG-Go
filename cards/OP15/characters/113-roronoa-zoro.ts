@@ -26,5 +26,23 @@ export const op15RoronoaZoro113: CharacterCard = {
   attribute: "slash",
   effect:
     "[On Play] You may trash 1 card from your hand: Add up to 1 card from the top of your deck to the top of your Life cards.",
+  effects: {
+    effects: [
+      {
+        trigger: "onPlay",
+        // Ruling #941: with an empty hand the effect cannot be used (不可以). `canPayCosts`
+        // enforces that for `trashFromHand` already, so no `handCount` condition is written.
+        costs: [{ cost: "trashFromHand", amount: 1 }],
+        actions: [
+          {
+            action: "addToLife",
+            target: { player: "self", zones: ["deck"], count: { amount: 1, upTo: true } },
+            position: "top",
+          },
+        ],
+        optional: true,
+      },
+    ],
+  },
   i18n: op15RoronoaZoro113I18n,
 };

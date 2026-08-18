@@ -28,5 +28,47 @@ export const op16SanjuanWolf106: CharacterCard = {
   attribute: "strike",
   effect:
     "[On K.O.] If your Leader has the [Blackbeard Pirates] type, draw 1 card, then up to 1 of your Leader or Character cards' base power becomes 7000 during this turn.",
+  // PARKED -- "then up to 1 of your Leader or Character cards' base power becomes 7000 during this
+  // turn" is NOT encoded. No DSL verb sets a card's BASE power to a literal. `setPower`
+  // (effects/actions.ts) adds a modifier of `value - getCardPower(target)`, i.e. it sets TOTAL
+  // power measured from the target's power AT RESOLUTION, so any modifier already on the target
+  // (attached DON!! on your Leader, a counter boost) is absorbed instead of stacking on top of
+  // 7000 -- a different card. `setBasePowerFrom` has the right arithmetic
+  // (`value - basePower(card)`) but requires another card on the field to copy from, and
+  // `copyPower` only ever retargets the effect's own card. Missing primitive: a literal
+  // base-power setter -- a `setBasePower` action, or a flag on `setPower` that makes it compute
+  // its delta from `basePower(card)`. The same wording parks clauses on OP16-015, OP16-058 and
+  // OP15-092, so it is wanted by four cards in these two sets. The draw and the Leader-type gate
+  // below ARE encoded.
+  effects: {
+    effects: [
+      {
+        trigger: "onKo",
+        conditions: [
+          {
+            condition: "leaderTrait",
+            trait: "Blackbeard Pirates",
+            match: "includes",
+          },
+        ],
+        actions: [
+          {
+            action: "draw",
+            player: "self",
+            amount: 1,
+          },
+        ],
+      },
+      {
+        trigger: "trigger",
+        actions: [
+          {
+            action: "activateEffect",
+            effectTrigger: "onKo",
+          },
+        ],
+      },
+    ],
+  },
   i18n: op16SanjuanWolf106I18n,
 };

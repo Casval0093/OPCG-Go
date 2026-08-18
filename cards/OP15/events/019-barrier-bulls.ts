@@ -25,5 +25,32 @@ export const op15BarrierBulls019: EventCard = {
   traits: ["Dressrosa", "Barto Club"],
   effect:
     "[Main] Draw 1 card and your Leader gains +1000 power until the end of your opponent's next End Phase.",
+  effects: {
+    effects: [
+      {
+        trigger: "main",
+        actions: [
+          { action: "draw", player: "self", amount: 1 },
+          {
+            action: "modifyPower",
+            target: { player: "self", zones: ["leader"], count: { amount: 1 } },
+            value: 1000,
+            duration: "untilEndOfOpponentNextEndPhase",
+          },
+        ],
+      },
+      {
+        trigger: "trigger",
+        actions: [
+          {
+            action: "modifyPower",
+            target: { player: "opponent", zones: ["character"], count: { amount: 1, upTo: true } },
+            value: -4000,
+            duration: "thisTurn",
+          },
+        ],
+      },
+    ],
+  },
   i18n: op15BarrierBulls019I18n,
 };

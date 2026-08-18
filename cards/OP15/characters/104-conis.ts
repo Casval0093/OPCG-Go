@@ -28,5 +28,28 @@ export const op15Conis104: CharacterCard = {
   attribute: "wisdom",
   effect:
     "[On Play] If you have less Life cards than your opponent, draw 2 cards and trash 2 cards from your hand.",
+  effects: {
+    effects: [
+      {
+        trigger: "onPlay",
+        // A strict comparison, not a threshold: `lifeComparison` with `selfComparison: "lt"`.
+        // Equal Life counts do NOT satisfy "less Life cards than your opponent".
+        conditions: [{ condition: "lifeComparison", selfComparison: "lt" }],
+        actions: [
+          { action: "draw", player: "self", amount: 2 },
+          { action: "trashFromHand", player: "self", amount: 2 },
+        ],
+      },
+      {
+        // The printed [Trigger] is a separate block with its own numbers -- trash 1, not 2, and
+        // no Life comparison at all.
+        trigger: "trigger",
+        actions: [
+          { action: "draw", player: "self", amount: 2 },
+          { action: "trashFromHand", player: "self", amount: 1 },
+        ],
+      },
+    ],
+  },
   i18n: op15Conis104I18n,
 };

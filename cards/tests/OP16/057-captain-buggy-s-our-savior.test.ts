@@ -3,9 +3,9 @@ import type { LeaderCard } from "@tcg/op-types";
 import {
   eb01Doma005,
   eb01MountainGod018,
+  op02Blugori084,
   op10TrafalgarLaw119,
   op16Buggy041,
-  op16Buggy048,
   op16CaptainBuggySOurSavior057,
   op16Jozu007,
   op16Namule010,
@@ -90,11 +90,17 @@ describe("OP16-057 Captain Buggy's Our Savior!!", () => {
         hand: [op16CaptainBuggySOurSavior057],
         character: [
           { card: op16PrisonerOfImpelDown042, rested: true },
-          // op16Buggy048 carries the "Impel Down" TRAIT (like this event itself, and like
-          // Bunkov/Antlerkov/Buggy) but is NAMED "Buggy", not "Prisoner of Impel Down". If
+          // op02Blugori084 carries the "Impel Down" TRAIT (like this event itself, and like
+          // Bunkov/Antlerkov/Buggy) but is NAMED "Blugori", not "Prisoner of Impel Down". If
           // the condition were wrongly filtering on the trait instead of the name, this
           // card would make the count 2 and the boost would incorrectly fire.
-          op16Buggy048,
+          //
+          // This slot used to hold op16Buggy048, which was inert only because OP16-048 was
+          // still unencoded. Its second clause is an [On Opponent's Attack] that grants
+          // [Blocker] to a [Prisoner of Impel Down], so once encoded it jumps the queue ahead
+          // of the battleCounter step here. op02Blugori084 is genuinely vanilla (pre-OP15, no
+          // `effect` key at all), which is what this fixture always needed to be.
+          op02Blugori084,
         ],
         activeDon: 1,
       },

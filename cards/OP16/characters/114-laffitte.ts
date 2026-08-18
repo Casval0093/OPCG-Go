@@ -27,5 +27,41 @@ export const op16Laffitte114: CharacterCard = {
   traits: ["Blackbeard Pirates"],
   attribute: "strike",
   effect: "[On K.O.] K.O. up to 1 of your opponent's Characters with a cost of 4 or less.",
+  effects: {
+    effects: [
+      {
+        trigger: "onKo",
+        actions: [
+          {
+            action: "ko",
+            target: {
+              player: "opponent",
+              zones: ["character"],
+              count: {
+                amount: 1,
+                upTo: true,
+              },
+              filters: [
+                {
+                  filter: "cost",
+                  comparison: "lte",
+                  value: 4,
+                },
+              ],
+            },
+          },
+        ],
+      },
+      {
+        trigger: "trigger",
+        actions: [
+          {
+            action: "activateEffect",
+            effectTrigger: "onKo",
+          },
+        ],
+      },
+    ],
+  },
   i18n: op16Laffitte114I18n,
 };

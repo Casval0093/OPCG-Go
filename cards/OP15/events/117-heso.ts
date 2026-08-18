@@ -25,5 +25,37 @@ export const op15Heso117: EventCard = {
   traits: ["Sky Island"],
   effect:
     "[Main] Draw 1 card. Then, give up to 1 rested DON!! card to 1 of your [Sky Island] type Leader or Character cards.",
+  effects: {
+    effects: [
+      {
+        trigger: "main",
+        actions: [
+          { action: "draw", player: "self", amount: 1 },
+          {
+            action: "giveDon",
+            target: {
+              player: "self",
+              zones: ["leader", "character"],
+              count: { amount: 1 },
+              filters: [{ filter: "trait", value: "Sky Island", match: "includes" }],
+            },
+            count: { amount: 1, upTo: true },
+            donState: "rested",
+          },
+        ],
+      },
+      {
+        trigger: "trigger",
+        actions: [
+          {
+            action: "draw",
+            player: "self",
+            amount: 2,
+            condition: { condition: "leaderTrait", trait: "Sky Island", match: "includes" },
+          },
+        ],
+      },
+    ],
+  },
   i18n: op15Heso117I18n,
 };

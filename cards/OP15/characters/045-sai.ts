@@ -27,5 +27,26 @@ export const op15Sai045: CharacterCard = {
   attribute: "slash",
   effect:
     "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[On Play] You may trash 1 Event from your hand: Draw 2 cards.",
+  effects: {
+    keywords: ["blocker"],
+    effects: [
+      {
+        // Identical printed clause to OP15-048 Chinjao's [On Play]. `optional: true` is what
+        // makes "You may" real -- costs on a mandatory block are paid automatically
+        // (effects/resolution.ts). A `trashFromHand` COST scans the whole hand with no card-type
+        // pre-filter, so `cardCategory: "event"` genuinely excludes Characters and Stages.
+        trigger: "onPlay",
+        costs: [
+          {
+            cost: "trashFromHand",
+            amount: 1,
+            filters: [{ filter: "cardCategory", value: "event" }],
+          },
+        ],
+        actions: [{ action: "draw", player: "self", amount: 2 }],
+        optional: true,
+      },
+    ],
+  },
   i18n: op15Sai045I18n,
 };

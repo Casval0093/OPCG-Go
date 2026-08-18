@@ -26,5 +26,17 @@ export const op16PortgasDAce049: CharacterCard = {
   traits: ["Impel Down", "Whitebeard Pirates"],
   attribute: "special",
   effect: "[Activate: Main] You may rest this Character: Draw 1 card.",
+  effects: {
+    // Identical printed text to OP04-052 Black Maria (minus its DON!! cost) and
+    // OP08-084 Jack's first clause; copied from OP04-052's shape.
+    effects: [
+      {
+        trigger: "activateMain",
+        costs: [{ cost: "restThisCard" }],
+        actions: [{ action: "draw", player: "self", amount: 1 }],
+        optional: true,
+      },
+    ],
+  },
   i18n: op16PortgasDAce049I18n,
 };

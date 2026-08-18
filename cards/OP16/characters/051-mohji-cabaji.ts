@@ -26,5 +26,19 @@ export const op16MohjiCabaji051: CharacterCard = {
   traits: ["Cross Guild"],
   attribute: "slash",
   effect: "[On Play] If you have 5 or less cards in your hand, draw 2 cards.",
+  effects: {
+    effects: [
+      {
+        trigger: "onPlay",
+        // The [On Play] resolves after this card has already left the hand, so the count is
+        // taken WITHOUT it -- 6 in hand before playing Mohji & Cabaji is 5 after, and the
+        // condition holds. Encode the printed number; the offset is the engine's, not the
+        // card's (the same reasoning as ruling #1013 on OP16-111 and #930/#931 on the
+        // self-counting trash Events -- each zone has to be checked, not reasoned across).
+        conditions: [{ condition: "handCount", player: "self", comparison: "lte", value: 5 }],
+        actions: [{ action: "draw", player: "self", amount: 2 }],
+      },
+    ],
+  },
   i18n: op16MohjiCabaji051I18n,
 };

@@ -26,5 +26,19 @@ export const op16PrisonerOfImpelDown042: CharacterCard = {
   traits: ["Impel Down"],
   attribute: "strike",
   effect: "Under the rules of this game, you may have any number of this card in your deck.",
+  effects: {
+    // The whole printed text is a deck-construction rule, so this card has no in-game
+    // behaviour at all. `deckBuildingRules` is declarative: nothing in packages/engine reads
+    // it (grep -rn deckBuildingRules engine/src -> no hits), exactly as for the two existing
+    // `unlimitedCopies` cards, OP01-075 Pacifista and OP08-072 Biscuit Warrior. It is
+    // recorded so a deck builder / legality checker can act on it.
+    //
+    // "Prisoner of Impel Down" is a card NAME, not the "Impel Down" trait this card also
+    // carries -- OP16-057 Captain Buggy's Our Savior!! and OP16-048 Buggy both count *this
+    // card by name*, and both would be trivially satisfiable if they keyed on the trait,
+    // which Bunkov, Antlerkov and both Buggy printings also carry. This card being a legal
+    // 5-plus-of is what makes those name counts reachable at all.
+    deckBuildingRules: [{ rule: "unlimitedCopies" }],
+  },
   i18n: op16PrisonerOfImpelDown042I18n,
 };

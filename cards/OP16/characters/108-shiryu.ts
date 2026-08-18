@@ -27,5 +27,58 @@ export const op16Shiryu108: CharacterCard = {
   attribute: "slash",
   effect:
     "[On Play] You may trash 1 card from your hand: Add up to 1 [Blackbeard Pirates] type card with a cost of 6 or less from your trash to the top of your Life cards face-up.",
+  effects: {
+    effects: [
+      {
+        trigger: "onPlay",
+        costs: [
+          {
+            cost: "trashFromHand",
+            amount: 1,
+          },
+        ],
+        actions: [
+          {
+            action: "addToLife",
+            target: {
+              player: "self",
+              zones: ["trash"],
+              count: {
+                amount: 1,
+                upTo: true,
+              },
+              filters: [
+                {
+                  filter: "trait",
+                  value: "Blackbeard Pirates",
+                  match: "includes",
+                },
+                {
+                  filter: "cost",
+                  comparison: "lte",
+                  value: 6,
+                },
+              ],
+            },
+            position: "top",
+            // Printed "face-up" explicitly, which is the exception: GENERAL ruling #44 places a
+            // card added to Life face-DOWN unless the card says otherwise.
+            faceUp: true,
+          },
+        ],
+        optional: true,
+      },
+      {
+        trigger: "trigger",
+        actions: [
+          {
+            action: "draw",
+            player: "self",
+            amount: 2,
+          },
+        ],
+      },
+    ],
+  },
   i18n: op16Shiryu108I18n,
 };

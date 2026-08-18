@@ -27,5 +27,27 @@ export const op16MonkeyDLuffy052: CharacterCard = {
   attribute: "strike",
   effect:
     "[Activate: Main] [Once Per Turn] Give up to 1 rested DON!! card to your Leader or 1 of your Characters.",
+  effects: {
+    // Printed text identical to OP03-009 Haruta and OP11-016 Roronoa Zoro; same encoding.
+    // `donState: "rested"` reads player.restedDon, not activeDon.
+    effects: [
+      {
+        trigger: "activateMain",
+        actions: [
+          {
+            action: "giveDon",
+            target: {
+              player: "self",
+              zones: ["leader", "character"],
+              count: { amount: 1 },
+            },
+            count: { amount: 1, upTo: true },
+            donState: "rested",
+          },
+        ],
+        oncePerTurn: true,
+      },
+    ],
+  },
   i18n: op16MonkeyDLuffy052I18n,
 };

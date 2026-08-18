@@ -28,5 +28,59 @@ export const op16VanAugur103: CharacterCard = {
   attribute: "ranged",
   effect:
     "[Opponent's Turn] [On K.O.] If your Leader has the [Blackbeard Pirates] type, draw 1 card and give up to 1 of your opponent's Leader or Character cards -3000 power during this turn.",
+  effects: {
+    effects: [
+      {
+        trigger: "onKo",
+        conditions: [
+          {
+            // Ruling #1011: the [Opponent's Turn] qualifier binds to the [On K.O.] even when the
+            // [Trigger] below is what activates it. Asked what happens when your own Leader takes
+            // damage on YOUR turn and this [Trigger] fires, the answer is that the [On K.O.] does
+            // not activate at all and the card just goes to the trash. `activateEffect` enqueues
+            // the block rather than executing it, and a block's `conditions` are re-evaluated when
+            // the queue reaches it (effects/resolution.ts), so this one condition covers both the
+            // battle-K.O. path and the [Trigger] path.
+            condition: "turn",
+            value: "opponent",
+          },
+          {
+            condition: "leaderTrait",
+            trait: "Blackbeard Pirates",
+            match: "includes",
+          },
+        ],
+        actions: [
+          {
+            action: "draw",
+            player: "self",
+            amount: 1,
+          },
+          {
+            action: "modifyPower",
+            target: {
+              player: "opponent",
+              zones: ["leader", "character"],
+              count: {
+                amount: 1,
+                upTo: true,
+              },
+            },
+            value: -3000,
+            duration: "thisTurn",
+          },
+        ],
+      },
+      {
+        trigger: "trigger",
+        actions: [
+          {
+            action: "activateEffect",
+            effectTrigger: "onKo",
+          },
+        ],
+      },
+    ],
+  },
   i18n: op16VanAugur103I18n,
 };

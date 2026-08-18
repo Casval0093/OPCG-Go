@@ -27,5 +27,33 @@ export const op16Thatch005: CharacterCard = {
   attribute: "slash",
   effect:
     'If you have a Character with 8000 power or more and a type including "Whitebeard Pirates", give this card in your hand -3 cost.\n[Blocker]',
+  effects: {
+    keywords: ["blocker"],
+    permanentEffects: [
+      {
+        // "a Character with ..." explicitly scopes to the character zone; the Leader is excluded
+        // by the printed wording, unlike the "if you have [Name]" pattern that scans the field.
+        conditions: [
+          {
+            condition: "hasCard",
+            player: "self",
+            zone: "character",
+            filters: [
+              { filter: "power", comparison: "gte", value: 8000 },
+              { filter: "trait", value: "Whitebeard Pirates", match: "includes" },
+            ],
+          },
+        ],
+        actions: [
+          {
+            action: "modifyCost",
+            target: { player: "self", zones: ["hand"], count: { amount: 1 }, self: true },
+            value: -3,
+            duration: "permanent",
+          },
+        ],
+      },
+    ],
+  },
   i18n: op16Thatch005I18n,
 };

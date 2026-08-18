@@ -24,5 +24,55 @@ export const op15ElThor075: EventCard = {
   traits: ["Sky Island"],
   effect:
     "[Main] DON!! -1: If your Leader is [Enel], up to 1 of your Leader or Character cards gains +1000 power during this turn. Then, K.O. up to 1 of your opponent's Characters with 3000 power or less.\n[Counter] Up to 1 of your [Enel] cards gains +2000 power during this battle.",
+  effects: {
+    effects: [
+      {
+        trigger: "main",
+        // "DON!! -1:" is a `returnDon` cost. The leading "If your Leader is [Enel]" gates the whole
+        // block: rulings #913/#914/#915 all confirm you may pay the cost and take the FIRST part even
+        // when the "Then" part has no legal target (0 Characters on either field), which is GENERAL
+        // ruling #27 -- so the missing target must not abort the block, but a non-Enel Leader does.
+        conditions: [{ condition: "leaderName", name: "Enel" }],
+        costs: [{ cost: "returnDon", amount: 1 }],
+        actions: [
+          {
+            action: "modifyPower",
+            target: {
+              player: "self",
+              zones: ["leader", "character"],
+              count: { amount: 1, upTo: true },
+            },
+            value: 1000,
+            duration: "thisTurn",
+          },
+          {
+            action: "ko",
+            target: {
+              player: "opponent",
+              zones: ["character"],
+              count: { amount: 1, upTo: true },
+              filters: [{ filter: "power", comparison: "lte", value: 3000 }],
+            },
+          },
+        ],
+      },
+      {
+        trigger: "counter",
+        actions: [
+          {
+            action: "modifyPower",
+            target: {
+              player: "self",
+              zones: ["leader", "character"],
+              count: { amount: 1, upTo: true },
+              filters: [{ filter: "name", value: "Enel" }],
+            },
+            value: 2000,
+            duration: "thisBattle",
+          },
+        ],
+      },
+    ],
+  },
   i18n: op15ElThor075I18n,
 };

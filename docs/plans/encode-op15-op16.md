@@ -201,14 +201,64 @@ clone per batch** — no shared mutable state at all.
 Each task: encode every effect in its batch, one test per card, all passing. Batches are grouped so
 one agent sees mechanically related cards.
 
-| Task | Batch | Cards |
-|---|---|---|
-| 3 | OP15 leaders | 6 |
-| 4 | OP15 events + stage | 20 |
-| 5–10 | OP15 characters, 6 batches | ~87 |
-| 11 | OP16 leaders | 6 |
-| 12 | OP16 events + stages | 18 |
-| 13–18 | OP16 characters, 6 batches | ~86 |
+**Batches are now colour-grouped, and the exact card lists are settled** (below). Colour is the right
+axis because an archetype's cards interact with each other — one agent holding a whole colour sees the
+"if you have [Name]" pairs and the shared trait filters, which is where the mis-encodings cluster.
+
+Counts exclude the 5 Task-2 reference cards and the 15 genuinely vanilla Characters
+(OP15: 6, OP16: 9 — no printed effect at all, nothing to encode).
+
+| Task | Batch | Cards | Status |
+|---|---|---|---|
+| 3 | OP15 leaders | 6 (5 encoded, `OP15-058` fully parked) | **done** — see Task 4's combined gate |
+| 4 | OP15 events + stage | 20 | **done** — 94 tests (OP15 total), 74/74 mutants killed |
+| 11 + 12 | OP16 leaders (5) + stages (2) + events (15) | 22 | **done** — 20 encoded, 5 clauses parked |
+| 13 | OP16 yellow characters | 13 | **done** — 2 clauses parked; 9 are the B/Y Teach list |
+| 14 | OP16 black characters | 17 | **done** — nothing parked |
+| 15 | OP16 red characters | 14 | **done** — 12 full, OP16-118 partial, OP16-015 parked whole; sweep 223/223 |
+| 16 | OP16 green characters | 12 | **done** — 1 clause parked (OP16-034); full sweep 185/185 + 17 hand mutants |
+| 17 | OP16 blue characters | 14 | **done** — nothing parked; full sweep 189/189 mutants |
+| 18 | OP16 purple characters | 13 | **done** — nothing parked; 56 hand mutants (7 of 13 cards are invisible to the tool) |
+| 5 | OP15 red characters | 15 | **done** — 12 encoded, 9 clauses parked |
+| 6 | OP15 green characters | 13 | **done** — 10 encoded, 8 clauses parked |
+| 7 | OP15 blue characters | 13 | **done** — 13 encoded, nothing parked |
+| 8 | OP15 purple characters | 15 | **done** — 14 encoded, 3 clauses parked |
+| 9 | OP15 black characters | 15 | **done** — 15 encoded, 2 clauses parked (agent stopped; work rescued and re-verified centrally) |
+| 10 | OP15 yellow characters | 16 | **done** — 15 encoded, 1 clause parked |
+
+**Round order — OP16 before OP15, decided 2026-08-18.** The plan numbers OP15's characters first
+(Tasks 5–10), but they are deferred behind OP16's. Completing OP16 completes the set the critical path
+actually needs — `OP16-001` Ace's own archetype and the B/Y `OP16-080` Teach reference list — whereas
+OP15's 87 characters are opponents that cannot be fielded until their own set is done either way.
+Nothing depends on OP15 first; the task numbering is not a dependency order.
+
+**How a batch is dispatched.** One agent per batch, several agents at a time, each in its own git
+worktree with its own copy-on-write engine clone — `./scripts/new_encode_worktree.sh <batch-name>`
+creates both and proves the clone grafts. The standing instructions are
+`docs/plans/BATCH-AGENT-BRIEF.md`; a dispatch adds only the workspace paths, the card list, the
+priority order within the batch, and any card-specific warnings. Agents commit to their own branch and
+never merge — branches are collected centrally, which is safe because the batches are disjoint file
+sets. **Agents must not edit `cards/ENCODING.md`**: every batch would conflict on it, so they report
+findings and those are consolidated centrally.
+
+**How a batch is collected.** Do not trust the agent's report on its own — the whole reason
+`mutation_check.py` exists is that this project's most frequent defect is a check that looks like it
+passed. Re-run the gate centrally:
+
+```bash
+git merge --no-ff claude/encode-<batch>          # disjoint files, so conflicts should be none
+./.venv/bin/python tools/graft_cards.py
+cd vendor/.../packages/engine && ./node_modules/.bin/vp test run     # whole suite
+./node_modules/.bin/vp check && (cd ../cards && ./node_modules/.bin/vp check)
+# then, and only once nothing else is running against this clone:
+./.venv/bin/python tools/mutation_check.py --set OP16 --engine <path> > /tmp/mut.txt 2>&1; echo "EXIT=$?"
+```
+
+A conflict here means the batches were not disjoint after all — stop and work out why rather than
+resolving it, because overlapping batches mean two agents encoded the same card differently.
+
+Consolidate each agent's reported findings into `cards/ENCODING.md` and its parked clauses into the
+parked table, then delete the worktree (`git worktree remove <path>`).
 
 **Priority within the batches:** `OP16-001` Ace and the B/Y Teach reference list (§7 of
 `docs/research-findings.md`) are the cards that unblock the first real experiment. Task 11 and
@@ -225,3 +275,28 @@ card ID and the specific missing primitive — never approximated.
 - `./scripts/bootstrap.sh` from a clean clone produces a working engine with OP15/OP16 registered
 - `python3 tools/coverage_report.py` reports 0 gaps across OP15/OP16
 - A list of any effects the DSL could not express
+
+## Overnight run — 2026-08-18, unattended
+
+Ping is asleep; work continues unattended until 08:00. The loop is:
+
+1. Wait for a batch agent to report (round 2: OP16 red / green / blue / purple).
+2. `git merge --no-ff claude/encode-<batch>` — conflicts should be impossible, since batches are
+   disjoint file sets. A conflict means they were not, and is a **stop-and-diagnose**, not a resolve.
+3. Re-graft, run the full suite and both `vp check`s. Fix formatting round-trips back into `cards/`.
+4. Bank the batch's reported lessons into `cards/ENCODING.md` and its parked clauses into
+   `data/parked-clauses.json`. Agents never edit those two files, so this is the only path in.
+5. When all four are merged, **one** isolated `mutation_check.py --set OP16` run — never concurrent
+   with anything else touching that clone, and never piped to `tail` when reading the exit code.
+6. Then dispatch round 3, the six OP15 character batches, the same way.
+
+**Boundaries held while unattended.** Everything stays local: commits on `claude/tasks-3-18-78c831`
+only. **No push, no PR, no remote of any kind**, and nothing outside this worktree and the batch
+worktrees. Agent branches are merged but never deleted until their work is verified in the merge.
+No engine primitives are built — the parked-don't-extend decision stands and is not mine to reverse
+overnight.
+
+**What gets escalated rather than worked around**, i.e. left for the morning with the work stopped at
+a clean commit: a merge conflict, a suite regression that is not a formatting round-trip, a surviving
+mutant that hand-mutation confirms is real, or any card whose printed text contradicts its ruling in a
+way not already covered in `cards/ENCODING.md`.

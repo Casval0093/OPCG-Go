@@ -27,5 +27,29 @@ export const op16BoaSandersonia111: CharacterCard = {
   attribute: "strike",
   effect:
     "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)",
+  effects: {
+    keywords: ["blocker"],
+    effects: [
+      {
+        trigger: "trigger",
+        conditions: [
+          {
+            // Ruling #1013: with 3 Life cards INCLUDING this one, the [Trigger] may still play it.
+            // The card is already out of the Life area when its own [Trigger] resolves, so the
+            // count it sees is 2. Encode the printed number.
+            condition: "lifeCount",
+            player: "self",
+            comparison: "lte",
+            value: 2,
+          },
+        ],
+        actions: [
+          {
+            action: "playThisCard",
+          },
+        ],
+      },
+    ],
+  },
   i18n: op16BoaSandersonia111I18n,
 };

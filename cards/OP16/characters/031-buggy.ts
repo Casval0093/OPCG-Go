@@ -26,5 +26,26 @@ export const op16Buggy031: CharacterCard = {
   traits: ["Impel Down", "Buggy Pirates"],
   attribute: "slash",
   effect: "[On K.O.] Play up to 1 [Prisoner of Impel Down] card from your hand.",
+  effects: {
+    effects: [
+      {
+        trigger: "onKo",
+        // A bare [On K.O.] with no `source`, so it fires on a battle K.O. as well as an
+        // effect one. "[Prisoner of Impel Down]" is the bracketed card NAME of OP16-042, not
+        // the broader "Impel Down" trait this Buggy itself carries -- a trait filter here
+        // would let Buggy replay half the deck. Also no cost filter: the print restricts the
+        // card by name only. `cardCategory` would be dead weight, since every card with that
+        // name is a Character.
+        actions: [
+          {
+            action: "play",
+            source: { player: "self", zone: "hand" },
+            count: { amount: 1, upTo: true },
+            filters: [{ filter: "name", value: "Prisoner of Impel Down" }],
+          },
+        ],
+      },
+    ],
+  },
   i18n: op16Buggy031I18n,
 };

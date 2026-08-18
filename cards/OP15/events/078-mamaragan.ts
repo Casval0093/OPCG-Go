@@ -24,5 +24,52 @@ export const op15Mamaragan078: EventCard = {
   traits: ["Sky Island"],
   effect:
     "[Main] DON!! -2: Draw 1 card. Then, rest up to 1 of your opponent's Characters with 5000 power or less.\n[Counter] Up to 1 of your Leader or Character cards gains +1000 power during this battle. Then, if you have 6 or less DON!! cards on your field, draw 1 card.",
+  effects: {
+    effects: [
+      {
+        trigger: "main",
+        // DON!! -2 here, not -1, and no [Enel] condition (ruling #917's quoted text has none).
+        costs: [{ cost: "returnDon", amount: 2 }],
+        actions: [
+          { action: "draw", player: "self", amount: 1 },
+          {
+            action: "rest",
+            target: {
+              player: "opponent",
+              zones: ["character"],
+              count: { amount: 1, upTo: true },
+              filters: [{ filter: "power", comparison: "lte", value: 5000 }],
+            },
+          },
+        ],
+      },
+      {
+        trigger: "counter",
+        actions: [
+          {
+            action: "modifyPower",
+            target: {
+              player: "self",
+              zones: ["leader", "character"],
+              count: { amount: 1, upTo: true },
+            },
+            value: 1000,
+            duration: "thisBattle",
+          },
+          {
+            action: "draw",
+            player: "self",
+            amount: 1,
+            condition: {
+              condition: "donFieldCount",
+              player: "self",
+              comparison: "lte",
+              value: 6,
+            },
+          },
+        ],
+      },
+    ],
+  },
   i18n: op15Mamaragan078I18n,
 };

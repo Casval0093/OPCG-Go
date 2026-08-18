@@ -27,5 +27,25 @@ export const op16Hannyabal072: CharacterCard = {
   attribute: "slash",
   effect:
     "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 [Impel Down] type card and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+  effects: {
+    effects: [
+      {
+        // OP04-002 Igaram's search shape. No "other than [Name]" clause on this print, so no
+        // `excludeName` — contrast OP16-064 Koby in this same batch, which has one.
+        trigger: "onPlay",
+        actions: [
+          {
+            action: "search",
+            lookCount: 5,
+            source: { player: "self", zone: "deck" },
+            revealCount: { amount: 1, upTo: true },
+            revealFilters: [{ filter: "trait", value: "Impel Down", match: "includes" }],
+            revealDestination: "hand",
+            remainderPosition: "bottom",
+          },
+        ],
+      },
+    ],
+  },
   i18n: op16Hannyabal072I18n,
 };

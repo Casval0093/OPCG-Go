@@ -26,5 +26,23 @@ export const op15Genbo103: CharacterCard = {
   trigger: "Draw 1 card. Then, if you have 2 or less Life cards, play this card.",
   traits: ["Sky Island", "Shandian Warrior"],
   attribute: "ranged",
+  effects: {
+    effects: [
+      {
+        trigger: "trigger",
+        actions: [
+          { action: "draw", player: "self", amount: 1 },
+          {
+            action: "playThisCard",
+            // Ruling #937: at 3 Life cards *including this one*, the play happens (可以). A
+            // [Trigger] resolves after its own card has already left the Life area, so the count
+            // the condition sees is 2 -- the printed number, not printed-plus-one. Encode the
+            // printed number. Same shape as OP08-114 S-Hawk's [Trigger].
+            condition: { condition: "lifeCount", player: "self", comparison: "lte", value: 2 },
+          },
+        ],
+      },
+    ],
+  },
   i18n: op15Genbo103I18n,
 };

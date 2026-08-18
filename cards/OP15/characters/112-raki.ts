@@ -27,5 +27,29 @@ export const op15Raki112: CharacterCard = {
   attribute: "ranged",
   effect:
     "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[On Play] Play up to 1 [Shandian Warrior] type Character card with a cost of 3 or less from your hand.",
+  effects: {
+    keywords: ["blocker"],
+    effects: [
+      {
+        // Not optional: no "may" and no cost, so the play offer is mandatory. GENERAL ruling #5
+        // makes "up to 1" a real 0-or-1 choice regardless.
+        trigger: "onPlay",
+        actions: [
+          {
+            action: "play",
+            source: { player: "self", zone: "hand" },
+            count: { amount: 1, upTo: true },
+            filters: [
+              { filter: "trait", value: "Shandian Warrior", match: "includes" },
+              { filter: "cost", comparison: "lte", value: 3 },
+              // "Character card": excludes Stages from the already character-or-stage pool
+              // `candidatesForPlayAction` builds.
+              { filter: "cardCategory", value: "character" },
+            ],
+          },
+        ],
+      },
+    ],
+  },
   i18n: op15Raki112I18n,
 };

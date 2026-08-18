@@ -27,5 +27,22 @@ export const op16Sengoku066: CharacterCard = {
   attribute: "wisdom",
   effect:
     "[On Play] If your Leader has the [Navy] type, add up to 2 DON!! cards from your DON!! deck and rest them. Then, draw 2 cards and trash 2 cards from your hand.",
+  effects: {
+    effects: [
+      {
+        // A LEADING "If your Leader has the [X] type, ..." gates the whole block, "Then," half
+        // included — ruling #944 on OP15-116, whose printed shape is identical. (The other
+        // placement, ruling #899's, is a check written into a later sentence's own target; that
+        // is not what this card prints.)
+        trigger: "onPlay",
+        conditions: [{ condition: "leaderTrait", trait: "Navy", match: "includes" }],
+        actions: [
+          { action: "addDon", count: { amount: 2, upTo: true }, state: "rested" },
+          { action: "draw", player: "self", amount: 2 },
+          { action: "trashFromHand", player: "self", amount: 2 },
+        ],
+      },
+    ],
+  },
   i18n: op16Sengoku066I18n,
 };

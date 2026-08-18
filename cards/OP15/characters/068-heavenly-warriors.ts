@@ -27,5 +27,22 @@ export const op15HeavenlyWarriors068: CharacterCard = {
   attribute: "slash",
   effect:
     "If you have 6 or less DON!! cards on your field, this Character gains [Blocker].\n(After your opponent declares an attack, you may rest this card to make it the new target of the attack.)",
+  effects: {
+    // A CONDITIONAL [Blocker] is not a printed keyword: `keywords: ["blocker"]` would be
+    // unconditional. OP05-062 O-Nami is the same shape with a different DON!! threshold.
+    permanentEffects: [
+      {
+        conditions: [{ condition: "donFieldCount", player: "self", comparison: "lte", value: 6 }],
+        actions: [
+          {
+            action: "grantKeyword",
+            target: { player: "self", zones: ["character"], count: { amount: 1 }, self: true },
+            keyword: "blocker",
+            duration: "permanent",
+          },
+        ],
+      },
+    ],
+  },
   i18n: op15HeavenlyWarriors068I18n,
 };

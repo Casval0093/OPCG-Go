@@ -27,5 +27,32 @@ export const op15Ohm061: CharacterCard = {
   attribute: "slash",
   effect:
     "[On Play] DON!! -1: Draw 1 card.\n[When Attacking] If you have 6 or less DON!! cards on your field, give up to 1 of your opponent's Characters -1000 power during this turn.",
+  effects: {
+    effects: [
+      {
+        // `optional: true` is load-bearing on a triggered block carrying a cost: costs on a
+        // mandatory block are paid automatically (effects/resolution.ts), and GENERAL ruling #12
+        // says an [On Play] with a cost may be declined by declining the payment.
+        trigger: "onPlay",
+        costs: [{ cost: "returnDon", amount: 1 }],
+        actions: [{ action: "draw", player: "self", amount: 1 }],
+        optional: true,
+      },
+      {
+        // The "If you have 6 or less DON!!" LEADS the sentence, so it gates the whole block --
+        // no prompt at all above the line. Contrast the post-colon placement on OP16-065/070.
+        trigger: "whenAttacking",
+        conditions: [{ condition: "donFieldCount", player: "self", comparison: "lte", value: 6 }],
+        actions: [
+          {
+            action: "modifyPower",
+            target: { player: "opponent", zones: ["character"], count: { amount: 1, upTo: true } },
+            value: -1000,
+            duration: "thisTurn",
+          },
+        ],
+      },
+    ],
+  },
   i18n: op15Ohm061I18n,
 };
