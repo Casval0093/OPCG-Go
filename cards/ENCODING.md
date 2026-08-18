@@ -616,6 +616,37 @@ the target's *ownership* scoping with an opponent body instead.
 **"a cost of N" / "power N" is `eq`.** Confirmed again on Rebecca (费用为3). Same reading as
 rulings #962/#963. A bare number in card text is an equality unless a comparison word is printed.
 
+## OP15 blue Characters (13 cards) — lessons
+
+**`replacedEvent` and `source: "opponentEffect"` are load-bearing JOINTLY, and `replacedEvent` alone is
+UNKILLABLE.** On the 因对方的效果 shape (`OP15-105` Bonney, `OP15-052` Leo, `OP12-102` Shirahoshi),
+swapping `removeFromField` for `leaveField` changes nothing observable — measured by hand mutation, not
+inferred — because `structuredSourceMatches` already requires `koCause === "effect"` whenever `source`
+is `"opponentEffect"`, closing the battle path before `replacedEvent` is consulted. **Do not chase that
+survivor with a new fixture, and do not "simplify" the pair**: `replacedEvent` is required and must hold
+some value, `removeFromField` is what 离开场上 says, and `source` is what 因对方的效果 says. Assert the
+*pair* instead — deleting `source` alone goes red (your own effects start being replaced), and swapping
+both at once goes red (the battle path opens). This is **not** the redundant-filter case from Task 3,
+where the fix was to delete the redundancy; here there is nothing to delete.
+
+**A "no `excludeSelf`" ruling on a COST needs a cost-payment test, not a target test.** The
+`effectCostReturnCharacterToDeck` prompt is `kind: "payCost"` and does list the source card among its
+candidates — but only when `candidateIds.length > amount`, so the board needs a second Character or the
+payment auto-resolves and the ruling goes unasserted.
+
+**`[Rush]` proved by "the attack was legal" is a weak assertion — pitch the attacker to CONNECT.** A
+4000 body cannot beat a 5000 Leader, so `lifeCount` never moves and a working grant reads as a failure.
+Size the fixture `activeDon: cost + 1` and `attachDon` the spare to the attacker, so 4000 + 1000 meets
+5000 and the Life drop is the durable witness. Pair with a control that declines the activation and
+asserts `expectFailure(declareAttack).reason`.
+
+**Fixture additions, all pre-OP15.** Vanilla [Dressrosa] ladder: `op01Bellamy076` (2/4000),
+`op10BlueGilly054` (3/5000), `eb03Viola030` (5/6000), `op04TrafalgarLaw087` (5/7000),
+`op10NicoRobin089` (6/8000), `op10Hajrudin050` (7/9000), `op12Issho082` (8/10000). [Dressrosa] Events
+with an observable `[Main]`: `op10GumGumRhinoSchneider097` (cost 1), `op04GumGumKingKongGun093`
+(cost 3); one with **no** `[Main]` at all: `op04Barrier095`. Inert [Dressrosa] Leaders differing only in
+name — ideal for a `leaderName` boundary: `op04Rebecca039` and `eb01Kyros040`.
+
 ## OP15 green Characters (13 cards) — lessons
 
 **`baseCost()` returns 0 for a Leader, which makes a cost filter on a `["leader","character"]` target
