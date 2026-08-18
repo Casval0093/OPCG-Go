@@ -14,17 +14,22 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GAMES="${1:-200}"
 DECK="${2:-sim/decks/mihawk-green-proxy.json}"
 
-# Adjacent rungs plus every pair against the presumed top, so a non-monotonic ladder is visible
-# rather than inferred from a chain of adjacent comparisons.
+# FULL ROUND ROBIN -- all C(5,2)=10 pairs. An earlier version tested only 8 and then reported a
+# total order, which asserted `passOnly < random` from no measurement at all: `firstLegal` beating
+# both of them does not order them relative to each other. **Pairwise policy strength need not be
+# transitive** (rock-paper-scissors cycles are normal for heuristic policies), so a total order may
+# only be reported when every pair has actually been played. Do not prune this list back.
 PAIRS="
-valueRanked passOnly
+valueRanked greedy
 valueRanked firstLegal
 valueRanked random
-valueRanked greedy
-greedy random
+valueRanked passOnly
 greedy firstLegal
-random firstLegal
+greedy random
+greedy passOnly
+firstLegal random
 firstLegal passOnly
+random passOnly
 "
 
 printf '%-14s %-12s %10s %22s %8s\n' A B WIN_A CI95 TIMEOUT

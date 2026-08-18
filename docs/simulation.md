@@ -230,7 +230,16 @@ policies mid-run.
 | random | firstLegal | 2.5% | 1.1 – 5.7 |
 | firstLegal | passOnly | 100.0% | 98.1 – 100 |
 
-Measured order: **passOnly < random < firstLegal < greedy < valueRanked.**
+> **This table is being replaced.** It is 8 of the 10 pairs, and it was measured *before* patch 4,
+> i.e. on an engine that handed the player on the play **2 DON!! on turn one instead of 1**. A full
+> round robin is re-running on the corrected engine; treat every number here as provisional.
+
+**No total order may be read off this table.** An earlier version stated
+`passOnly < random < firstLegal < greedy < valueRanked`, which asserted **`passOnly < random` from no
+measurement at all** — that pair was never played, and `firstLegal` beating both of them does not
+order them against each other. Pairwise policy strength **need not be transitive**; cycles are normal
+among heuristics. What the 8 pairs do support individually: `valueRanked` > `greedy` > `firstLegal` >
+`random`, and `firstLegal` > `passOnly`.
 
 **Two prior assumptions were refuted, both of which had been written down as if known.**
 
@@ -252,12 +261,22 @@ It is a **floor test**. It shows the ladder is ordered and that `valueRanked` is
 simple heuristics. **Being best-of-five weak heuristics is not evidence of playing well**, and nothing
 here licenses trusting a tech-slot ΔWR.
 
-There is one *inference* worth drawing, labelled as inference rather than measurement: **a 21-point
-gap between the top two rungs suggests the policy is nowhere near saturated.** If `valueRanked` were
-close to a ceiling, the next rung down would sit close behind it; a large gap at the top of the ladder
-is the signature of a steep part of the curve, where further policy work still returns a lot. That is
-evidence *for* policy quality being the binding constraint, and *against* spending on throughput next
-— consistent with the decision rule in CLAUDE.md.
+**A ceiling inference was drawn here and is RETRACTED.** It read: a 21-point gap between the top two
+rungs means the policy is nowhere near saturated, because a near-ceiling policy would have the next
+rung close behind. **That reasoning is invalid** and labelling it "inference" did not rescue it. The
+gap between rung N and rung N−1 measures the *spacing of five arbitrarily chosen heuristics*, not the
+distance from rung N to the ceiling: **if `valueRanked` were already optimal and `greedy` simply poor,
+the same 21 points would appear.** The premise that rungs are evenly spaced up to the ceiling is
+unfounded — the rungs were picked by hand from whatever the engine happened to ship.
+
+Nothing in this experiment bears on absolute quality, and **no ladder result may be used to argue for
+or against buying throughput.** Distance from the ceiling requires a ceiling: steps 2 (puzzle suite),
+4 (oracle agreement) or 5 (human benchmark).
+
+**The decision rule survives on independent grounds, which is why the retraction does not change
+it.** "Measure quality before buying speed" rests on the bias argument — a policy that cannot use a
+conditional card systematically under-reports every tech card's ΔWR, and precision does not repair
+bias. That argument never depended on the ladder.
 
 Next: step 2, the puzzle suite, which is the first measurement that can say something about absolute
 quality rather than relative ordering.

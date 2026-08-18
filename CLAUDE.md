@@ -424,17 +424,22 @@ The `tools/` tests are stdlib `unittest`, matching the tools' own stdlib-only co
    **throughput buys precision, never freedom from bias.** A weak policy does not merely add noise to
    a tech-slot measurement; it biases it in a predictable direction — see the note below.
    1. ~~**Dominance ladder**~~ — **DONE 2026-08-19**, `./scripts/policy_ladder.sh`, 200 games/pair.
-      Measured order **passOnly < random < firstLegal < greedy < valueRanked**, and the pair that
-      mattered went the default's way: **`valueRanked` beats `greedy` 71.5% [64.9, 77.3]**, so the
+      **A total order was claimed and withdrawn: `passOnly < random` was never measured** (only 8 of
+      the 10 pairs were run, and `firstLegal` beating both does not order them against each other —
+      pairwise policy strength need not be transitive). The ladder is now a **full round robin**, and
+      is being re-run on the post-patch-4 engine because the first run predates the first-turn DON!!
+      fix. The pair that mattered went the default's way: **`valueRanked` beats `greedy` 71.5% [64.9, 77.3]**, so the
       default is not "greedy wearing a hat". Two written-down assumptions were **refuted**:
       `firstLegal` beats `random` 97.5% (so **`random` is the honest no-policy control**, because the
       legal-command list leads with plays and attacks while random throws turns away on pass), and
       `passOnly` produced **0 timeouts in 1600 games** rather than the predicted double-losses.
       **Floor test only** — best-of-five weak heuristics is not evidence of playing well.
-      **One inference worth carrying:** a 21-point gap between the top two rungs means the policy is
-      nowhere near saturated; a near-ceiling policy would have the next rung close behind. That
-      argues policy quality *is* the binding constraint and throughput is not what to buy next.
-      Full table and caveats: `docs/simulation.md`.
+      **A ceiling inference drawn from the 21-point gap is RETRACTED — do not re-derive it.** The
+      gap between the top two rungs measures the spacing of five hand-picked heuristics, not the
+      distance to the ceiling: an already-optimal `valueRanked` against a merely-poor `greedy`
+      produces the same 21 points. **No ladder result may be used to argue for or against buying
+      throughput.** The decision rule below survives untouched because it rests on the *bias*
+      argument, not on this. Full table and caveats: `docs/simulation.md`.
    2. **Puzzle suite** — 30–50 hand-built positions with an unambiguous best play (lethal on board,
       a blocker that must be used, a counter that must be played to survive, removal that must hit
       the one relevant body). Best value for effort: needs no opponent and no statistics, and
