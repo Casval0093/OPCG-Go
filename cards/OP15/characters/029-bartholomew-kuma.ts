@@ -27,5 +27,29 @@ export const op15BartholomewKuma029: CharacterCard = {
   attribute: "strike",
   effect:
     "[On Play] Up to 1 of your opponent's Characters with a cost of 5 or less cannot be rested until the end of your opponent's next End Phase.",
+  effects: {
+    effects: [
+      {
+        trigger: "onPlay",
+        // Verbatim the sentence OP13/characters/032-nico-robin.ts prints, at cost 8 rather than 5,
+        // and the same encoding. Note this is the ACTION-side `cannotBeRested` (a targeted, timed
+        // modifier), not the static permanent-effect form OP12/characters/021-ipponmatsu.ts uses,
+        // and it needs no `byPlayer`: the printed clause blocks every rest, including the
+        // opponent's own effects resting their own Character.
+        actions: [
+          {
+            action: "cannotBeRested",
+            target: {
+              player: "opponent",
+              zones: ["character"],
+              count: { amount: 1, upTo: true },
+              filters: [{ filter: "cost", comparison: "lte", value: 5 }],
+            },
+            duration: "untilEndOfOpponentNextEndPhase",
+          },
+        ],
+      },
+    ],
+  },
   i18n: op15BartholomewKuma029I18n,
 };

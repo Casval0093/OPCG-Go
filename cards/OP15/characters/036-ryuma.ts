@@ -26,5 +26,46 @@ export const op15Ryuma036: CharacterCard = {
   attribute: "slash",
   effect:
     "[On Play]/[When Attacking] K.O. up to 1 of your opponent's rested Characters with a cost of 4 or less.",
+  effects: {
+    // "[On Play]/[When Attacking]" is TWO blocks with duplicated actions -- there is no combined
+    // trigger (the OP15 events lesson, modelled on OP03/events/017-cross-fire.ts). Each block owns
+    // its own copy of every filter, so both need their own fixtures.
+    effects: [
+      {
+        trigger: "onPlay",
+        actions: [
+          {
+            action: "ko",
+            target: {
+              player: "opponent",
+              zones: ["character"],
+              count: { amount: 1, upTo: true },
+              filters: [
+                { filter: "state", value: "rested" },
+                { filter: "cost", comparison: "lte", value: 4 },
+              ],
+            },
+          },
+        ],
+      },
+      {
+        trigger: "whenAttacking",
+        actions: [
+          {
+            action: "ko",
+            target: {
+              player: "opponent",
+              zones: ["character"],
+              count: { amount: 1, upTo: true },
+              filters: [
+                { filter: "state", value: "rested" },
+                { filter: "cost", comparison: "lte", value: 4 },
+              ],
+            },
+          },
+        ],
+      },
+    ],
+  },
   i18n: op15Ryuma036I18n,
 };
