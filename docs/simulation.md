@@ -112,6 +112,19 @@ upstream** — `TheCardGoat/tcg-engines` is MIT and the bug is in their harness,
 Ordering cards *well* is a strategy question and identity order is a placeholder. Ordering them
 *legally* is not, and that is all this fixes.
 
+## Every play/draw number below predates the first-turn DON!! fix — 2026-08-19
+
+`tools/patch_engine.py` patch 4 corrects a rules bug: the engine placed 2 DON!! every DON!! Phase
+including the first player's first turn, where the rule is 1. So **the first player in every run
+recorded on this page held a turn-1 DON!! surplus.**
+
+**Re-measured after the fix, and the practical effect is small:** Mihawk proxy mirror, 160 games,
+post-fix — overall **50.63%** [42.95%, 58.27%] (contains 50%, as a mirror must), on play 55.00%, on
+draw 46.25%, **gap 8.75 pts**. The figure recorded below for a real Block 2+ deck was **8.5 pts**, so
+the fix does not move this deck's play/draw gap out of noise. The rules were wrong; the measured
+first-player advantage was not materially inflated by it. Other decks are unmeasured — a deck that
+leans on a turn-1 play is where the surplus would have mattered most.
+
 ## Play/draw gap: an earlier conclusion here was wrong
 
 An earlier version of this document claimed the policy "exaggerates the first-player advantage by

@@ -97,7 +97,34 @@ SEARCH_SLOTS_FIX = """        selectedIds.some((instanceId) => !playableEligible
             (instanceId) => getCardForInstance(state, instanceId).cardType === "character",
           ).length > openCharacterSlots) ||"""
 
-# --- Patch 3: the first player takes 2 DON!! on their first turn, and should take 1 -----------
+# --- Patch 3: src/cards per-card tests are never executed -----------------------------------
+#
+# `packages/engine/vite.config.ts` sets `test.include` to `tests/cards/**` plus four named files.
+# It does NOT cover `src/cards/**`, where 2065 `*.test.ts` files live -- 1972 of them with no
+# same-named counterpart under `tests/cards/`. So roughly two thousand per-card tests never ran.
+#
+# This is how the search-to-hand bug in patch 2 survived: `OP12-086` Koala's own test file is one
+# of the 1972, so a full Character area was never exercised against a hand reveal.
+#
+# Measured here, enabling all of them:
+#   before   1601 files / 3370 tests / 85-89s
+#   after    3666 files / 6078 tests / 85s      +2065 files, +2708 tests, ZERO failures
+#
+# It is effectively free: `isolate: false` plus transform/import dominating means wall clock does
+# not move. An earlier note in CLAUDE.md warned a bulk enable might surface pre-existing failures
+# outside the OP12 sample -- it does not. Nothing needed fixing; they were simply not wired in.
+#
+# Filed upstream as https://github.com/TheCardGoat/tcg-engines/issues/217.
+
+SRC_CARDS_TESTS_ANCHOR = """      "src/automation/bot-harness.test.ts","""
+
+SRC_CARDS_TESTS_FIX = """      "src/automation/bot-harness.test.ts",
+      // OPCG-Go patch: upstream never included these, so ~2000 per-card tests never ran. Enabling
+      // them adds 2065 files / 2708 tests, all passing, at no measurable wall-clock cost.
+      "src/cards/**/*.test.ts","""
+
+
+# --- Patch 4: the first player takes 2 DON!! on their first turn, and should take 1 -----------
 #
 # `finalizeBeginTurnRefresh` places `Math.min(2, player.donDeckCount)` every DON!! Phase with no
 # first-turn exception, so the player going first opens on 2 active DON!! instead of 1.
@@ -136,9 +163,9 @@ FIRST_TURN_DON_FIX = """  const player = getPlayer(state, seat);
   const placedDon = Math.min(isFirstPlayersFirstTurn ? 1 : 2, player.donDeckCount);"""
 
 
-# --- Patch 4: two upstream tests assert the pre-fix DON!! behaviour --------------------------
+# --- Patch 5: two upstream tests assert the pre-fix DON!! behaviour --------------------------
 #
-# Patch 3 makes the first player place 1 DON!! on their first turn. Two tests in
+# Patch 4 makes the first player place 1 DON!! on their first turn. Two tests in
 # `tests/index.test.ts` were written against the old flat 2 and fail after it. Both are correcting
 # the TEST, not accommodating the fix -- they assert a state the official rules do not permit:
 #
@@ -189,6 +216,13 @@ PATCHES = [
         "anchor": SEARCH_SLOTS_ANCHOR,
         "already": 'OPCG-Go patch: only a search that PLAYS what it reveals',
         "apply": lambda s: s.replace(SEARCH_SLOTS_ANCHOR, SEARCH_SLOTS_FIX, 1),
+    },
+    {
+        "name": "vite.config: run the per-card tests under src/cards",
+        "relpath": "vite.config.ts",
+        "anchor": SRC_CARDS_TESTS_ANCHOR,
+        "already": '"src/cards/**/*.test.ts"',
+        "apply": lambda s: s.replace(SRC_CARDS_TESTS_ANCHOR, SRC_CARDS_TESTS_FIX, 1),
     },
     {
         "name": "state: first player places 1 DON!! on their first turn, not 2",
