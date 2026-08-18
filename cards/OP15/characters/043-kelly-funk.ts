@@ -26,5 +26,26 @@ export const op15KellyFunk043: CharacterCard = {
   traits: ["Dressrosa", "Mogaro Kingdom"],
   attribute: "strike",
   effect: "[On Play] Play up to 1 [Bobby Funk] from your hand.",
+  effects: {
+    effects: [
+      {
+        trigger: "onPlay",
+        actions: [
+          {
+            // "[Bobby Funk]" is a bracketed card NAME (OP15-050), the only card in the pool
+            // carrying it. Deliberately no `cardCategory: "character"` beside it: a `play`
+            // action's pool is already pre-narrowed to character-or-stage
+            // (`candidatesForPlayAction`), so the only thing `cardCategory` could add here is
+            // "exclude a Stage named Bobby Funk", and no such card exists -- it would be an
+            // unkillable redundant filter.
+            action: "play",
+            source: { player: "self", zone: "hand" },
+            count: { amount: 1, upTo: true },
+            filters: [{ filter: "name", value: "Bobby Funk" }],
+          },
+        ],
+      },
+    ],
+  },
   i18n: op15KellyFunk043I18n,
 };

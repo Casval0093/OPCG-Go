@@ -27,5 +27,31 @@ export const op15Koala044: CharacterCard = {
   attribute: "strike",
   effect:
     "[Blocker]\n[On K.O.] Look at 3 cards from the top of your deck; reveal up to 1 [Dressrosa] type Event and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+  effects: {
+    keywords: ["blocker"],
+    effects: [
+      {
+        trigger: "onKo",
+        actions: [
+          {
+            // "[Dressrosa] type **Event**" -- both filters are load-bearing and independently
+            // killable: a Dressrosa Character kills `cardCategory`, a non-Dressrosa Event kills
+            // `trait`. Contrast OP15-040 Viola / OP15-053 Rebecca, which print "type card" and
+            // therefore carry no `cardCategory`.
+            action: "search",
+            lookCount: 3,
+            source: { player: "self", zone: "deck" },
+            revealCount: { amount: 1, upTo: true },
+            revealFilters: [
+              { filter: "cardCategory", value: "event" },
+              { filter: "trait", value: "Dressrosa", match: "includes" },
+            ],
+            revealDestination: "hand",
+            remainderPosition: "bottom",
+          },
+        ],
+      },
+    ],
+  },
   i18n: op15Koala044I18n,
 };
