@@ -219,12 +219,12 @@ Counts exclude the 5 Task-2 reference cards and the 15 genuinely vanilla Charact
 | 16 | OP16 green characters | 12 | **done** — 1 clause parked (OP16-034); full sweep 185/185 + 17 hand mutants |
 | 17 | OP16 blue characters | 14 | **done** — nothing parked; full sweep 189/189 mutants |
 | 18 | OP16 purple characters | 13 | **done** — nothing parked; 56 hand mutants (7 of 13 cards are invisible to the tool) |
-| 5 | OP15 red characters | 15 | `003 004 005 006 007 008 009 010 011 012 013 014 015 017 018` |
-| 6 | OP15 green characters | 13 | `023 024 025 026 027 028 029 031 032 033 034 035 036` |
-| 7 | OP15 blue characters | 13 | `040 041 042 043 044 045 046 047 048 050 051 052 053` |
-| 8 | OP15 purple characters | 15 | `059 060 061 063 064 065 066 067 068 069 070 071 072 073 118` |
-| 9 | OP15 black characters | 15 | `079 080 081 082 083 084 085 086 087 088 090 091 092 093 094` |
-| 10 | OP15 yellow characters | 16 | `099 100 101 102 103 104 105 106 108 109 110 111 112 113 114 119` |
+| 5 | OP15 red characters | 15 | **done** — 12 encoded, 9 clauses parked |
+| 6 | OP15 green characters | 13 | **done** — 10 encoded, 8 clauses parked |
+| 7 | OP15 blue characters | 13 | **done** — 13 encoded, nothing parked |
+| 8 | OP15 purple characters | 15 | **done** — 14 encoded, 3 clauses parked |
+| 9 | OP15 black characters | 15 | **done** — 15 encoded, 2 clauses parked (agent stopped; work rescued and re-verified centrally) |
+| 10 | OP15 yellow characters | 16 | **done** — 15 encoded, 1 clause parked |
 
 **Round order — OP16 before OP15, decided 2026-08-18.** The plan numbers OP15's characters first
 (Tasks 5–10), but they are deferred behind OP16's. Completing OP16 completes the set the critical path
