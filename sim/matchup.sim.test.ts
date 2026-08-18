@@ -69,14 +69,23 @@ import {
   greedyStrategy,
   valueRankedStrategy,
   randomStrategy,
+  firstLegalStrategy,
+  passOnlyStrategy,
 } from "../../src/automation/bot-strategies.ts";
+import { otherSeat } from "../../src/shared.ts";
 import type { MatchConfig, MatchSeat } from "../../src/types.ts";
 import type { OnePieceBotStrategy } from "../../src/automation/bot-strategies.ts";
 
+// Ordered weakest -> strongest as the ladder EXPECTS them to rank. That expectation is the thing
+// under test: a policy that cannot beat `random` and `firstLegal` by a wide margin is not a policy.
+// `passOnly` is the true floor and mostly produces round-clock timeouts (双方败北) rather than
+// losses, which is itself a useful control -- it shows the harness scores a non-player correctly.
 const STRATEGIES: Record<string, OnePieceBotStrategy> = {
-  valueRanked: valueRankedStrategy,
-  greedy: greedyStrategy,
+  passOnly: passOnlyStrategy,
+  firstLegal: firstLegalStrategy,
   random: randomStrategy,
+  greedy: greedyStrategy,
+  valueRanked: valueRankedStrategy,
 };
 
 interface Deck {
@@ -170,13 +179,17 @@ function playOne(
   b: Deck,
   seed: number,
   aSeat: MatchSeat,
-  strategy: OnePieceBotStrategy,
+  strategyA: OnePieceBotStrategy,
+  strategyB: OnePieceBotStrategy,
   turnBudget: number,
   maxCommands: number,
 ): GameResult {
+  // The strategy must follow the DECK, not the seat. `aSeat` alternates by game index to control
+  // turn order, so binding a strategy to a fixed seat would make deck A swap policies halfway
+  // through the run and measure nothing. Keying off aSeat is what ties policy to deck.
   const r = runBotMatch(
     config(a, b, seed, aSeat),
-    { south: strategy, north: strategy },
+    { [aSeat]: strategyA, [otherSeat(aSeat)]: strategyB } as Record<MatchSeat, OnePieceBotStrategy>,
     { maxCommands },
   );
   const turns = r.finalState.turnNumber ?? 0;
@@ -370,15 +383,26 @@ run(
     const seed0 = Number(env("SIM_SEED", "1000"));
     const turnBudget = Number(env("SIM_TURN_BUDGET", "40"));
     const maxCommands = Number(env("SIM_MAX_COMMANDS", "800"));
+    // SIM_STRATEGY sets both decks; SIM_STRATEGY_A / _B override per deck. Asymmetric strategies
+    // exist for the policy-quality ladder: pit a policy against a weaker one on the SAME deck and
+    // the win rate is a direct read on the policy rather than on the deck.
     const strategyName = env("SIM_STRATEGY", "valueRanked");
-    const strategy = STRATEGIES[strategyName];
-    if (!strategy)
-      throw new Error(
-        `unknown strategy ${strategyName}; have ${Object.keys(STRATEGIES).join(", ")}`,
-      );
+    const strategyNameA = env("SIM_STRATEGY_A", strategyName);
+    const strategyNameB = env("SIM_STRATEGY_B", strategyName);
+    const pick = (name: string) => {
+      const found = STRATEGIES[name];
+      if (!found)
+        throw new Error(`unknown strategy ${name}; have ${Object.keys(STRATEGIES).join(", ")}`);
+      return found;
+    };
+    const strategyA = pick(strategyNameA);
+    const strategyB = pick(strategyNameB);
 
     console.log(
-      `\nSIM  A=${deckA.name} vs B=${deckB.name}  games=${games} strategy=${strategyName} ` +
+      `\nSIM  A=${deckA.name} vs B=${deckB.name}  games=${games} ` +
+        (strategyNameA === strategyNameB
+          ? `strategy=${strategyNameA} `
+          : `strategyA=${strategyNameA} strategyB=${strategyNameB} `) +
         `turnBudget=${turnBudget} seed0=${seed0}  catalog=${allCards.length} cards`,
     );
 
@@ -411,7 +435,7 @@ run(
             : "south";
     const play = (a: Deck, b: Deck) =>
       Array.from({ length: games }, (_, i) =>
-        playOne(a, b, seed0 + i, seatAt(i), strategy, turnBudget, maxCommands),
+        playOne(a, b, seed0 + i, seatAt(i), strategyA, strategyB, turnBudget, maxCommands),
       );
 
     const baseline = play(deckA, deckB);

@@ -104,8 +104,18 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   were measured in our own tree, whose `tests/cards/` carries ~212 grafted OP15/OP16 files, and they
   were wrong for upstream — they briefly shipped in the PR body before being corrected.
   Upstream issue <https://github.com/TheCardGoat/tcg-engines/issues/217> still cites only the OP12
-  sample and repeats the caveat this note just voided; **the full-enable evidence has not been posted
-  there.**
+  sample and repeats the caveat this note just voided. **That will not be corrected and it is not a
+  loose end — see the standing rule below. Do not raise it.**
+- **STANDING RULE — no issues on external repos, and do not ask (Ping, 2026-08-19).**
+  Verbatim: *"本项目外部库不要发issue，未来也不要再问我"*. File nothing new on upstream or any other
+  third-party repository, and **never surface it as a question, a "still outstanding" line, or a next
+  action.** This retires a question that had been re-raised three turns running (whether to post the
+  full-enable evidence to #217); the answer is no, permanently. Existing `#216` (PR) and `#217`
+  (issue) **stay open and untouched** — that was decided separately 2026-08-19 and this does not
+  reopen it. Upstream defects still get recorded locally in `docs/upstream/` and here; the local
+  record is the deliverable, and carrying the fix in `tools/patch_engine.py` is the sanctioned
+  mechanism. Treat any outward-facing action on third-party property as requiring an explicit,
+  unprompted instruction from Ping — never propose one.
 - **Real Block 2+ decks now simulate end to end**, 400/400 `rules-win`, median 9 turns.
 - **Do not calibrate on ST01.** The play/draw gap is **54.5 pts** on ST01, **26.7** on a vanilla
   Block 2+ pile, and **8.5 pts** on a real Block 2+ deck — the last of which is plausible. The gap
@@ -387,14 +397,55 @@ The `tools/` tests are stdlib `unittest`, matching the tools' own stdlib-only co
    semantics, so it can be scoped from real cases rather than from one. Then
    `giveDonSourcePlayer` (10 clauses) and `attachedDonTargetFilter` (7). Leave the 17 singleton
    primitives parked.
-4. **Pick the Tier-3 lever — but the audit's framing needs revising first.** Its four options are
-   all throughput levers, and throughput has not been the binding constraint: an unimplemented
-   `orderCards` branch was, and it cost 88% of games on modern decks until fixed. Two measured
-   corrections stand: the deck-realism multiplier is ~1.79x per game (flat per command, so the
-   cost is state transitions rather than effect resolution), which makes Option C optimistic by
-   ~3.4x; and the calibration evidence that would trigger Option A/B is **much weaker than it
-   looked** — the play/draw gap is 8.5 pts on a real Block 2+ deck, not the 54.5 pts ST01 showed.
-   Measure policy *quality* before spending on speed.
+4. **Measure policy quality, in this order — then and only then pick a Tier-3 lever.**
+   Ping approved this sequence 2026-08-19. The audit's four options are all *throughput* levers, and
+   **throughput buys precision, never freedom from bias.** A weak policy does not merely add noise to
+   a tech-slot measurement; it biases it in a predictable direction — see the note below.
+   1. **Dominance ladder** — `./scripts/policy_ladder.sh [GAMES] [DECK]`. Both seats play the same
+      deck so the deck cancels and the win rate reads the policy. Needed `SIM_STRATEGY_A/_B`
+      (`--strategy-a/--strategy-b`), added 2026-08-19; the strategy binds to the **deck, not the
+      seat**, because `aSeat` alternates to control turn order and a seat-bound policy would make
+      deck A swap policies mid-run. A **floor test only** — it proves the ladder is ordered, not that
+      the top rung plays well.
+   2. **Puzzle suite** — 30–50 hand-built positions with an unambiguous best play (lethal on board,
+      a blocker that must be used, a counter that must be played to survive, removal that must hit
+      the one relevant body). Best value for effort: needs no opponent and no statistics, and
+      failures are **diagnostic** — you learn which decision class is broken, not just that a number
+      is low. Unit tests for the policy; fits the per-card-test culture already here.
+   3. **Meta calibration** — sim matchup win rates against the 213k-game EN ladder matrix.
+      **Newly possible:** this repo used to note that no matchup between two *different* decks had
+      ever been simulated because `OP16-001` Ace was not in the engine. OP15/OP16 encoding is now
+      complete, so real deck-vs-deck calibration is available for the first time. This is the
+      charter's own validation layer 3.
+   4. **Oracle agreement** (deferred) — grade the cheap policy against an expensive deep search on a
+      few hundred sampled positions. **This dissolves the throughput objection:** "full-strength
+      ISMCTS is ~2 orders of magnitude out of reach" is true for using search as the policy in
+      *every game*, and false for using it as an *offline grader on a sample*.
+   5. **Human benchmark** (deferred) — Ping plays 10–20 games against the bot. Highest validity,
+      lowest volume. If a first-time pilot crushes it, no further measurement is needed.
+
+   **Why this matters more here than for a generic simulator, and the exact failure mode to fear.**
+   The simulator's job is tech-slot optimisation: a differential of maybe 1–3 points between two
+   50-card lists differing by 2 cards. Tech cards are precisely the cards whose value is conditional
+   and timing-sensitive — `OP17-005` is −4 cost *only* against a 10000+ board, `OP17-016` Rakuyo is
+   dead outside aggro matchups. **A policy that cannot use a conditional card will report that every
+   tech card is bad, and that looks like a clean answer rather than a broken measurement.** It
+   compounds with the no-sideboard arithmetic: a card dead outside one 10%-share matchup must swing
+   it >9 points to break even, and that large required ΔWR is being measured on exactly the cards a
+   weak policy evaluates worst.
+   **Do not resolve this by arguing that Ping is a novice so a weak policy is representative.**
+   bot-weak ≠ novice-weak: a novice mistimes a counter, a weak bot orders cards by identity because
+   that is the placeholder. The failure modes do not overlap, so a weak policy is not a model of a
+   novice — it is a model of nothing. The novice argument applies to *deck choice* (pilotable Ace
+   over Teach), where it is already banked and already decided.
+
+   **Decision rule:** spend on throughput only once measured policy quality is no longer the binding
+   constraint. If the puzzle suite shows the policy misses lethal 30% of the time, speed only samples
+   a broken policy more precisely. Two measured corrections to the audit still stand: the
+   deck-realism multiplier is ~1.79x per game (flat per command, so the cost is state transitions,
+   not effect resolution), making Option C optimistic by ~3.4x; and the calibration evidence that
+   would trigger Option A/B is much weaker than it looked — the play/draw gap is 8.5 pts on a real
+   Block 2+ deck, not the 54.5 pts ST01 showed.
 5. **Both upstream items are sent — nothing outstanding, just waiting on maintainers.**
    - Fix: <https://github.com/TheCardGoat/tcg-engines/pull/216> — 2 files, +56/−3, `MERGEABLE`,
      **ready for review** (opened as a draft per their `CONTRIBUTING.md`, promoted once issue #217
@@ -427,12 +478,16 @@ The `tools/` tests are stdlib `unittest`, matching the tools' own stdlib-only co
    for SC. That is exactly the two things missing — `docs/research-findings.md` shares are a
    Limitless EN proxy and the matchup matrix is an EN ladder. **This is the input that finally lets
    the "corrected by SC-native sources" half of the ground-truth decision be finished.**
-   Status: `https://www.jihuanshe.com` returns **200** from this Mac and serves **no robots.txt**
-   (404). Not yet investigated: whether the web presence exposes the same pie chart and top-cut data
-   as the app, or whether it is an app-only/JSON-API path like `onepiece-cardgame.cn` turned out to
-   be. **Do not assume a scraper is feasible until that is checked.** If the data is app-only, the
-   realistic route is Ping reading it off and pasting, which is fine — a hand-entered SC share table
-   beats an EN proxy.
+   **The data is app-only — Ping confirmed 2026-08-19. There is no scraper to build; stop looking.**
+   `https://www.jihuanshe.com` does return 200 and serves no robots.txt, so the *domain* is
+   reachable, but the pie chart and top-cut decklists are reachable only inside the iOS app. Do not
+   re-litigate this as an acquisition problem — it is not one, it is a **manual transcription**
+   problem. **The realistic route is Ping reading the figures off and pasting them**, which is
+   entirely adequate: a hand-entered SC share table beats a 213k-game EN proxy for this purpose,
+   because the defect in the EN numbers is *population*, not sample size. What to ask him for when
+   the time comes: the share pie chart (leader → % of field) and the top-cut decklists, plus the
+   event size and date so the sample can be weighted. Until then every share-weighted number in
+   `docs/research-findings.md` stays an EN proxy and must be labelled as one.
 
 **Answered 2026-08-17: SC matches other regions on banlist and rotation.** Both were open since
 day one. Note precisely what this does and does not buy: an identical *legal pool*, not an

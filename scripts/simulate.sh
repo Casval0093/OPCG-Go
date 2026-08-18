@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Run the matchup simulator inside the vendored engine.
 #   ./scripts/simulate.sh --games 200 [--a DECK] [--b DECK] [--compare DECK] [--strategy NAME]
+# Policy-quality ladder: give each DECK its own policy and read the win rate as a policy score.
+#   ./scripts/simulate.sh --games 200 --a D --b D --strategy-a valueRanked --strategy-b random
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENG="$ROOT/vendor/tcg-engines/submodules/one-piece/packages/engine"
@@ -23,6 +25,8 @@ while [ $# -gt 0 ]; do case "$1" in
   --seed) export SIM_SEED="$2"; shift 2;;
   --turn-budget) export SIM_TURN_BUDGET="$2"; shift 2;;
   --strategy) export SIM_STRATEGY="$2"; shift 2;;
+  --strategy-a) export SIM_STRATEGY_A="$2"; shift 2;;
+  --strategy-b) export SIM_STRATEGY_B="$2"; shift 2;;
   --first) export SIM_FIRST="$2"; shift 2;;
   --out) export SIM_OUT="$2"; shift 2;;
   --dump-catalog) export SIM_DUMP_CATALOG=1; shift;;
