@@ -1,0 +1,11 @@
+{
+  "name": "council:deepseek-flash",
+  "provider": "deepseek",
+  "callBudgetPerGame": 400,
+  "proposers": [
+    { "name": "tempo", "lens": "tempo", "model": "deepseek-v4-flash", "effort": "high" },
+    { "name": "resources", "lens": "attrition", "model": "deepseek-v4-flash", "effort": "high" }
+  ],
+  "adjudicator": { "name": "adjudicator", "model": "deepseek-v4-flash", "effort": "max" },
+  "playbook": "This deck wins by pressuring Life on a curve and closing before the round expires. Develop a body every turn you can. Attach DON to the attacker that threatens the most, not to the Leader, unless the Leader's attack is the one that connects. Hold at least one Counter card once the opponent has an attacker that can trade with your best body. Never attack into a board where the attack bounces off."
+}

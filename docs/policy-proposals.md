@@ -129,3 +129,31 @@ sequenced after the measurement, not before it.
 **Step 0 for either: measure the branching factor** — decisions per game with more than one real
 option. It is cheap, it is the number that swings Proposal A's cost by 3–5×, and both proposals are
 currently costed without it.
+
+## Step 0, done — 2026-08-18
+
+Measured by `arena/branching.ts`, which counts every decision the arena driver actually put to an
+agent (see `docs/arena.md`):
+
+| deck | substantive decisions / seat / game |
+|---|---|
+| ST01 starter | **56.4** |
+| Mihawk green Block 2+ | **89.2** |
+
+Three tiers, not two, because "non-forced" is too generous to cost against: **forced** (exactly one
+legal choice — auto-played by the driver, never billed), **procedural** (the 猜拳 throw, mulligan/keep,
+`startGame`, judge acknowledgements), and **substantive** (everything else). The split is a judgement
+call and is stated rather than hidden, because it moves an LLM's per-game cost several-fold and every
+estimate in this document assumed one silently.
+
+`attachDon` is the largest single bucket at ~35% of substantive decisions.
+
+**Consequence for Proposal A.** An ungated N-proposer council costs `(N+1) × 89` calls per seat per
+game, so gating is a requirement rather than an optimisation. The arena's gates — procedural decisions
+to the heuristic, and the adjudicator called only when proposers disagree — concentrate spend on
+contested positions, which are also the positions worth keeping in the decision corpus. Disagreement
+turns out to be a free difficulty signal: it identifies the decisions that mattered without a critic
+pass, which is the cheapest part of Proposal A's "durable output" to get right.
+
+**This does not revise the 1.44 million figure above.** That is the batch case at the sample sizes the
+statistics demand, and it still settles the design: an LLM cannot be the runtime policy there.
