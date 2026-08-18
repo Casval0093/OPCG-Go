@@ -31,6 +31,7 @@ while [ $# -gt 0 ]; do case "$1" in
   --out) export SIM_OUT="$2"; shift 2;;
   --dump-catalog) export SIM_DUMP_CATALOG=1; shift;;
   --diag-prompts) export SIM_DIAG_PROMPTS=1; shift;;
+  --puzzles) export SIM_PUZZLES=1; shift;;
   --patch-ordercards) export SIM_PATCH_ORDERCARDS=1; shift;;
   *) echo "unknown option: $1" >&2; exit 2;;
 esac; done
@@ -38,7 +39,11 @@ mkdir -p "$ENG/tests/cards"
 cp "$ROOT/sim/matchup.sim.test.ts" "$ENG/tests/cards/matchup.sim.test.ts"
 cp "$ROOT/sim/catalog.dump.test.ts" "$ENG/tests/cards/catalog.dump.test.ts"
 cp "$ROOT/sim/prompt-diag.test.ts" "$ENG/tests/cards/prompt-diag.test.ts"
+cp "$ROOT/sim/puzzles.test.ts" "$ENG/tests/cards/puzzles.test.ts"
 cd "$ENG"
+if [ "${SIM_PUZZLES:-}" = "1" ]; then
+  exec ./node_modules/.bin/vp test run tests/cards/puzzles.test.ts --reporter=verbose
+fi
 if [ "${SIM_DIAG_PROMPTS:-}" = "1" ]; then
   exec ./node_modules/.bin/vp test run tests/cards/prompt-diag.test.ts --reporter=verbose
 fi

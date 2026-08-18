@@ -311,6 +311,54 @@ bias. That argument never depended on the ladder.
 Next: step 2, the puzzle suite, which is the first measurement that can say something about absolute
 quality rather than relative ordering.
 
+## Policy quality, step 2: the puzzle suite
+
+`./scripts/simulate.sh --puzzles`. Unlike the ladder, a puzzle has a single defensible answer, so the
+score is **absolute** — no opponent, no statistics, and a failure names the broken decision class.
+
+**Every puzzle is guarded, because a puzzle that cannot fail is worse than none:** SOLVABLE (some
+legal command satisfies the answer) and DISCRIMINATING (some legal command does not). Both are
+asserted at run time and the suite throws if either fails. The whole ladder is then run against the
+suite so puzzle *difficulty* is visible: if `random` solves it, it is too easy to be diagnostic.
+
+| puzzle | valueRanked | greedy | firstLegal | random | passOnly | correct/legal |
+|---|---|---|---|---|---|---|
+| lethal-bare | pass | pass | pass | FAIL | FAIL | 2/3 |
+| lethal-decoy-body | pass | pass | pass | FAIL | FAIL | 2/5 |
+| lethal-pick-the-attacker | pass | pass | **FAIL** | FAIL | FAIL | 1/4 |
+| futile-unbeatable-body | pass | pass | pass | FAIL | FAIL | 2/5 |
+| futile-pick-any-productive | pass | pass | pass | FAIL | FAIL | 4/7 |
+
+`valueRanked` **5/5** — lethal 3/3, futile 2/2.
+
+### The suite is working and too easy, and that is the finding
+
+**The floor result is real:** this is the first *absolute* statement about the policy. `valueRanked`
+does not blunder basic lethal recognition or waste attacks on bodies it cannot beat. Step 1 could not
+say that.
+
+**But `greedy` also scores 5/5, so these puzzles cannot explain the 76% ladder gap.** Whatever
+`valueRanked` does better is not in this sample. And `firstLegal` — "submit the first legal command" —
+solves 4 of 5, which puts the suite near the bottom of the difficulty range. Only
+`lethal-pick-the-attacker` separates it.
+
+So step 2 has established a floor and **not** met its real goal, which was to explain where the ladder
+gap comes from. The next batch has to target where `greedy`'s myopia specifically fails — sequencing
+across a turn, DON!! allocation, choosing between a K.O. and leader damage on a board where only one
+is right, holding a counter rather than spending it. Those need more setup per position than an
+attack-only puzzle. **Do not read 5/5 as "the policy is good."**
+
+### Two classes, both verified against engine source first
+
+Written only after checking `battle.ts`, not from memory of the paper rules:
+
+- **lethal** — `if (defender.life.length === 0)` plus a connecting attack makes the attacker the
+  winner. So lethal means 0 life cards *and* an attack that reaches.
+- **futile** — `if (battle.attackPower >= battle.defensePower)` gates all damage, and the else branch
+  does nothing to the attacker. **There is no mutual destruction in this game**, so "suicide attack"
+  is not a real class; the real error is spending an attack on a body you cannot beat while a
+  productive attack exists. A puzzle class was dropped on this basis before being written.
+
 ## What is not done
 
 - **No *meta* matchup yet — but the blocker is gone.** This used to read "every deck in the current
