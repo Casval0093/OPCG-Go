@@ -27,5 +27,43 @@ export const op15Chinjao048: CharacterCard = {
   attribute: "strike",
   effect:
     "[On Play] You may trash 1 Event from your hand: Draw 2 cards.\n[Opponent's Turn] [On K.O.] Your opponent places 1 card from their hand at the bottom of their deck.",
+  effects: {
+    effects: [
+      {
+        // Same printed clause as OP15-045 Sai's [On Play]; see that card for why
+        // `optional: true` and `cardCategory: "event"` are both load-bearing.
+        trigger: "onPlay",
+        costs: [
+          {
+            cost: "trashFromHand",
+            amount: 1,
+            filters: [{ filter: "cardCategory", value: "event" }],
+          },
+        ],
+        actions: [{ action: "draw", player: "self", amount: 2 }],
+        optional: true,
+      },
+      {
+        // [Opponent's Turn] gates the [On K.O.]: a K.O. on your own turn does nothing.
+        // "Your opponent places 1 card from THEIR hand at the bottom of THEIR deck" is
+        // `returnToDeck` over the opponent's hand with `chosenBy: "opponent"` -- they pick, not
+        // you. Exact precedent: EB03-026 Boa Hancock's [On Play].
+        trigger: "onKo",
+        conditions: [{ condition: "turn", value: "opponent" }],
+        actions: [
+          {
+            action: "returnToDeck",
+            target: {
+              player: "opponent",
+              zones: ["hand"],
+              count: { amount: 1 },
+              chosenBy: "opponent",
+            },
+            position: "bottom",
+          },
+        ],
+      },
+    ],
+  },
   i18n: op15Chinjao048I18n,
 };

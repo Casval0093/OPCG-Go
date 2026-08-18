@@ -27,5 +27,27 @@ export const op15MonkeyDLuffy051: CharacterCard = {
   attribute: "strike",
   effect:
     "[Opponent's Turn] If your Leader has the [Dressrosa] type, this Character gains +3000 power.",
+  effects: {
+    permanentEffects: [
+      {
+        // Two independent gates, both required: it is the opponent's turn AND your Leader has
+        // the type. Shape from OP03-045 Carne ([Opponent's Turn] + a second condition + a
+        // self-targeted permanent modifyPower). `match: "includes"` because older engine cards
+        // store their traits as one concatenated string.
+        conditions: [
+          { condition: "turn", value: "opponent" },
+          { condition: "leaderTrait", trait: "Dressrosa", match: "includes" },
+        ],
+        actions: [
+          {
+            action: "modifyPower",
+            target: { player: "self", zones: ["character"], count: { amount: 1 }, self: true },
+            value: 3000,
+            duration: "permanent",
+          },
+        ],
+      },
+    ],
+  },
   i18n: op15MonkeyDLuffy051I18n,
 };

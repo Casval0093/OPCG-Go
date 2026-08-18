@@ -27,5 +27,23 @@ export const op15Sanji047: CharacterCard = {
   attribute: "strike",
   effect:
     "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[On Play] Up to 1 of your Characters gains [Unblockable] during this turn.\n(This card cannot be blocked.)",
+  effects: {
+    keywords: ["blocker"],
+    effects: [
+      {
+        // "Up to 1 of your Characters" -- no filter at all, unlike OP16-095 Monkey.D.Luffy
+        // (colour + trait) and OP14-024 Terracotta (trait), which are otherwise the same shape.
+        trigger: "onPlay",
+        actions: [
+          {
+            action: "grantKeyword",
+            target: { player: "self", zones: ["character"], count: { amount: 1, upTo: true } },
+            keyword: "unblockable",
+            duration: "thisTurn",
+          },
+        ],
+      },
+    ],
+  },
   i18n: op15Sanji047I18n,
 };
