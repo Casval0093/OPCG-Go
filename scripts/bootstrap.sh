@@ -15,5 +15,5 @@ PY="$ROOT/.venv/bin/python"
 
 "$PY" "$ROOT/tools/graft_cards.py"   # copy cards/OP15|OP16 into the vendored engine
 "$PY" "$ROOT/tools/patch_engine.py"  # local engine fixes; vendor/ is gitignored so they re-apply
-cd packages/engine && ./node_modules/.bin/vp test run   # expect 2632 pass in ~80s
+cd packages/engine && ./node_modules/.bin/vp test run   # expect 3370 pass in ~80s
 echo "Bootstrap OK."

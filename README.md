@@ -198,7 +198,16 @@ with `illegal-command`. Cause: `resolveBotPromptCommand` handles four of six pro
 and falls through to a single `optionId`, which cannot express an ordering — so **`orderCards`
 failed 17/17**. The ~8-line fix is in [`tools/patch_engine.py`](tools/patch_engine.py), re-applied
 by bootstrap since `vendor/` is gitignored. A/B on the same seeds: **3/20 → 20/20** games completed.
-It belongs upstream; `tcg-engines` is MIT and the bug is theirs.
+The bug is upstream's — `tcg-engines` is MIT — but the fix is carried locally by owner decision, so
+`patch_engine.py` is permanent infrastructure rather than a stopgap.
+
+**A second engine bug turned up the same way.** A `search` that reveals to **hand** was gated on
+open **character** slots: `effectSearchSelection` applied the board-space test to every search
+regardless of `revealDestination`, so a full board made the engine refuse every Character its own
+prompt had just offered. It surfaced on `OP16-118` Portgas.D.Ace and looked like a bad trait filter;
+it was not — the prompt's eligibility list was correct throughout. **171 of the 185 encodings with a
+`search` action reveal to hand, and 152 of those are upstream's own cards.** One-line fix, patch 2
+in the same file; A/B on a 10-game mirror: **`illegal-command=1` → `rules-win=10`**.
 
 That reframes the audit: its four options are all *throughput* levers, and throughput was never the
 binding constraint. Policy legality was.

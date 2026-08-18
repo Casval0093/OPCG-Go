@@ -1,0 +1,48 @@
+// SUPERSEDED -- kept only as the staging record. What actually shipped in PR #216 is a NEW FILE at
+// packages/engine/tests/cards/OP12/086-koala.test.ts, with relative-path imports matching the other
+// tests in that directory.
+//
+// Why not the src/cards path this snippet originally targeted: vite.config.ts `test.include` covers
+// tests/cards/**, NOT src/cards/**, so a test added to the existing src/cards Koala file would
+// never have executed in upstream CI -- i.e. the regression guard would have been decorative.
+// See README.md in this directory (Finding 2).
+
+  // Regression: a search whose `revealDestination` is "hand" must not require an open CHARACTER
+  // slot. `effectSearchSelection` applied `selectedIds.filter(cardType === "character").length >
+  // openCharacterSlots` to every search regardless of destination, while the prompt in
+  // effects/actions.ts folds `openCharacterSlots` into `destinationCapacity` only when
+  // `revealDestination === "character"`. With a full board the two disagreed and the engine
+  // rejected a selection it had just offered as legal.
+  test("reveals to hand even when the character area is full", () => {
+    const engine = OnePieceTestEngine.create({
+      leaderCardId: op12Koala081,
+      hand: [op12Koala086],
+      // Four bodies down; Koala takes the fifth and last slot, so the search resolves with zero
+      // open character slots. The destination is the hand, so that must not matter.
+      character: [
+        { card: op12Karasu085, playedOnTurn: 0 },
+        { card: op12Karasu085, playedOnTurn: 0 },
+        { card: op12Karasu085, playedOnTurn: 0 },
+        { card: op12Karasu085, playedOnTurn: 0 },
+      ],
+      deck: [op12Karasu085, op12NicoRobin087, op12Koala086, op12Karasu085],
+      activeDon: op12Koala086.cost,
+    });
+    const robinId = engine.findCardInZone("south", "deck", op12NicoRobin087);
+
+    engine.playCard(op12Koala086, "south");
+    expect(
+      engine.getState().players.south.characterArea.filter((slot) => slot !== null),
+    ).toHaveLength(5);
+
+    const search = engine.pendingDecision("effectSearchSelection", "south").steps[0];
+    if (search?.kind !== "selectEntity") throw new Error("Expected Koala's search choice.");
+    // The prompt offers Nico Robin...
+    expect(search.candidates.find((candidate) => candidate.ref.id === robinId)?.legal).toBe(true);
+
+    // ...so resolving her must be accepted. This threw MoveFailedError before the fix.
+    engine.resolveDecision("effectSearchSelection", { selectedIds: [robinId] }, "south");
+    expect(engine.getView("south").players.south.hand.map((card) => card.instanceId)).toContain(
+      robinId,
+    );
+  });
