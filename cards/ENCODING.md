@@ -616,6 +616,50 @@ the target's *ownership* scoping with an opponent body instead.
 **"a cost of N" / "power N" is `eq`.** Confirmed again on Rebecca (费用为3). Same reading as
 rulings #962/#963. A bare number in card text is an equality unless a comparison word is printed.
 
+## OP15 black Characters (15 cards) — lessons
+
+**A condition that counts a zone THE COST ITSELF changes must live on the ACTION, not the block.** This
+is a hard engine fact, not a reading of the printed comma. `OP15-083` and `OP15-093` both print "You may
+trash this Character: If you have 15 or more cards in your trash, …", and rulings **#923/#928** both
+answer 可以 at **14** — the cost is the 15th. `block.conditions` are evaluated **twice, both times
+before `payCosts`**: once in `engine/commands.ts` (which rejects the activation outright with "The
+activation conditions are not met.") and again at the head of `processQueuedEffectBlock`. Only an
+*action's* own `condition` runs in `processQueuedEffectAction`, after payment. The test that proves you
+got it right is **the negative one**: at 13 cards, assert the cost is still paid and the payload simply
+does not happen — under a block-level condition `exec` throws instead.
+
+**A ruling answering 不会 is not always a ruling against the clause you are reading.** `OP15-080`'s #921
+asks whether a Leader with "every card's name" at 10000 power switches on "If you have [Gecko Moria]
+with 10000 power or more and there are no other [Oars]". The answer is no — which read quickly looks
+like #979/#993 reversed. It is the opposite: the Leader *does* satisfy the Moria half exactly as those
+rulings require, then **fails** the second, because a Leader with every name is also an Oars. It
+confirms `zone: "field"` on both conditions rather than undermining either.
+
+**`card.alternateNames` builds a real "every card name" Leader.** `cardNames()` is
+`[cardName(card), ...card.alternateNames]`, so a synthetic Leader with `alternateNames: ["Other"]` is
+indistinguishable to every name filter from a granted-names Leader — a step beyond the single-static-name
+trick in the Antlerkov section, and it tests #921-shaped rulings verbatim with no `grantName` action.
+
+**There is no "trash N cards from the top of your deck" COST** — print it as a `trashFromDeck` action
+with `thenActions`, and the semantics come out exactly right, because `thenActions` runs only when the
+**full** requested amount moved. A short deck mills nothing and buys nothing, which is what an unpayable
+cost should do. Do NOT sequence the two as siblings (the `OP16-099` shape); that is for a payload which
+is genuinely ungated.
+
+**A "your own effect is not replaced" test can pass vacuously** — the ruling-#933 trap in fixture form.
+On `OP15-090`, playing the one-card source emptied the hand, so `replacementActionIsAvailable` rejected
+the `trashFromHand` and the absent prompt said nothing about the `source` gate. Two spare hand cards
+fixed it. That is why a structurally identical test on `OP15-094` killed the same mutant while Perona's
+did not.
+
+**Fixture additions.** `op14eb04Oars101` is a real vanilla Character **named "Oars"** (8/10000), which
+makes `OP15-080`'s "no other [Oars]" testable with no synthetic. `op06GeckoMoria086` (8/9000) is the only
+real Gecko Moria one power step under 10000, so it pins that threshold — and one attached DON!! on your
+own turn takes it to exactly 10000, a real-card way to prove a filter reads `power` rather than
+`basePower`. `op11TonyTonyChopper053` is a real vanilla Character named "Tony Tony.Chopper", making an
+`excludeName` killable without a synthetic. Vanilla [Thriller Bark Pirates]: `op06Lola094` (4/6000),
+`op02GeckoMoria054` (4/6000).
+
 ## OP15 blue Characters (13 cards) — lessons
 
 **`replacedEvent` and `source: "opponentEffect"` are load-bearing JOINTLY, and `replacedEvent` alone is
