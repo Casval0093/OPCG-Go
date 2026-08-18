@@ -11,6 +11,20 @@ Prepared 2026-08-19.
 
 Ping authorised sending 2026-08-19 and delegated the issue/promote calls.
 
+**Reviewed 2026-08-19 after sending: Ping asked whether #216 could be withdrawn, then decided to
+keep both open. Do not re-litigate this.** The question was about the destination being a
+third-party repo, not about the work. Two facts settled it:
+
+- **Nothing of this project went upstream.** #216 is exactly two files, both upstream's own paths:
+  their `src/effects/resolution.ts` (the one-line fix) and a new
+  `tests/cards/OP12/086-koala.test.ts` built from *their* OP12 cards. No decklists, research data,
+  matchup matrix, OP15/OP16 encodings, `patch_engine.py`, or `CLAUDE.md`. **Keep that boundary on
+  any future upstream contribution.**
+- **Withdrawal buys almost nothing.** Closing a PR or issue does not delete it — the record stays
+  permanently public, the author cannot remove it, and the notifications and bot comments already
+  went out. Only the fork is truly deletable. (Operational note if it ever is withdrawn: close the
+  PR *before* deleting the fork, or the diff may become unviewable.)
+
 **#216 was opened as a draft and later promoted to ready for review.** The draft was to satisfy
 `CONTRIBUTING.md` ("Open an issue or draft PR for behavior changes with broad impact"); it was
 promoted once #217 carried the one genuinely open design question, leaving a small, validated,
