@@ -27,5 +27,56 @@ export const op15Pearl011: CharacterCard = {
   attribute: "strike",
   effect:
     "[Opponent's Turn] If your Leader has the [East Blue] type, this Character gains [Blocker] and +2000 power.\n[On K.O.] If your Leader has the [East Blue] type, K.O. up to 1 of your opponent's Characters with 6000 base power or less.",
+  effects: {
+    permanentEffects: [
+      {
+        // [Opponent's Turn] static grant. Shape copied wholesale from
+        // OP12/characters/053-borsalino.ts, which prints the same "[Opponent's Turn] If your Leader
+        // has the [X] type, this Character gains [Blocker] and +N power" sentence.
+        conditions: [
+          { condition: "turn", value: "opponent" },
+          { condition: "leaderTrait", trait: "East Blue", match: "includes" },
+        ],
+        actions: [
+          {
+            action: "grantKeyword",
+            target: { player: "self", zones: ["character"], count: { amount: 1 }, self: true },
+            keyword: "blocker",
+            duration: "permanent",
+          },
+          {
+            action: "modifyPower",
+            // `self: true` is required, not stylistic: getPermanentModifierTotal
+            // (effects/permanent.ts) drops any permanent modifier that is neither `self` nor
+            // `count.amount: "all"`, silently and without a capability issue.
+            target: { player: "self", zones: ["character"], count: { amount: 1 }, self: true },
+            value: 2000,
+            duration: "permanent",
+          },
+        ],
+      },
+    ],
+    effects: [
+      {
+        trigger: "onKo",
+        // The Leader check LEADS this sentence too, so it gates the whole block -- with a non-East
+        // Blue Leader nothing is offered at all, rather than an empty selection.
+        conditions: [{ condition: "leaderTrait", trait: "East Blue", match: "includes" }],
+        actions: [
+          {
+            action: "ko",
+            target: {
+              player: "opponent",
+              zones: ["character"],
+              count: { amount: 1, upTo: true },
+              // 6000 **base** power, printed explicitly -- `basePower`, so a 5000-base body pumped
+              // to 8000 is still a legal target and a 7000-base body debuffed to 4000 is not.
+              filters: [{ filter: "basePower", comparison: "lte", value: 6000 }],
+            },
+          },
+        ],
+      },
+    ],
+  },
   i18n: op15Pearl011I18n,
 };
