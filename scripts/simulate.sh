@@ -5,6 +5,15 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENG="$ROOT/vendor/tcg-engines/submodules/one-piece/packages/engine"
 [ -d "$ENG" ] || { echo "vendored engine missing - run ./scripts/bootstrap.sh first" >&2; exit 1; }
+# An unpatched engine does not fail loudly, it produces GARBAGE: the orderCards bug abandoned 88%
+# of games on Block 2+ decks, and the search-to-hand bug aborted mirrors with illegal-command. Both
+# fixes live in tools/patch_engine.py and vendor/ is gitignored, so any fresh clone starts
+# unpatched. Gate here rather than discovering it in the results. Stdlib-only, same as bootstrap.
+PY_BIN="$ROOT/.venv/bin/python"; [ -x "$PY_BIN" ] || PY_BIN="$(command -v python3)"
+if ! "$PY_BIN" "$ROOT/tools/patch_engine.py" --check --engine "$ENG"; then
+  echo "refusing to simulate against an unpatched engine - run ./scripts/bootstrap.sh" >&2
+  exit 1
+fi
 export SIM_ROOT="$ROOT" SIM_RUN=1
 while [ $# -gt 0 ]; do case "$1" in
   --a) export SIM_DECK_A="$2"; shift 2;;

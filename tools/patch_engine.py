@@ -7,7 +7,16 @@ idempotent and refuses to apply blindly: it verifies the anchor text still exist
 fix is already present, so an upstream refactor produces a clear failure rather than a silent
 no-op.
 
-Run manually with:  python3 tools/patch_engine.py [--check]
+`patch_engine.py` is permanent, not a stopgap: Ping decided 2026-08-17 that the orderCards fix
+stays local (docs/plans/encode-op15-op16.md), so these patches must survive upstream drift
+indefinitely. That is what `--check` is for.
+
+    python3 tools/patch_engine.py            # apply anything outstanding
+    python3 tools/patch_engine.py --check    # report only; EXIT 1 if any patch is not applied
+
+`--check` exits non-zero for a PENDING patch as well as a broken one, so it works as a CI gate:
+an engine that merely has not been patched yet is just as wrong to test against as one whose
+anchor has moved. Applying (the default) exits 0 on success -- only `--check` gates.
 """
 
 from __future__ import annotations
@@ -48,29 +57,89 @@ ORDERCARDS_FIX = """  // OPCG-Go patch: `orderCards` needs a full ordering in se
 
   if (prompt.choiceKind === "confirm") {"""
 
+# --- Patch 2: search-to-hand is gated on open CHARACTER slots ------------------------------
+#
+# `effectSearchSelection` in effects/resolution.ts rejects a selection when
+#   selectedIds.filter(cardType === "character").length > openCharacterSlots
+# and it applies that test for EVERY search, including one whose `revealDestination` is "hand".
+# Adding a card to your hand does not need a board slot, so with a full character area (0 open
+# slots) the engine refuses every Character the prompt just offered.
+#
+# The two halves disagree, which is why this looks like a filter bug and is not one. Prompt
+# creation in effects/actions.ts folds `openCharacterSlots` into `destinationCapacity` ONLY for
+# `revealDestination === "character"`; resolution applies it unconditionally. The trait/name
+# filters are fine -- on OP16-118 Ace the prompt's own `eligibleIds` is correct and every rejected
+# card is in it.
+#
+# Reproduced on OP16-118 Portgas.D.Ace: 4 bodies down, Ace takes the 5th slot, [On Play] looks at
+# 5, prompt marks Monkey.D.Luffy `enabled: true` and lists it in `eligibleIds`, and resolving it
+# returns `accepted: false` / "Prompt resolution could not be applied."
+#
+# Blast radius is not one card: 171 of the 185 encodings with a `search` action reveal to hand,
+# and only 19 of those are OP15/OP16. The other 152 are upstream's own cards, so like the
+# orderCards bug above this belongs upstream.
+#
+# The fix mirrors actions.ts -- gate the slot test on the destination. The `playableEligibleIds`
+# membership test on the line above still constrains a hand reveal, so nothing is loosened for
+# `revealDestination === "character"`.
+
+SEARCH_SLOTS_ANCHOR = """        selectedIds.some((instanceId) => !playableEligibleIds.includes(instanceId)) ||
+        selectedIds.filter(
+          (instanceId) => getCardForInstance(state, instanceId).cardType === "character",
+        ).length > openCharacterSlots ||"""
+
+SEARCH_SLOTS_FIX = """        selectedIds.some((instanceId) => !playableEligibleIds.includes(instanceId)) ||
+        // OPCG-Go patch: only a search that PLAYS what it reveals needs open character slots.
+        // A search revealing to hand does not, and gating it here rejected selections that the
+        // prompt in actions.ts had already marked eligible whenever the board was full.
+        (context.action.revealDestination === "character" &&
+          selectedIds.filter(
+            (instanceId) => getCardForInstance(state, instanceId).cardType === "character",
+          ).length > openCharacterSlots) ||"""
+
 PATCHES = [
     {
         "name": "bot-harness: resolve orderCards prompts",
-        "path": f"{ENGINE}/src/automation/bot-harness.ts",
+        "relpath": "src/automation/bot-harness.ts",
         "anchor": ORDERCARDS_ANCHOR,
         "already": 'prompt.choiceKind === "orderCards"',
         "apply": lambda s: s.replace(ORDERCARDS_ANCHOR, ORDERCARDS_FIX, 1),
     },
+    {
+        "name": "resolution: search-to-hand must not require open character slots",
+        "relpath": "src/effects/resolution.ts",
+        "anchor": SEARCH_SLOTS_ANCHOR,
+        "already": 'OPCG-Go patch: only a search that PLAYS what it reveals',
+        "apply": lambda s: s.replace(SEARCH_SLOTS_ANCHOR, SEARCH_SLOTS_FIX, 1),
+    },
 ]
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--check", action="store_true", help="report status without writing")
-    args = ap.parse_args()
+    ap.add_argument(
+        "--check",
+        action="store_true",
+        help="report status without writing; exit 1 if any patch is not applied",
+    )
+    ap.add_argument(
+        "--engine",
+        default=ENGINE,
+        help="engine checkout to patch (default: the vendored one)",
+    )
+    args = ap.parse_args(argv)
 
-    if not os.path.isdir(ENGINE):
-        print(f"engine not found at {ENGINE} — run ./scripts/bootstrap.sh first", file=sys.stderr)
+    if not os.path.isdir(args.engine):
+        print(
+            f"engine not found at {args.engine} — run ./scripts/bootstrap.sh first",
+            file=sys.stderr,
+        )
         return 1
 
     failed = 0
+    pending = 0
     for patch in PATCHES:
-        path = patch["path"]
+        path = os.path.join(args.engine, patch["relpath"])
         if not os.path.exists(path):
             print(f"  MISSING  {patch['name']}: {path} does not exist")
             failed += 1
@@ -93,6 +162,7 @@ def main() -> int:
 
         if args.check:
             print(f"  PENDING  {patch['name']}")
+            pending += 1
             continue
 
         with open(path, "w", encoding="utf-8") as fh:
@@ -101,7 +171,14 @@ def main() -> int:
 
     if failed:
         print(f"\n{failed} patch(es) could not be applied.", file=sys.stderr)
-    return 1 if failed else 0
+    if pending:
+        # A merely-unpatched engine is as wrong to test against as a broken patch, so --check
+        # gates on it. Without this the exit code was 0 and a CI gate would wave it through.
+        print(
+            f"\n{pending} patch(es) not applied — run `python3 tools/patch_engine.py`.",
+            file=sys.stderr,
+        )
+    return 1 if (failed or pending) else 0
 
 
 if __name__ == "__main__":
