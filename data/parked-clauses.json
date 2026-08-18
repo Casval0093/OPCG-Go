@@ -14,18 +14,21 @@
     "missing), rulings (SC ruling numbers that constrain what the primitive must do), blocks (other",
     "cards waiting on the same primitive)."
   ],
-  "generated_from": "Tasks 3, 4, 11-18 + OP15 yellow/red/purple — 2026-08-18",
+  "generated_from": "Tasks 3, 4, 11-18 + OP15 yellow/red/purple/green — 2026-08-18",
   "missing_primitives": [
     {
       "id": "attachedDonTargetFilter",
       "summary": "A TargetFilter over a candidate's attached DON!! count.",
-      "detail": "instance.attachedDon exists in engine state, but matchesTargetFilter (effects/targeting.ts) has no case for it. givenDonCount is a Condition over a player's total, not a per-candidate filter.",
-      "wanted_rank": 2,
+      "detail": "instance.attachedDon exists in engine state, but matchesTargetFilter (effects/targeting.ts) has no case for it. givenDonCount is a Condition over a player's total, not a per-candidate filter. OP15-031 needs a further FACET: compare the candidate's attached DON!! count to THAT CANDIDATE'S OWN cost, not to a literal value.",
+      "wanted_rank": 1,
       "blocks": [
         "OP15-001",
-        "OP15-038",
         "OP15-015",
-        "OP15-018"
+        "OP15-018",
+        "OP15-025",
+        "OP15-027",
+        "OP15-031",
+        "OP15-038"
       ]
     },
     {
@@ -162,7 +165,11 @@
         "OP15-010",
         "OP15-012",
         "OP15-015",
-        "OP15-017"
+        "OP15-017",
+        "OP15-023",
+        "OP15-025",
+        "OP15-026",
+        "OP15-028"
       ]
     },
     {
@@ -181,6 +188,15 @@
       "wanted_rank": 16,
       "blocks": [
         "OP15-059"
+      ]
+    },
+    {
+      "id": "restPreventionSourceCardType",
+      "summary": "Restrict rest-prevention by the CARD TYPE of the effect's source.",
+      "detail": "CannotBeRestedAction has byPlayer only, and isRestPreventedByPermanentEffect (effects/permanent.ts) checks the resting effect's CONTROLLER, never the resting card's type. byPlayer 'opponent' is the strictly broader OP12-021 Ipponmatsu text and would wrongly switch off an opponent Event or Stage that rests. Wants bySourceCardType?: OPCardType[].",
+      "wanted_rank": 17,
+      "blocks": [
+        "OP15-024"
       ]
     }
   ],
@@ -488,6 +504,85 @@
       "rulings": [
         910
       ]
+    },
+    {
+      "card": "OP15-027",
+      "name": "Dracule Mihawk",
+      "coverage": "none",
+      "clause": "[On Play] Rest up to 1 of your opponent's Characters with a DON!! card given.",
+      "primitive": "attachedDonTargetFilter",
+      "rulings": []
+    },
+    {
+      "card": "OP15-028",
+      "name": "Meowban Brothers",
+      "coverage": "none",
+      "clause": "[On Play] If your Leader has the [East Blue] type, give up to 1 DON!! card from your opponent's cost area to 1 of your opponent's Characters.",
+      "primitive": "giveDonSourcePlayer",
+      "rulings": [
+        887,
+        888
+      ]
+    },
+    {
+      "card": "OP15-031",
+      "name": "Purinpurin",
+      "coverage": "none",
+      "clause": "[On Play] Select up to 1 of your opponent's rested Characters. If the chosen Character has a cost equal to the number of DON!! cards given to it, K.O. it.",
+      "primitive": "attachedDonTargetFilter",
+      "rulings": []
+    },
+    {
+      "card": "OP15-023",
+      "name": "Arlong",
+      "coverage": "partial",
+      "clause": "[Activate: Main] [Once Per Turn] You may give 1 of your opponent's rested DON!! cards to 1 of your opponent's Characters: Give up to 1 DON!! card from its owner's cost area to its owner's Leader or 1 of their Characters.",
+      "primitive": "giveDonSourcePlayer",
+      "rulings": [
+        880,
+        881,
+        882,
+        883,
+        884
+      ]
+    },
+    {
+      "card": "OP15-025",
+      "name": "Kuro",
+      "coverage": "partial",
+      "clause": "[On Play] Give up to 2 DON!! cards from your opponent's cost area to 1 of your opponent's Characters.",
+      "primitive": "giveDonSourcePlayer",
+      "rulings": [
+        952,
+        956
+      ]
+    },
+    {
+      "card": "OP15-025",
+      "name": "Kuro",
+      "coverage": "partial",
+      "clause": "Then, at the end of this turn, up to 1 rested Character with 3 or more DON!! cards given will not become active in your opponent's next Refresh Phase.",
+      "primitive": "attachedDonTargetFilter",
+      "rulings": [
+        952,
+        956
+      ]
+    },
+    {
+      "card": "OP15-026",
+      "name": "Jango",
+      "coverage": "partial",
+      "clause": "[Activate: Main] You may trash this Character: Give up to 1 of your opponent's rested DON!! cards to 1 of your opponent's Characters.",
+      "primitive": "giveDonSourcePlayer",
+      "rulings": []
+    },
+    {
+      "card": "OP15-024",
+      "name": "Usopp",
+      "coverage": "partial",
+      "clause": "[Opponent's Turn] This Character cannot be rested by your opponent's Leader and Character effects.",
+      "primitive": "restPreventionSourceCardType",
+      "rulings": []
     }
   ]
 }

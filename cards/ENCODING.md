@@ -616,6 +616,46 @@ the target's *ownership* scoping with an opponent body instead.
 **"a cost of N" / "power N" is `eq`.** Confirmed again on Rebecca (费用为3). Same reading as
 rulings #962/#963. A bare number in card text is an equality unless a comparison word is printed.
 
+## OP15 green Characters (13 cards) — lessons
+
+**`baseCost()` returns 0 for a Leader, which makes a cost filter on a `["leader","character"]` target
+the cheapest killer of the `lte`→`gte` mutant.** The Leader always passes at cost 0, so asserting it IS
+a candidate while an over-the-line Character is not kills the comparison flip and the filter deletion in
+one list — free, where the equivalent for a power filter needs a synthetic. The over-the-line fixture
+must not be the attacker: a `rest` pool drops already-rested cards before its own filters, so the
+attacker would be excluded for the wrong reason.
+
+**A `modifyCost` in `permanentEffects` is the `baseCost`-vs-`cost` discriminator** — the exact mirror of
+the `modifyPower` trick for `basePower`. No mutation operator rewrites one to the other, and on a
+vanilla board both readings agree. Spread a body, override `cost` one over the line, and give it a
+`self: true` permanent `modifyCost` pulling it back under: printed 9 / current 7 is ineligible under
+`baseCost lte 8` and eligible under `cost lte 8`. Assert the projected `cost` too, or a discriminator
+that silently failed to apply is just another fixture.
+
+**"Your opponent's rested cards", unqualified, is four zones** — `["leader","character","stage",
+"costArea"]`, the pool `OP13-033` and `OP14EB04-024` use, wider than `OP07-026`'s narrower printed
+"rested Character or DON!! cards". There is no fixture field for a rested Leader, so the `leader` zone
+is only observable by having that seat attack with its Leader. Note `freezeActionCandidateIds` draws its
+DON!! half from `restedDon` while `restActionCandidateIds` draws from `activeDon` — freezing wants
+already-rested DON!!, resting wants active ones, and the id prefixes differ (`rested-don:` /
+`active-don:`).
+
+**`[Your Turn] [On Play]` IS testable, via one synthetic card.** You cannot normally play a Character on
+the opponent's turn, but a synthetic own Character with `trigger: "onOpponentAttack"` and a `play`
+action from hand gets you there — the opponent attacks, your synthetic fires for the defending seat, and
+the card enters with `turn: "your"` false. Assert the played card actually reached the character zone,
+or "no boost" just means the fixture never fired.
+
+**`[Opponent's Turn]` on a `[Blocker]` GRANT is unfalsifiable in this engine** — a blocker step only
+opens for the seat being attacked, which is by construction the seat whose opponent's turn it is, so
+both readings are green on every reachable board and there is no projected keyword field to read. Say so
+in the test rather than implying coverage.
+
+**Fixture warning:** `op11Shirahoshi022`'s traits are `["Merfolk Fish-Man Island"]`, which under
+substring semantics MATCHES a `"Fish-Man"` trait filter despite not having that trait — a bad negative
+fixture. And the default filler `OP13-013` Higuma has no `[Trigger]`, so a Leader taking damage in a
+fixture-built match publishes no `lifeTrigger` prompt.
+
 ## OP15 purple Characters (15 cards) — lessons
 
 **A `returnDon` COST auto-pays only while one KIND of DON!! is held — and playing the card itself
