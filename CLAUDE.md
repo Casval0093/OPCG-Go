@@ -84,22 +84,28 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   <https://github.com/TheCardGoat/tcg-engines/pull/216>. That does not reopen the `orderCards`
   decision: Ping's 2026-08-17 "stays local" call stands for that one, and `patch_engine.py` remains
   permanent regardless of whether #216 merges.
-- **The engine suite covers far less than its green count suggests: 1972 per-card test files never
-  run.** `packages/engine/vite.config.ts` sets `test.include` to `tests/cards/**` plus four named
-  files — **not** `src/cards/**`, where **2065** test files live. Only 26 of their basenames appear
-  under `tests/cards/` at all, leaving **1972 with no running counterpart**. They are **not
-  broken** — enabling `src/cards/OP12/**/*.test.ts` adds **+100 files / +132 tests, all passing**.
-  This is *why* the search-to-hand bug survived: `OP12-086` Koala's own test is one of the 1972.
-  Filed upstream as <https://github.com/TheCardGoat/tcg-engines/issues/217>.
-  **Measure this in a CLEAN upstream clone, never in `vendor/`.** An earlier version of this note
-  said 1953 / overlap 45 / `1600 + 4 = 1604`; those were measured in our own tree, whose
-  `tests/cards/` carries ~212 grafted OP15/OP16 files, and they were **wrong for upstream** — they
-  briefly shipped in the PR body before being corrected. Pristine arithmetic:
-  **1384 + 4 = 1388**, which is exactly the file count a stock `vp test run` reports.
-  **Consequence for us: "engine suite 3370 pass" is not the conformance baseline it looks like** for
-  any set whose coverage lives only under `src/cards/`. Our own OP15/OP16 tests are grafted to
-  `tests/cards/OP15|OP16` and DO run — that part is fine. Only OP12 was sampled; a bulk enable may
-  surface pre-existing failures elsewhere.
+- **Upstream never ran ~2000 of its own per-card tests; we now do — FIXED 2026-08-19, quote 6078.**
+  `packages/engine/vite.config.ts` sets `test.include` to `tests/cards/**` plus four named files —
+  **not** `src/cards/**`, where **2065** test files live. Only 26 of their basenames appear under
+  `tests/cards/` at all, leaving **1972 with no running counterpart**. Pristine arithmetic confirms
+  the include list accounts for everything that ran: **1384 + 4 = 1388**, exactly the file count a
+  stock `vp test run` reports. **This is why the search-to-hand bug in patch 2 survived** —
+  `OP12-086` Koala's own test file is one of the 1972.
+  **Patch 3 in `tools/patch_engine.py` turns them all on: 1601 → 3666 files, 3370 → 6078 tests,
+  0 failures, 89s → 87s.** +2065 files and +2708 tests for no measurable wall clock (`isolate: false`,
+  and transform/import dominate). Nothing needed fixing; they were only unwired. Measured twice — by
+  hand-editing the include, then through `patch_engine.py` — identically. **Our OP01–OP14 conformance
+  baseline roughly doubled at zero cost, so quote 6078, not 3370.**
+  **An interim version of this note carried an OP12-only sample (+100 files / +132 tests) and warned
+  that a bulk enable "may surface pre-existing failures elsewhere". The full enable has been run and
+  nothing fails, so that caveat is VOID — do not reinstate it.**
+  **Measurement hygiene, learned the hard way: measure upstream facts in a CLEAN upstream clone,
+  never in `vendor/`.** An earlier version said 1953 orphaned / overlap 45 / `1600 + 4 = 1604`; those
+  were measured in our own tree, whose `tests/cards/` carries ~212 grafted OP15/OP16 files, and they
+  were wrong for upstream — they briefly shipped in the PR body before being corrected.
+  Upstream issue <https://github.com/TheCardGoat/tcg-engines/issues/217> still cites only the OP12
+  sample and repeats the caveat this note just voided; **the full-enable evidence has not been posted
+  there.**
 - **Real Block 2+ decks now simulate end to end**, 400/400 `rules-win`, median 9 turns.
 - **Do not calibrate on ST01.** The play/draw gap is **54.5 pts** on ST01, **26.7** on a vanilla
   Block 2+ pile, and **8.5 pts** on a real Block 2+ deck — the last of which is plausible. The gap
@@ -142,6 +148,29 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   `docs/engine-audit.md`'s options A–D are all speed levers that would not have found it.
 - **Card-effect encoding does not templatise.** 1,092 of 1,219 normalized effect templates are
   singletons; top-100 templates cover only 34.6% of clauses. Composition, not pattern matching.
+- **OP15/OP16 encoding IS complete — verified 2026-08-19, and "complete" is now a measured claim,
+  not an assertion.** Per set: **119 imported = 119 definitions**, exactly. Of those, OP15 has 8
+  vanilla / 111 with effect text, OP16 has 10 vanilla / 109 with effect text. Cards with effect text
+  but no `effects:` encoding: **8 in OP15, 3 in OP16 = 11 — and all 11 are in
+  `data/parked-clauses.json`.** So **cards unencoded AND unparked = 0**. Test files (105 OP15 /
+  107 OP16) are fewer than 119 only because vanillas and parked cards need none. This is the check
+  to re-run rather than trusting the count: compare `id:` against `effects:` presence against
+  `cards/tests/<set>/`.
+- **The parked list is complete for the sets that exist, and 3 of its 20 primitives have already
+  cleared the "cannot scope from one card, can from thirty" bar.** 40 clauses over 35 cards
+  (OP15 25, OP16 10); coverage `partial` 26 / `none` 14. Clustering is the decisive part:
+  - **`giveDonSourcePlayer` — 10 instances** (all OP15). Scopable now.
+  - **`attachedDonTargetFilter` — 7.** Scopable now.
+  - **`setBasePowerLiteral` — 6** (spans both sets). Scopable now, and **on the critical path**:
+    `OP17-005`'s [On Play] sets Ace's Leader base power 5000 → 8000, which CLAUDE.md records as the
+    whole OP17 Ace thesis. Without this primitive the OP17 list cannot be simulated at all.
+  - **17 of the 20 primitives are singletons** — including `setCounterLiteral`, the one that
+    prompted the question (only `OP16-118`). By the project's own rule those stay parked; waiting
+    for OP17 will add more singletons, not make singletons scopable. This mirrors the already-banked
+    fact that 1,092 of 1,219 effect templates are singletons.
+
+  So the answer to "is the list complete enough to scope primitives?" is **yes for the top 3, no for
+  the other 17, and OP17 will not change that split.**
 - **There is no encoding backlog in the existing sets — it is 0, not 331/125.** Both figures
   were `coverage_report.py` bugs, now fixed: 309 cards inherit their encoding by spread
   (`{ ...baseCard, id: "..._p2" }`) and the check never followed it; 22 have a null printed
@@ -350,12 +379,14 @@ The `tools/` tests are stdlib `unittest`, matching the tools' own stdlib-only co
    grants it [Rush]). Its [On Play] also takes Ace's Leader 5000 → 8000 for a full turn cycle.
    That is the whole thesis. Second: 1–2 `OP17-016` Rakuyo as anti-aggro tech (Ping's call), but
    see §5 — the removal suite and the discount want opposite fields and rarely both switch on.
-3. **Generate engine card definitions from `data/cards-OP15-en.json` / `cards-OP16-en.json`.**
-   Acquisition is done (238 cards, 223 with printed effects). What remains is the real work:
-   emit `.ts` + `.i18n.ts` definitions in the vendored engine's shape, then encode effects in
-   its existing DSL with per-card tests. Author from these files, never from a variant printing.
-   (The "fill the 125 mainline gaps" item that used to sit here has been deleted — that backlog
-   was a measurement bug and is 0.)
+3. ~~Generate engine card definitions for OP15/OP16~~ — **DONE, verified 2026-08-19.**
+   119 imported = 119 definitions per set, 0 cards unencoded-and-unparked, 212 test files. The
+   remaining work is not encoding, it is the 3 scopable DSL primitives below.
+   **Build `setBasePowerLiteral` first — it blocks item 2.** `OP17-005` sets Ace's Leader base power
+   5000 → 8000 and that is the OP17 thesis; 6 parked clauses across OP15/OP16 already pin the
+   semantics, so it can be scoped from real cases rather than from one. Then
+   `giveDonSourcePlayer` (10 clauses) and `attachedDonTargetFilter` (7). Leave the 17 singleton
+   primitives parked.
 4. **Pick the Tier-3 lever — but the audit's framing needs revising first.** Its four options are
    all throughput levers, and throughput has not been the binding constraint: an unimplemented
    `orderCards` branch was, and it cost 88% of games on modern decks until fixed. Two measured
@@ -384,10 +415,24 @@ The `tools/` tests are stdlib `unittest`, matching the tools' own stdlib-only co
    deadline**, so the earlier advice — freeze a list, favour reps over list quality, treat the
    engine as building for the *next* format — no longer applies. Build the engine properly. When
    an event does appear, re-read the 30-minute clock and Bo1 variance notes before choosing a list.
-2. Acquisition budget ceiling (RMB)
+2. ~~Acquisition budget ceiling (RMB)~~ — **answered 2026-08-19: no cap.** Consistent with the
+   charter's "no ceiling" on project budget, and it now covers card acquisition too. Practical
+   consequence: **cost stops being a tiebreak in slot decisions.** Do not propose a weaker card
+   because it is cheaper, and do not treat "needs 4 copies of a SEC" as an objection. The binding
+   constraints remain pilotability and the 30-minute clock, not money.
 3. Is SC OP17 the same list as JP/EN OP17, or does it carry SC-exclusive content? (The 08-17
    parity confirmation was scoped to banlist and rotation only — this is still open.)
-4. SC-native field data — what is actually played locally.
+4. **SC-native field data — source named 2026-08-19, acquisition NOT built.** Ping: the iOS app
+   **集换社 (JiHuanShe)** carries both a **share pie chart** and **tournament top-cut decklists**
+   for SC. That is exactly the two things missing — `docs/research-findings.md` shares are a
+   Limitless EN proxy and the matchup matrix is an EN ladder. **This is the input that finally lets
+   the "corrected by SC-native sources" half of the ground-truth decision be finished.**
+   Status: `https://www.jihuanshe.com` returns **200** from this Mac and serves **no robots.txt**
+   (404). Not yet investigated: whether the web presence exposes the same pie chart and top-cut data
+   as the app, or whether it is an app-only/JSON-API path like `onepiece-cardgame.cn` turned out to
+   be. **Do not assume a scraper is feasible until that is checked.** If the data is app-only, the
+   realistic route is Ping reading it off and pasting, which is fine — a hand-entered SC share table
+   beats an EN proxy.
 
 **Answered 2026-08-17: SC matches other regions on banlist and rotation.** Both were open since
 day one. Note precisely what this does and does not buy: an identical *legal pool*, not an

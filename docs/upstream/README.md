@@ -139,8 +139,14 @@ took the suite from 1601 → 1701 files and 3370 → 3503 tests, **all passing**
 wired in. `OP12-086` Koala's own test file is one of the 1953, which is exactly why a full board was
 never exercised against a hand-reveal search.
 
-Cheapest change with real yield: add `"src/cards/**/*.test.ts"` to `include`. Worth doing set by set
-if a bulk run turns up pre-existing failures in sets other than OP12 (only OP12 was sampled here).
+Cheapest change with real yield: add `"src/cards/**/*.test.ts"` to `include`.
+
+> **UPDATE 2026-08-19 — the full enable has since been run and the "do it set by set" hedge is
+> unnecessary.** We enabled *all* of `src/cards/**` locally (patch 3 in `tools/patch_engine.py`):
+> **1601 → 3666 files, 3370 → 6078 tests, 0 failures, 89s → 87s.** Nothing fails and there is no
+> measurable wall-clock cost. The surrounding text above reflects what issue #217 actually says,
+> which was written from the OP12-only sample — **#217 has not been updated with this stronger
+> evidence.**
 
 ---
 
