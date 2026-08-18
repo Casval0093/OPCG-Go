@@ -1,0 +1,11 @@
+{
+  "name": "council:mixed-vendor",
+  "callBudgetPerGame": 400,
+  "proposers": [
+    { "name": "tempo", "provider": "deepseek", "model": "deepseek-v4-flash", "lens": "tempo", "effort": "high" },
+    { "name": "resources", "provider": "deepseek", "model": "deepseek-v4-flash", "lens": "attrition", "effort": "high" },
+    { "name": "cardtext", "provider": "deepseek", "model": "deepseek-v4-flash", "lens": "rules", "effort": "high" }
+  ],
+  "adjudicator": { "name": "adjudicator", "provider": "anthropic", "model": "claude-opus-5", "effort": "high" },
+  "playbook": "Cheap proposers argue, an expensive adjudicator rules. Because the adjudicator is only called when the proposers disagree, the expensive model is paid for on contested positions only."
+}

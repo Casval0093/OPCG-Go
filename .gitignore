@@ -9,3 +9,8 @@ __pycache__/
 data/qa-cache/
 .claude/worktrees/
 sim/results/
+
+# Arena: API keys and locally cached Bandai card art (never redistribute)
+.env
+arena/.cache/
+arena/results/

@@ -1,0 +1,310 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>OPCG Arena</title>
+<style>
+  :root {
+    --bg: #12141a; --panel: #1b1e26; --line: #2b303c; --text: #e6e8ee; --dim: #8a92a6;
+    --accent: #d9a13b; --live: #4ea36b; --warn: #c1544a; --card-w: 92px;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 13px/1.45 ui-sans-serif, -apple-system, "Helvetica Neue", sans-serif; }
+  #app { display: grid; grid-template-columns: minmax(0,1fr) 340px; height: 100vh; }
+  #table { overflow: auto; padding: 12px 14px; }
+  #side { border-left: 1px solid var(--line); background: var(--panel);
+          display: grid; grid-template-rows: auto auto minmax(0,1fr) minmax(0,200px); overflow: hidden; }
+
+  .zone { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin-bottom: 10px; }
+  .zone > h2 { margin: 0 0 7px; font-size: 11px; letter-spacing: .09em; text-transform: uppercase;
+               color: var(--dim); display: flex; gap: 12px; align-items: baseline; }
+  .zone.mine { border-color: #35507a; }
+  .row { display: flex; gap: 7px; flex-wrap: wrap; align-items: flex-start; min-height: 8px; }
+
+  .card { width: var(--card-w); border-radius: 6px; position: relative; cursor: pointer;
+          border: 2px solid transparent; background: #0c0e13; flex: none; }
+  .card img { width: 100%; display: block; border-radius: 4px; }
+  .card.rested img { transform: rotate(90deg) scale(.72); }
+  .card.sel { border-color: var(--accent); }
+  .card.actionable::after { content: ""; position: absolute; inset: -4px; border-radius: 8px;
+          border: 1px solid var(--live); pointer-events: none; }
+  .back { aspect-ratio: 5/7; border-radius: 4px; display: grid; place-items: center; color: #4a5164;
+          background: repeating-linear-gradient(45deg,#191d27,#191d27 6px,#151922 6px,#151922 12px); }
+  .don { width: 60px; }
+  .badge { position: absolute; bottom: 3px; right: 3px; background: #000c; border-radius: 4px;
+           padding: 0 4px; font-size: 11px; font-variant-numeric: tabular-nums; }
+  .empty { width: var(--card-w); aspect-ratio: 5/7; border: 1px dashed var(--line); border-radius: 6px; }
+
+  .stat { color: var(--text); font-weight: 600; }
+  #banner { padding: 9px 12px; border-bottom: 1px solid var(--line); font-size: 12px; }
+  #banner.live { background: #17301f; color: #a9dfbc; }
+  #banner.warn { background: #331a18; color: #f0b3ad; }
+  #prompt { padding: 9px 12px; border-bottom: 1px solid var(--line); background: #221d14;
+            color: #e8d3a6; font-size: 12px; display: none; }
+  #filterbar { padding: 7px 12px; border-bottom: 1px solid var(--line); color: var(--dim);
+               font-size: 11px; display: flex; gap: 8px; align-items: center; }
+  #filterbar button { background: #2a2f3b; color: var(--text); border: 1px solid var(--line);
+                      border-radius: 5px; padding: 2px 8px; cursor: pointer; font-size: 11px; }
+  #moves { overflow: auto; padding: 6px; }
+  .move { display: block; width: 100%; text-align: left; background: #232833; color: var(--text);
+          border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; margin-bottom: 5px;
+          cursor: pointer; font: inherit; }
+  .move:hover { border-color: var(--accent); }
+  .move .note { display: block; color: var(--dim); font-size: 11px; margin-top: 2px; }
+  .move[disabled] { opacity: .45; cursor: default; }
+  #log { border-top: 1px solid var(--line); overflow: auto; padding: 7px 10px;
+         color: var(--dim); font-size: 11px; }
+  #log div { margin-bottom: 3px; }
+  #detail { position: fixed; right: 352px; bottom: 12px; width: 300px; background: #0f1218;
+            border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; display: none;
+            box-shadow: 0 10px 30px #0008; }
+  #detail h3 { margin: 0 0 4px; font-size: 13px; }
+  #detail .meta { color: var(--dim); font-size: 11px; margin-bottom: 6px; }
+  #detail p { margin: 0 0 6px; font-size: 12px; }
+  .truncated { color: #e8b96a; font-size: 11px; padding: 4px 8px; }
+</style>
+
+<div id="app">
+  <div id="table">
+    <div class="zone" id="oppZone">
+      <h2><span>Opponent</span><span id="oppStats"></span></h2>
+      <div class="row" id="oppLeader"></div>
+      <div class="row" id="oppChars" style="margin-top:7px"></div>
+      <div class="row" id="oppHand" style="margin-top:7px"></div>
+    </div>
+    <div class="zone mine" id="myZone">
+      <h2><span>You</span><span id="myStats"></span></h2>
+      <div class="row" id="myLeader"></div>
+      <div class="row" id="myChars" style="margin-top:7px"></div>
+    </div>
+    <div class="zone mine">
+      <h2><span>Your hand</span></h2>
+      <div class="row" id="myHand"></div>
+    </div>
+    <div class="zone">
+      <h2><span>Trash</span></h2>
+      <div class="row" id="trash"></div>
+    </div>
+  </div>
+
+  <div id="side">
+    <div id="banner">Connecting…</div>
+    <div id="prompt"></div>
+    <div id="filterbar"><span id="filterLabel">All legal moves</span><button id="clearFilter">clear</button></div>
+    <div id="moves"></div>
+    <div id="log"></div>
+  </div>
+</div>
+<div id="detail"></div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  let state = null;
+  let filterInstance = null;
+
+  const img = (cardId) => `/img/${cardId}.png`;
+
+  /** A card the viewer may not see renders as a back, never as a blank — hidden is information. */
+  function cardEl(card, opts = {}) {
+    const wrap = document.createElement("div");
+    wrap.className = "card" + (card && card.rested ? " rested" : "") + (opts.extra || "");
+    if (opts.don) wrap.classList.add("don");
+
+    if (!card || card.hidden || !card.cardId) {
+      const back = document.createElement("div");
+      back.className = "back";
+      back.textContent = "?";
+      wrap.appendChild(back);
+      return wrap;
+    }
+
+    const image = document.createElement("img");
+    image.src = img(card.cardId);
+    image.alt = card.name || card.cardId;
+    image.loading = "lazy";
+    wrap.appendChild(image);
+
+    if (card.attachedDon > 0 || card.power !== null) {
+      const badge = document.createElement("span");
+      badge.className = "badge";
+      badge.textContent =
+        (card.power !== null ? card.power : "") + (card.attachedDon ? ` +${card.attachedDon}◈` : "");
+      wrap.appendChild(badge);
+    }
+
+    if (card.instanceId && actionable().has(card.instanceId)) wrap.classList.add("actionable");
+    if (card.instanceId && card.instanceId === filterInstance) wrap.classList.add("sel");
+
+    wrap.onclick = () => {
+      filterInstance = filterInstance === card.instanceId ? null : card.instanceId;
+      render();
+      showDetail(card.cardId);
+    };
+    return wrap;
+  }
+
+  /** Instance ids that appear in at least one legal choice — the green outline on the board. */
+  function actionable() {
+    const ids = new Set();
+    if (!state || !state.decision) return ids;
+    for (const c of state.decision.choices) {
+      if (c.instanceId) ids.add(c.instanceId);
+      if (c.targetInstanceId) ids.add(c.targetInstanceId);
+    }
+    return ids;
+  }
+
+  async function showDetail(cardId) {
+    if (!cardId) return;
+    const panel = $("detail");
+    try {
+      const card = await (await fetch(`/api/card/${cardId}`)).json();
+      panel.innerHTML = "";
+      const h = document.createElement("h3");
+      h.textContent = `${card.name} — ${card.id}`;
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      meta.textContent = [
+        card.cardType,
+        card.cost !== null ? `cost ${card.cost}` : null,
+        card.power !== null ? `${card.power} power` : null,
+        card.counter ? `counter ${card.counter}` : null,
+        card.life !== null ? `life ${card.life}` : null,
+        (card.traits || []).join("/"),
+      ].filter(Boolean).join(" · ");
+      panel.append(h, meta);
+      for (const text of [card.effect, card.trigger ? `[Trigger] ${card.trigger}` : null]) {
+        if (!text || text === "NULL") continue;
+        const p = document.createElement("p");
+        p.textContent = text;
+        panel.appendChild(p);
+      }
+      panel.style.display = "block";
+    } catch { panel.style.display = "none"; }
+  }
+
+  function fill(node, cards, opts) {
+    node.innerHTML = "";
+    if (!cards || cards.length === 0) {
+      const gap = document.createElement("div");
+      gap.className = "empty";
+      node.appendChild(gap);
+      return;
+    }
+    for (const card of cards) node.appendChild(cardEl(card, opts || {}));
+  }
+
+  function renderMoves() {
+    const box = $("moves");
+    box.innerHTML = "";
+    const decision = state && state.decision;
+    if (!decision) {
+      $("filterLabel").textContent = "No decision pending";
+      return;
+    }
+
+    let choices = decision.choices;
+    if (filterInstance) {
+      choices = choices.filter(
+        (c) => c.instanceId === filterInstance || c.targetInstanceId === filterInstance,
+      );
+    }
+    $("filterLabel").textContent = filterInstance
+      ? `${choices.length} of ${decision.choices.length} moves for the selected card`
+      : `${decision.choices.length} legal moves`;
+
+    if (decision.truncated) {
+      const warn = document.createElement("div");
+      warn.className = "truncated";
+      warn.textContent =
+        "Option list was capped — some legal combinations are not shown. See enumerate.ts.";
+      box.appendChild(warn);
+    }
+
+    for (const choice of choices) {
+      const button = document.createElement("button");
+      button.className = "move";
+      button.disabled = !state.awaitingYou;
+      button.innerHTML = "";
+      const label = document.createElement("span");
+      label.textContent = choice.label;
+      button.appendChild(label);
+      if (choice.note) {
+        const note = document.createElement("span");
+        note.className = "note";
+        note.textContent = choice.note;
+        button.appendChild(note);
+      }
+      button.onclick = () => {
+        button.disabled = true;
+        fetch("/api/choose", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ index: choice.index }),
+        });
+      };
+      box.appendChild(button);
+    }
+  }
+
+  function render() {
+    if (!state) return;
+    const banner = $("banner");
+    const progress = state.progress;
+    banner.className = state.awaitingYou ? "live" : "";
+    banner.textContent = state.message
+      ? state.message
+      : progress
+        ? `Turn ${progress.turnNumber} · ${progress.phase} · active ${progress.activeSeat}` +
+          (state.awaitingYou ? " · your move" : " · waiting for opponent")
+        : "…";
+    if (state.message && /rejected/i.test(state.message)) banner.className = "warn";
+
+    const view = state.view;
+    if (!view) return;
+    const me = view.players[state.seat];
+    const opp = view.players[state.seat === "south" ? "north" : "south"];
+
+    $("myStats").innerHTML =
+      `life <span class="stat">${me.lifeCount}</span> · DON <span class="stat">${me.activeDon}</span>` +
+      ` active / ${me.restedDon} rested · deck <span class="stat">${me.deckCount}</span>`;
+    $("oppStats").innerHTML =
+      `life <span class="stat">${opp.lifeCount}</span> · DON <span class="stat">${opp.activeDon}</span>` +
+      ` active / ${opp.restedDon} rested · hand <span class="stat">${opp.handCount}</span>` +
+      ` · deck <span class="stat">${opp.deckCount}</span>`;
+
+    fill($("oppLeader"), [opp.leader]);
+    fill($("oppChars"), opp.characters.filter(Boolean));
+    fill($("oppHand"), opp.hand);
+    fill($("myLeader"), [me.leader]);
+    fill($("myChars"), me.characters.filter(Boolean));
+    fill($("myHand"), me.hand);
+    fill($("trash"), [...me.trash, ...opp.trash].slice(-14));
+
+    const promptBox = $("prompt");
+    const decision = state.decision;
+    if (decision && decision.prompt) {
+      promptBox.style.display = "block";
+      promptBox.textContent =
+        `${decision.prompt.label} — ${decision.prompt.details || decision.prompt.choiceKind}` +
+        ` (select ${decision.prompt.minSelections}–${decision.prompt.maxSelections})`;
+    } else {
+      promptBox.style.display = "none";
+    }
+
+    const log = $("log");
+    log.innerHTML = "";
+    for (const entry of (view.logs || []).slice(-40).reverse()) {
+      const line = document.createElement("div");
+      line.textContent = `T${entry.turn} ${entry.message}`;
+      log.appendChild(line);
+    }
+
+    renderMoves();
+  }
+
+  $("clearFilter").onclick = () => { filterInstance = null; render(); };
+
+  const stream = new EventSource("/api/stream");
+  stream.onmessage = (event) => { state = JSON.parse(event.data); render(); };
+  stream.onerror = () => { $("banner").textContent = "Disconnected from the arena."; };
+</script>

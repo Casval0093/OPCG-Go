@@ -116,6 +116,28 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   record is the deliverable, and carrying the fix in `tools/patch_engine.py` is the sanctioned
   mechanism. Treat any outward-facing action on third-party property as requiring an explicit,
   unprompted instruction from Ping — never propose one.
+- **The first player takes 1 DON!! on their first turn, not 2 — FIXED 2026-08-19, patch 4.**
+  `finalizeBeginTurnRefresh` placed `Math.min(2, donDeckCount)` every DON!! Phase with no first-turn
+  exception, so the leading player opened on **2** active DON!!. The rule is 2 per DON!! Phase
+  **except the first player's first turn, which is 1** — first-player compensation, and the pair of
+  the skipped first draw that this engine *does* implement (`skipFirstTurnDraw`, Comprehensive Rules
+  6-3-1). Only half the compensation was present: the leader paid the draw and kept the DON!!.
+  Measured before/after on the Ace mirror, seed 7: turn 1 north `2a/0r (8 left)` → `1a/0r (9 left)`,
+  with turn 3 at 3 DON!! and the second player at 2 then 4. The condition is
+  `turnNumber === 1 && seat === config.firstPlayer`, not the `skipDraw` flag — `config.firstPlayer`
+  is authoritative once the 猜拳 winner's `chooseFirstPlayer` has overwritten it, and turn number
+  plus seat cannot be misconfigured, whereas a flag can be switched off and would silently take the
+  DON!! rule with it. **Two upstream tests asserted the old value and are corrected by patch 5** —
+  that is fixing the tests, not accommodating the fix: `shared.ts` defaults `skipFirstTurnDraw` to
+  `?? true`, so those tests took the skipped draw and still expected the un-reduced DON!!.
+  **Every play/draw number measured before it was measured on the wrong rules — but the practical
+  effect is small.** Re-measured post-fix: Mihawk proxy mirror, 160 games, overall **50.63%**
+  [42.95%, 58.27%] (contains 50%, as a mirror must), gap **8.75 pts** against the **8.5 pts**
+  recorded for a real Block 2+ deck before. So the fix does not move this deck's gap out of noise;
+  do not treat the older figures as badly inflated, and do not treat them as re-verified either —
+  a deck that leans on a turn-1 play is where the surplus would have mattered most. Reported by
+  Ping as "the player going first can only have one DON, the opposition got two"; that end state is
+  correct, and the defect was the engine handing the leader 2 on turn one.
 - **Real Block 2+ decks now simulate end to end**, 400/400 `rules-win`, median 9 turns.
 - **Do not calibrate on ST01.** The play/draw gap is **54.5 pts** on ST01, **26.7** on a vanilla
   Block 2+ pile, and **8.5 pts** on a real Block 2+ deck — the last of which is plausible. The gap

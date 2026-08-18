@@ -1,0 +1,11 @@
+{
+  "name": "council:three-lens",
+  "callBudgetPerGame": 600,
+  "proposers": [
+    { "name": "tempo", "lens": "tempo" },
+    { "name": "resources", "lens": "attrition" },
+    { "name": "cardtext", "lens": "rules" }
+  ],
+  "adjudicator": { "name": "adjudicator", "effort": "high" },
+  "playbook": "Play from the printed text, not from the card name. Before relying on an effect, name the clause that triggers it. Thresholds are exact. When two lines are close, prefer the one that is still good if the opponent holds a counter."
+}
