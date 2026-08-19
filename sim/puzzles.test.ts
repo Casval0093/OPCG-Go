@@ -24,7 +24,7 @@
 //     cannot beat when a productive attack exists.
 
 import { test } from "vite-plus/test";
-import { allCards } from "@tcg/op-cards";
+import { allCards, op16PortgasDAce001, op16PortgasDAce118, op01Sai012 } from "@tcg/op-cards";
 import { applyCommand, getLegalCommands } from "../../src/core.ts";
 import {
   valueRankedStrategy,
@@ -383,4 +383,74 @@ run("puzzles", () => {
   }
   const all = [...suiteDefects, ...regressions];
   if (all.length) throw new Error(all.join(" | "));
+});
+
+// Review finding on batch 2 Task 1: all 6 puzzles above are vanilla-body positions with zero
+// pending prompts by construction (see adjudicate()'s docstring), so the suite above only ever
+// exercises drainPrompts' `if (!prompt) return` no-op branch on the first loop iteration -- never
+// the actual resolve-a-prompt body, its state threading, or its `drained` flag. This is separate
+// from the PUZZLES table on purpose: it is not a policy measurement (nothing here is scored
+// against the ladder), so it must not add a row to that table or move byClass's totals. It reuses
+// the SHIPPED drainPrompts directly, not a copy, so a future edit to the real function is covered.
+//
+// OP16-118 Portgas.D.Ace's [On Play] is a real two-prompt cascade, confirmed by manual
+// instrumentation before writing this test (not committed, run against the vendored engine):
+// resolving the first prompt (effectSearchSelection, choiceKind "selectCards") is what CAUSES the
+// second (effectSearchRemainderOrder, choiceKind "orderCards") to become pending -- it does not
+// exist until the first is resolved. So a loop that only fires once, or one that stops threading
+// `current` between iterations (e.g. re-reads the pre-loop state instead of the post-applyCommand
+// one), cannot pass this: it will either leave the second prompt pending (caught by the
+// `pendingAfter` assertion) or hand `resolveBotPromptCommand` a prompt id that state has already
+// marked resolved, which `applyCommand` rejects and `drainPrompts` turns into a thrown "stalled"
+// error (caught because the test does not wrap the call in a try/catch).
+run("drainPrompts resolves a real multi-prompt cascade (not just the no-op branch)", () => {
+  const engine = OnePieceTestEngine.create(
+    {
+      leaderCardId: op16PortgasDAce001,
+      hand: [op16PortgasDAce118],
+      deck: [op01Sai012, op01Sai012, op01Sai012, op01Sai012, op01Sai012, op01Sai012],
+      activeDon: op16PortgasDAce118.cost,
+    },
+    {},
+  );
+  engine.playCard(op16PortgasDAce118, "south");
+  const midState = engine.getState();
+  const deckSizeBefore = midState.players.south.deck.length;
+
+  const pendingBefore = midState.promptQueue.filter((entry) => entry.status === "pending");
+  if (pendingBefore.length !== 1 || pendingBefore[0]?.choiceKind !== "selectCards") {
+    throw new Error(
+      `fixture drift: expected exactly one pending "selectCards" prompt before draining, got ${JSON.stringify(
+        pendingBefore.map((p) => p.choiceKind),
+      )} -- this test needs Ace's search to still open with a selectCards prompt`,
+    );
+  }
+
+  const result = drainPrompts(midState);
+
+  if (!result.drained) throw new Error("drainPrompts reported drained=false on a real cascade");
+  const pendingAfter = result.state.promptQueue.filter((entry) => entry.status === "pending");
+  if (pendingAfter.length !== 0) {
+    throw new Error(
+      `drainPrompts left ${pendingAfter.length} prompt(s) pending -- the second (orderCards)` +
+        ` prompt only appears after the first is resolved, so this means the loop did not` +
+        ` iterate past its first pass`,
+    );
+  }
+  // Both the selectCards prompt AND the orderCards prompt it triggers must show resolved -- not
+  // just "no longer pending" -- so this fails if some third status leaks in some way "0 pending"
+  // would miss, and it documents that TWO real resolutions, not one, were required to get here.
+  const resolvedCount = result.state.promptQueue.filter(
+    (entry) => entry.status === "resolved",
+  ).length;
+  if (resolvedCount !== 2) {
+    throw new Error(`expected exactly 2 resolved prompts (the cascade), got ${resolvedCount}`);
+  }
+  // Coarse state-integrity check: draining two prompts must reorder the deck, never lose or
+  // duplicate cards.
+  if (result.state.players.south.deck.length !== deckSizeBefore) {
+    throw new Error(
+      `deck size changed across drain (${deckSizeBefore} -> ${result.state.players.south.deck.length}) -- state threading likely corrupted the line`,
+    );
+  }
 });
