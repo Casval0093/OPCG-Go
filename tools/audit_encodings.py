@@ -75,21 +75,49 @@ def _lit(quote: str) -> str:
 STR_TOKEN = re.compile("|".join(_lit(q) for q in ('"', "'", "`")), re.S)
 
 
+def skip_noise(source: str, index: int) -> int | None:
+    """Index just past a string literal or comment at `index`, or None if neither starts there.
+
+    Comments matter as much as strings here. Our own OP15/OP16 encodings carry explanatory `//`
+    comments containing apostrophes ("K.O.'d", "the card's own effect"); a scanner that reads those
+    as a string opening runs to end of file, and `balanced` then returned everything after the card
+    as that card's block. That mis-scoped 68 definitions silently -- silently because `balanced`
+    fell back to `source[start:]` instead of failing. Fields were still found (they precede the
+    overshoot) which is why the audit's numbers held, but in a multi-card file such as PRB01/PRB02
+    it would read a neighbour's fields.
+    """
+    length = len(source)
+    char = source[index]
+    if char == "/" and index + 1 < length:
+        if source[index + 1] == "/":
+            end = source.find("\n", index)
+            return length if end == -1 else end
+        if source[index + 1] == "*":
+            end = source.find("*/", index + 2)
+            return length if end == -1 else end + 2
+    if char in "\"'`":
+        quote, index = char, index + 1
+        while index < length:
+            if source[index] == "\\":
+                index += 2
+                continue
+            if source[index] == quote:
+                return index + 1
+            index += 1
+        return length
+    return None
+
+
 def balanced(source: str, start: int) -> str:
-    """The {...} literal beginning at `start`, skipping over string bodies."""
+    """The {...} literal beginning at `start`, skipping over string bodies and comments."""
     depth, index, length = 0, start, len(source)
     while index < length:
+        skipped = skip_noise(source, index)
+        if skipped is not None:
+            index = skipped
+            continue
         char = source[index]
-        if char in "\"'`":
-            quote, index = char, index + 1
-            while index < length:
-                if source[index] == "\\":
-                    index += 2
-                    continue
-                if source[index] == quote:
-                    break
-                index += 1
-        elif char == "{":
+        if char == "{":
             depth += 1
         elif char == "}":
             depth -= 1
@@ -152,9 +180,25 @@ def unquote(value: str | None) -> str | None:
     return re.sub(r"\\u([0-9a-fA-F]{4})", lambda m: chr(int(m.group(1), 16)), text)
 
 
-def str_list(value: str | None) -> list[str] | None:
+IDENT_RE = re.compile(r"^\w+$")
+CONST_LIST_RE = re.compile(r"(?m)^const (\w+)\s*(?::[^=]*?)?=\s*(\[[^\]]*\])\s*;")
+
+
+def str_list(value: str | None, consts: dict[str, str] | None = None) -> list[str] | None:
+    """The string elements of a TS array literal, following a `const` reference if it is one.
+
+    ST01 does not inline its traits: it declares `const strawHat = ["Straw Hat Crew"];` and writes
+    `traits: strawHat`. Without following that, all 13 ST01 cards read as `traits: []` and the audit
+    reports them as a defect -- which is what an earlier run of this tool did. They are correct, and
+    correctly split. `None` means genuinely absent or unresolvable; `[]` means a literal empty array.
+    """
     if value is None:
         return None
+    if IDENT_RE.match(value):
+        resolved = (consts or {}).get(value)
+        if resolved is None:
+            return None          # a reference we cannot follow is unknown, not empty
+        value = resolved
     return re.findall(r'"((?:[^"\\]|\\.)*)"', value, re.S)
 
 
@@ -191,6 +235,7 @@ def load_engine(root: str = CARDS_ROOT) -> dict[str, dict]:
                 key = f"{path}::{match.group(1)}"
                 records[key] = {"export": match.group(1), "path": path,
                                 "block": block, "imports": imports,
+                                "consts": dict(CONST_LIST_RE.findall(source)),
                                 "id": unquote(top_field(block, "id"))}
                 name_index.setdefault(match.group(1), []).append(key)
 
@@ -219,7 +264,7 @@ def load_engine(root: str = CARDS_ROOT) -> dict[str, dict]:
             "id": cid, "path": record["path"],
             "name": unquote(top_field(block, "name")),
             "cardType": unquote(top_field(block, "cardType")),
-            "traits": str_list(top_field(block, "traits")),
+            "traits": str_list(top_field(block, "traits"), record["consts"]),
             "cost": top_field(block, "cost"), "power": top_field(block, "power"),
             "counter": top_field(block, "counter"), "life": top_field(block, "life"),
             "effect": unquote(top_field(block, "effect")),
@@ -523,14 +568,43 @@ def section_tests(engine, report) -> int:
                          errors="ignore").read()))
     # Mentioning an id is a generous proxy for testing it, so this is an upper
     # bound on coverage -- the untested list below is therefore a lower bound.
-    untested = sorted(c for c in engine if c not in tested and BASE_ID_RE.match(c))
-    live = [c for c in untested if not is_rotated(c.split("-")[0])]
+    unmentioned = sorted(c for c in engine if c not in tested and BASE_ID_RE.match(c))
+
+    # An unmentioned card is only a FINDING if there is something to test. A vanilla -- no printed
+    # effect text and no `effects:` block -- has no behaviour a test could assert, and counting it
+    # inflates the number badly: an earlier version of this section reported "70 Standard-legal
+    # encodings that no test even mentions" when 63 of them were vanillas and the other 11 were
+    # already enumerated in data/parked-clauses.json. Split the three cases so that can't recur.
+    vanilla, unencoded, untested = [], [], []
+    for cid in unmentioned:
+        record = engine[cid]
+        printed = (record["effect"] or "").strip() not in NULLISH
+        if record["hasEffects"]:
+            untested.append(cid)      # a real encoding with no test in sight
+        elif printed:
+            unencoded.append(cid)     # printed text with no encoding -- an encoding gap, not a test gap
+        else:
+            vanilla.append(cid)       # nothing to assert
+
+    def live(ids):
+        return [c for c in ids if not is_rotated(c.split("-")[0])]
+
     print(f"test files {files}   ids referenced {len(tested)}")
-    print(f"encodings referenced by no test: {len(untested)}  (Standard-legal: {len(live)})")
-    by_set = collections.Counter(c.split("-")[0] for c in untested)
-    print(f"by set: {dict(sorted(by_set.items()))}")
+    print(f"ids no test mentions: {len(unmentioned)}  (Standard-legal: {len(live(unmentioned))})")
+    print(f"  vanilla, nothing to assert          {len(vanilla):>4}  "
+          f"(Standard {len(live(vanilla))})")
+    print(f"  printed text but NO encoding        {len(unencoded):>4}  "
+          f"(Standard {len(live(unencoded))})  <- encoding gap; check parked-clauses.json")
+    print(f"  HAS an encoding and no test         {len(untested):>4}  "
+          f"(Standard {len(live(untested))})  <- the only real test-coverage finding")
+    if unencoded:
+        print(f"    {', '.join(unencoded)}")
+    if untested:
+        print(f"    {', '.join(untested)}")
     report["untested"] = untested
-    return len(live)
+    report["unmentioned_vanilla"] = vanilla
+    report["unencoded_with_text"] = unencoded
+    return len(live(untested))
 
 
 def main() -> None:

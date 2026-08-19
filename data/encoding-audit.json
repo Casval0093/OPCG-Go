@@ -843,514 +843,11 @@
    "status": "Standard"
   }
  },
- "numeric": [
-  {
-   "id": "EB03-009",
-   "field": "power",
-   "bandai": 0,
-   "engine": null,
-   "rotated": false
-  },
-  {
-   "id": "EB03-009",
-   "field": "counter",
-   "bandai": 2000,
-   "engine": null,
-   "rotated": false
-  },
-  {
-   "id": "EB03-050",
-   "field": "power",
-   "bandai": 0,
-   "engine": null,
-   "rotated": false
-  },
-  {
-   "id": "EB04-025",
-   "field": "counter",
-   "bandai": 1000,
-   "engine": null,
-   "rotated": false
-  },
-  {
-   "id": "OP01-016",
-   "field": "counter",
-   "bandai": 1000,
-   "engine": 2000,
-   "rotated": true
-  },
-  {
-   "id": "OP03-112",
-   "field": "counter",
-   "bandai": 1000,
-   "engine": 2000,
-   "rotated": true
-  },
-  {
-   "id": "OP06-051",
-   "field": "counter",
-   "bandai": 2000,
-   "engine": 4000,
-   "rotated": false
-  },
-  {
-   "id": "OP08-061",
-   "field": "counter",
-   "bandai": 1000,
-   "engine": null,
-   "rotated": false
-  },
-  {
-   "id": "OP08-082",
-   "field": "counter",
-   "bandai": 2000,
-   "engine": 1000,
-   "rotated": false
-  },
-  {
-   "id": "OP10-043",
-   "field": "counter",
-   "bandai": 2000,
-   "engine": 1000,
-   "rotated": false
-  },
-  {
-   "id": "OP14-019",
-   "field": "cost",
-   "bandai": 1,
-   "engine": 4,
-   "rotated": false
-  },
-  {
-   "id": "OP14-031",
-   "field": "counter",
-   "bandai": 1000,
-   "engine": null,
-   "rotated": false
-  },
-  {
-   "id": "ST17-002",
-   "field": "counter",
-   "bandai": 1000,
-   "engine": null,
-   "rotated": false
-  }
- ],
+ "numeric": [],
  "traits": {
-  "tokenised": 1322,
+  "tokenised": 1363,
   "joined": 838,
-  "wrong": [
-   {
-    "id": "EB03-034",
-    "bandai": [
-     "Rocks Pirates"
-    ],
-    "engine": [
-     "Big Mom Pirates"
-    ],
-    "rotated": false
-   },
-   {
-    "id": "OP01-005",
-    "bandai": [
-     "FILM"
-    ],
-    "engine": [
-     "Film"
-    ],
-    "rotated": true
-   },
-   {
-    "id": "OP01-011",
-    "bandai": [
-     "FILM"
-    ],
-    "engine": [
-     "Film"
-    ],
-    "rotated": true
-   },
-   {
-    "id": "OP01-018",
-    "bandai": [
-     "Giant",
-     "New Giant Pirates"
-    ],
-    "engine": [
-     "Giant New Giant Pirate Crew"
-    ],
-    "rotated": true
-   },
-   {
-    "id": "OP02-028",
-    "bandai": [
-     "FILM",
-     "Straw Hat Crew"
-    ],
-    "engine": [
-     "Film Straw Hat Crew"
-    ],
-    "rotated": true
-   },
-   {
-    "id": "OP02-033",
-    "bandai": [
-     "FILM",
-     "Fish-Man",
-     "Straw Hat Crew"
-    ],
-    "engine": [
-     "Film Fish-Man Straw Hat Crew"
-    ],
-    "rotated": true
-   },
-   {
-    "id": "OP02-034",
-    "bandai": [
-     "FILM",
-     "Animal",
-     "Straw Hat Crew"
-    ],
-    "engine": [
-     "Animal Film Straw Hat Crew"
-    ],
-    "rotated": true
-   },
-   {
-    "id": "OP02-035",
-    "bandai": [
-     "FILM",
-     "Supernovas",
-     "Heart Pirates"
-    ],
-    "engine": [
-     "Film Heart Pirates Supernovas"
-    ],
-    "rotated": true
-   },
-   {
-    "id": "OP02-036",
-    "bandai": [
-     "FILM",
-     "Straw Hat Crew"
-    ],
-    "engine": [
-     "Film Straw Hat Crew"
-    ],
-    "rotated": true
-   },
-   {
-    "id": "OP02-037",
-    "bandai": [
-     "FILM",
-     "Straw Hat Crew"
-    ],
-    "engine": [
-     "Film Straw Hat Crew"
-    ],
-    "rotated": true
-   },
-   {
-    "id": "OP02-039",
-    "bandai": [
-     "FILM",
-     "Straw Hat Crew"
-    ],
-    "engine": [
-     "Film Straw Hat Crew"
-    ],
-    "rotated": true
-   },
-   {
-    "id": "OP02-040",
-    "bandai": [
-     "FILM",
-     "Straw Hat Crew"
-    ],
-    "engine": [
-     "Straw Hat Crew"
-    ],
-    "rotated": true
-   },
-   {
-    "id": "OP02-041",
-    "bandai": [
-     "FILM",
-     "Supernovas",
-     "Straw Hat Crew"
-    ],
-    "engine": [
-     "Straw Hat Crew Supernovas"
-    ],
-    "rotated": true
-   },
-   {
-    "id": "OP02-043",
-    "bandai": [
-     "FILM",
-     "Supernovas",
-     "Straw Hat Crew"
-    ],
-    "engine": [
-     "Film Straw Hat Crew Supernovas"
-    ],
-    "rotated": true
-   },
-   {
-    "id": "OP02-045",
-    "bandai": [
-     "FILM",
-     "Supernovas",
-     "Straw Hat Crew"
-    ],
-    "engine": [
-     "Film Straw Hat Crew Supernovas"
-    ],
-    "rotated": true
-   },
-   {
-    "id": "OP02-046",
-    "bandai": [
-     "FILM",
-     "Straw Hat Crew"
-    ],
-    "engine": [
-     "Film Straw Hat Crew"
-    ],
-    "rotated": true
-   },
-   {
-    "id": "OP02-072",
-    "bandai": [
-     "FILM",
-     "Neo Navy"
-    ],
-    "engine": [
-     "Film Neo Navy"
-    ],
-    "rotated": true
-   },
-   {
-    "id": "OP03-036",
-    "bandai": [
-     "East Blue",
-     "Black Cat Pirates"
-    ],
-    "engine": [
-     "NULL"
-    ],
-    "rotated": true
-   },
-   {
-    "id": "OP03-038",
-    "bandai": [
-     "East Blue",
-     "Krieg Pirates"
-    ],
-    "engine": [
-     "NULL"
-    ],
-    "rotated": true
-   },
-   {
-    "id": "OP03-114",
-    "bandai": [
-     "The Four Emperors",
-     "Big Mom Pirates"
-    ],
-    "engine": [
-     "Big Mom Pirates"
-    ],
-    "rotated": true
-   },
-   {
-    "id": "OP05-040",
-    "bandai": [
-     "Donquixote Pirates"
-    ],
-    "engine": [
-     "NULL"
-    ],
-    "rotated": false
-   },
-   {
-    "id": "OP05-096",
-    "bandai": [
-     "Celestial Dragons"
-    ],
-    "engine": [],
-    "rotated": false
-   },
-   {
-    "id": "OP07-004",
-    "bandai": [
-     "Mountain Bandits"
-    ],
-    "engine": [
-     "Mountain Bandits Mountain Bandits"
-    ],
-    "rotated": false
-   },
-   {
-    "id": "OP07-009",
-    "bandai": [
-     "Mountain Bandits"
-    ],
-    "engine": [
-     "Mountain Bandits Mountain Bandits"
-    ],
-    "rotated": false
-   },
-   {
-    "id": "OP10-064",
-    "bandai": [
-     "Kingdom of GERMA"
-    ],
-    "engine": [
-     "The Vinsmoke Family Kingdom of GERMA"
-    ],
-    "rotated": false
-   },
-   {
-    "id": "OP11-012",
-    "bandai": [
-     "Straw Hat Crew"
-    ],
-    "engine": [
-     "Navy SWORD"
-    ],
-    "rotated": false
-   },
-   {
-    "id": "OP13-009",
-    "bandai": [
-     "Mountain Bandits"
-    ],
-    "engine": [
-     "Mountain Bandits Mountain Bandits"
-    ],
-    "rotated": false
-   },
-   {
-    "id": "OP13-013",
-    "bandai": [
-     "Mountain Bandits"
-    ],
-    "engine": [
-     "Mountain Bandits Mountain Bandits"
-    ],
-    "rotated": false
-   },
-   {
-    "id": "ST01-001",
-    "bandai": [
-     "Supernovas",
-     "Straw Hat Crew"
-    ],
-    "engine": [],
-    "rotated": true
-   },
-   {
-    "id": "ST01-002",
-    "bandai": [
-     "Straw Hat Crew"
-    ],
-    "engine": [],
-    "rotated": true
-   },
-   {
-    "id": "ST01-004",
-    "bandai": [
-     "Straw Hat Crew"
-    ],
-    "engine": [],
-    "rotated": true
-   },
-   {
-    "id": "ST01-007",
-    "bandai": [
-     "Straw Hat Crew"
-    ],
-    "engine": [],
-    "rotated": true
-   },
-   {
-    "id": "ST01-008",
-    "bandai": [
-     "Straw Hat Crew"
-    ],
-    "engine": [],
-    "rotated": true
-   },
-   {
-    "id": "ST01-010",
-    "bandai": [
-     "Straw Hat Crew"
-    ],
-    "engine": [],
-    "rotated": true
-   },
-   {
-    "id": "ST01-011",
-    "bandai": [
-     "Straw Hat Crew"
-    ],
-    "engine": [],
-    "rotated": true
-   },
-   {
-    "id": "ST01-012",
-    "bandai": [
-     "Supernovas",
-     "Straw Hat Crew"
-    ],
-    "engine": [],
-    "rotated": true
-   },
-   {
-    "id": "ST01-013",
-    "bandai": [
-     "Supernovas",
-     "Straw Hat Crew"
-    ],
-    "engine": [],
-    "rotated": true
-   },
-   {
-    "id": "ST01-014",
-    "bandai": [
-     "Animal",
-     "Straw Hat Crew"
-    ],
-    "engine": [],
-    "rotated": true
-   },
-   {
-    "id": "ST01-015",
-    "bandai": [
-     "Supernovas",
-     "Straw Hat Crew"
-    ],
-    "engine": [],
-    "rotated": true
-   },
-   {
-    "id": "ST01-016",
-    "bandai": [
-     "Straw Hat Crew"
-    ],
-    "engine": [],
-    "rotated": true
-   },
-   {
-    "id": "ST01-017",
-    "bandai": [
-     "Straw Hat Crew"
-    ],
-    "engine": [],
-    "rotated": true
-   }
-  ]
+  "wrong": []
  },
  "filters": {
   "false_match": {
@@ -1460,7 +957,6 @@
     "PRB02-009"
    ],
    "Big Mom Pirates": [
-    "EB03-034",
     "OP11-105"
    ],
    "Blackbeard Pirates": [
@@ -1593,7 +1089,6 @@
     "OP11-002",
     "OP11-006",
     "OP11-011",
-    "OP11-012",
     "OP11-075"
    ],
    "Roger Pirates": [
@@ -1606,15 +1101,9 @@
     "OP13-077",
     "OP14-108"
    ],
-   "SWORD": [
-    "OP11-012"
-   ],
    "Straw Hat Crew": [
     "EB02-005",
     "OP01-008"
-   ],
-   "The Vinsmoke Family": [
-    "OP10-064"
    ],
    "Whitebeard Pirates": [
     "EB01-005",
@@ -1635,71 +1124,9 @@
     "PRB02-008"
    ]
   },
-  "missed_match": {
-   "Animal": [
-    "ST01-014"
-   ],
-   "Celestial Dragons": [
-    "OP05-096"
-   ],
-   "Donquixote Pirates": [
-    "OP05-040"
-   ],
-   "East Blue": [
-    "OP03-036",
-    "OP03-038"
-   ],
-   "FILM": [
-    "OP01-005",
-    "OP01-011",
-    "OP02-028",
-    "OP02-033",
-    "OP02-034",
-    "OP02-035",
-    "OP02-036",
-    "OP02-037",
-    "OP02-039",
-    "OP02-040",
-    "OP02-041",
-    "OP02-043",
-    "OP02-045",
-    "OP02-046",
-    "OP02-072"
-   ],
-   "Straw Hat Crew": [
-    "OP11-012",
-    "ST01-011",
-    "ST01-016",
-    "ST01-010",
-    "ST01-014",
-    "ST01-015",
-    "ST01-001",
-    "ST01-012",
-    "ST01-007",
-    "ST01-008",
-    "ST01-013",
-    "ST01-004",
-    "ST01-017",
-    "ST01-002"
-   ],
-   "Supernovas": [
-    "ST01-015",
-    "ST01-001",
-    "ST01-012",
-    "ST01-013"
-   ]
-  }
+  "missed_match": {}
  },
  "text": [
-  {
-   "id": "EB01-039",
-   "set": "EB01",
-   "bandai": "[Main] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): K.O. up to 1 of your opponent's Characters with a cost of 8 or less. Add up to 1 DON!! card from your DON!! deck and set it as active.",
-   "engine": "[Main] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): K.O. up to 1 of your opponent's Characters with a cost of 8 or less.  Ad up to 1 DON!! card from your DON!! deck and set it as active.",
-   "duplicate": false,
-   "rotated": false,
-   "similarity": 0.9803921568627451
-  },
   {
    "id": "EB02-055",
    "set": "EB02",
@@ -1717,15 +1144,6 @@
    "duplicate": false,
    "rotated": false,
    "similarity": 0.9545454545454546
-  },
-  {
-   "id": "EB04-025",
-   "set": "EB04",
-   "bandai": "[On Play] Play up to 1 [Alabasta] type Character card with a cost of 8 or less other than [Nefeltari Vivi] from your hand. Then, your opponent places 1 card from their hand at the bottom of their deck.",
-   "engine": "[On Play] Play up to 1 {Alabasta} type Character card with a cost of 8 or less other than [Nefeltari Vivi] from your hand. Then, your opponent places 1 card from your hand at the bottom of their deck.",
-   "duplicate": false,
-   "rotated": false,
-   "similarity": 0.9743589743589743
   },
   {
    "id": "EB04-028",
@@ -1989,15 +1407,6 @@
    "similarity": 0.6666666666666666
   },
   {
-   "id": "OP06-054",
-   "set": "OP06",
-   "bandai": "If you have 5 or less cards in your hand, this Character gains [Blocker].\n(After your opponent declares an attack, you may rest this card to make it the new target of the attack.)",
-   "engine": "If you have 4 or less cards in your hand, this Character gains [Blocker].\n(After your opponent declares an attack, you may rest this card to make it the new target of the attack.)",
-   "duplicate": false,
-   "rotated": false,
-   "similarity": 0.9705882352941176
-  },
-  {
    "id": "OP06-056",
    "set": "OP06",
    "bandai": "[Main] Place up to 1 of your opponent's Characters with a cost of 2 or less and up to 1 of your opponent's Characters with a cost of 1 or less at the bottom of the owner's deck in any order. Activate this card's [Main] effect.",
@@ -2050,15 +1459,6 @@
    "duplicate": true,
    "rotated": false,
    "similarity": 0.6666666666666666
-  },
-  {
-   "id": "OP06-116",
-   "set": "OP06",
-   "bandai": "[Main] Choose one:\n\u2022 K.O. up to 1 of your opponent's Characters with a cost of 5 or less.\n\u2022 If your opponent has 1 Life card, deal 1 damage to your opponent. Then, add 1 card from the top of your Life cards to your hand. Draw 1 card.",
-   "engine": "[Main] Choose one:\n\u2022 K.O. up to 1 of your opponent's Characters with a cost of 5 or less.\n\u2022 If your opponent has 1 Life card, deal 1 damage to your opponent.\nThen, add 1 card from the top of your Life cards to your hand. Draw 1 cards.",
-   "duplicate": false,
-   "rotated": false,
-   "similarity": 0.98
   },
   {
    "id": "OP07-099",
@@ -2338,7 +1738,8 @@
    "rotated": false
   }
  ],
- "untested": [
+ "untested": [],
+ "unmentioned_vanilla": [
   "OP11-017",
   "OP11-026",
   "OP11-064",
@@ -2383,35 +1784,37 @@
   "OP14-073",
   "OP14-095",
   "OP14-101",
-  "OP15-010",
-  "OP15-015",
   "OP15-016",
-  "OP15-018",
-  "OP15-027",
-  "OP15-028",
   "OP15-030",
-  "OP15-031",
   "OP15-049",
-  "OP15-058",
-  "OP15-059",
   "OP15-062",
   "OP15-089",
   "OP15-107",
   "OP16-004",
-  "OP16-015",
   "OP16-016",
   "OP16-023",
   "OP16-028",
   "OP16-046",
-  "OP16-060",
   "OP16-061",
   "OP16-062",
-  "OP16-079",
   "OP16-086",
   "OP16-112",
   "ST01-003",
   "ST01-008",
   "ST01-009",
   "ST01-010"
+ ],
+ "unencoded_with_text": [
+  "OP15-010",
+  "OP15-015",
+  "OP15-018",
+  "OP15-027",
+  "OP15-028",
+  "OP15-031",
+  "OP15-058",
+  "OP15-059",
+  "OP16-015",
+  "OP16-060",
+  "OP16-079"
  ]
 }
