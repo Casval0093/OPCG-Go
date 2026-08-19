@@ -34,6 +34,7 @@ import {
   passOnlyStrategy,
 } from "../../src/automation/bot-strategies.ts";
 import type { OnePieceBotStrategy } from "../../src/automation/bot-strategies.ts";
+import { resolveBotPromptCommand } from "../../src/automation/bot-harness.ts";
 import { OnePieceTestEngine } from "../../src/index.ts";
 import type { EngineCommand, MatchSeat, MatchState } from "../../src/types.ts";
 
@@ -68,37 +69,115 @@ interface Puzzle {
 const SEAT: MatchSeat = "south";
 const OPP: MatchSeat = "north";
 
+// Batch 2 Task 1: a puzzle spanning a whole turn (sequencing; DON!! attach-then-attack) needs its
+// candidate answer to be a LINE of several commands, not just one, and needs the position to
+// survive a prompt any command in that line might open. `adjudicate` below accepts either a single
+// command (all 6 original puzzles) or an explicit array -- a bare command is treated as a
+// one-command line, so the original puzzles are scored byte-identically to before.
+//
+// Per the "Architectural fact" in docs/plans/policy-puzzle-batch-2.md, a prompt opened mid-line (a
+// defender's counter, a search order) is owned by resolveBotPromptCommand, NEVER by the strategy
+// under test -- and the engine rejects the line's next command outright while one is pending. So
+// adjudication drains after every applied command, and because that drain is not a policy act,
+// `evaluate` reports whether it happened rather than folding it into the pass/fail cell.
+
+const MAX_PROMPT_DRAIN = 50;
+
 /**
- * What a command actually accomplishes, ADJUDICATED BY THE ENGINE rather than by a hand-written
- * predicate. This is the second design of this function and the reason for the change matters:
- * the first version hard-coded "the answer is an attack by the 8000 body", which silently
+ * Resolve every prompt in `state.promptQueue` with `status === "pending"`, via the same
+ * resolveBotPromptCommand runBotMatch itself uses between a strategy's own commands
+ * (bot-harness.ts: `drainPendingPrompts`). That internal drain silently breaks out and leaves the
+ * surrounding harness to notice the position is stuck; a puzzle must not silently mis-score a
+ * stalled, mid-prompt state as though it were final, so this one fails loudly instead once
+ * MAX_PROMPT_DRAIN is exceeded, catching a real infinite-prompt bug rather than hanging the suite.
+ */
+function drainPrompts(state: MatchState): { state: MatchState; drained: boolean } {
+  let current = state;
+  let drained = false;
+  for (let i = 0; i < MAX_PROMPT_DRAIN; i++) {
+    const prompt = current.promptQueue.find((entry) => entry.status === "pending");
+    if (!prompt) return { state: current, drained };
+    const command = resolveBotPromptCommand(current, prompt);
+    if (!command) {
+      throw new Error(
+        `prompt drain stalled: resolveBotPromptCommand returned no command for a pending ${prompt.kind}/${prompt.choiceKind ?? "?"} prompt`,
+      );
+    }
+    const r = applyCommand(current, command);
+    if (!r.accepted) {
+      throw new Error(
+        `prompt drain stalled: resolveBotPromptCommand's own command was illegal (${r.reason ?? "no reason given"})`,
+      );
+    }
+    current = r.state;
+    drained = true;
+  }
+  const stillPending = current.promptQueue.find((entry) => entry.status === "pending");
+  if (stillPending) {
+    throw new Error(
+      `prompt drain exceeded ${MAX_PROMPT_DRAIN} iterations -- still pending: ${stillPending.kind}/${stillPending.choiceKind ?? "?"}`,
+    );
+  }
+  return { state: current, drained };
+}
+
+/**
+ * What a LINE of commands actually accomplishes, ADJUDICATED BY THE ENGINE rather than by a
+ * hand-written predicate. This is the second design of this function and the reason for the change
+ * matters: the first version hard-coded "the answer is an attack by the 8000 body", which silently
  * MISCLASSIFIED south's own leader attack -- a 5000 leader reaches a 5000 leader on 0 life and wins
  * outright. Any policy choosing it would have been reported as failing a puzzle it had just solved.
  *
  * The SOLVABLE/DISCRIMINATING guards cannot catch that class of defect: both were satisfied, because
  * a correct answer and an incorrect answer each existed. Only the engine knows which commands win,
  * so the engine is asked. Vanilla bodies and an empty defending hand mean the battle resolves inside
- * applyCommand with no pending prompts (verified), so a single call is enough.
+ * applyCommand with no pending prompts (verified), so for the 6 original puzzles a single command
+ * plus a single (no-op) drain is enough -- but `cmds` may also be an explicit sequence, applied and
+ * drained one command at a time, for puzzles spanning a whole turn.
  */
-function adjudicate(p: Puzzle, cmd: EngineCommand): { won: boolean; material: boolean } | null {
-  const before = p.build().getState();
-  const lifeBefore = before.players[OPP].life.length;
-  const bodiesBefore = before.players[OPP].characterArea.filter(Boolean).length;
-  const r = applyCommand(before, cmd);
-  if (!r.accepted) return null;
-  const after = r.state;
+function adjudicate(
+  p: Puzzle,
+  cmds: EngineCommand | EngineCommand[],
+): { won: boolean; material: boolean; drained: boolean } | null {
+  const line = Array.isArray(cmds) ? cmds : [cmds];
+  let state = p.build().getState();
+  const lifeBefore = state.players[OPP].life.length;
+  const bodiesBefore = state.players[OPP].characterArea.filter(Boolean).length;
+  let drained = false;
+  for (const cmd of line) {
+    const r = applyCommand(state, cmd);
+    if (!r.accepted) return null;
+    const d = drainPrompts(r.state);
+    state = d.state;
+    if (d.drained) drained = true;
+  }
+  const after = state;
   const damage = lifeBefore - after.players[OPP].life.length;
   const koed = bodiesBefore - after.players[OPP].characterArea.filter(Boolean).length;
-  return { won: after.winner === SEAT, material: damage > 0 || koed > 0 };
+  return { won: after.winner === SEAT, material: damage > 0 || koed > 0, drained };
 }
 
-/** Is `cmd` a defensible answer to `p`? Derived from what the engine says the command achieves. */
-function isAnswer(p: Puzzle, cmd: EngineCommand): boolean {
-  const out = adjudicate(p, cmd);
-  if (out === null) return false;
+/** Does an adjudicated outcome satisfy `p`? Split out so a solvability check and a strategy's own
+ *  command are always held to the identical rule. */
+function passes(p: Puzzle, out: { won: boolean; material: boolean }): boolean {
   // lethal: nothing short of winning is defensible when the game can be won this turn.
   // futile: any command that gains material is fine; the error under test is gaining nothing.
   return p.klass === "lethal" ? out.won : out.won || out.material;
+}
+
+/**
+ * Is `cmds` a defensible answer to `p`, and did reaching that verdict require the engine's own
+ * prompt resolver? The two are reported together because a "yes" that only holds because
+ * resolveBotPromptCommand happened to resolve some prompt a particular way is not purely a policy
+ * result -- see the drainPrompts doc comment above.
+ */
+function evaluate(
+  p: Puzzle,
+  cmds: EngineCommand | EngineCommand[],
+): { ok: boolean; drained: boolean } {
+  const out = adjudicate(p, cmds);
+  if (out === null) return { ok: false, drained: false };
+  return { ok: passes(p, out), drained: out.drained };
 }
 
 // `firstPlayer` is NORTH deliberately. canAttackWith() has
@@ -235,7 +314,7 @@ run("puzzles", () => {
   const names = LADDER.map(([n]) => n);
   console.log(
     `\nPUZZLES  ${PUZZLES.length} positions  catalog=${allCards.length}\n` +
-      `${"".padEnd(30)}${names.map((n) => n.slice(0, 11).padStart(12)).join("")}   guards`,
+      `${"".padEnd(30)}${names.map((n) => n.slice(0, 11).padStart(12)).join("")}   guards        prompts`,
   );
 
   const suiteDefects: string[] = [];
@@ -245,8 +324,12 @@ run("puzzles", () => {
   for (const p of PUZZLES) {
     const state = p.build().getState();
     const options = concrete(state, SEAT);
-    const solvable = options.filter((c) => isAnswer(p, c)).length;
+    const optionResults = options.map((c) => evaluate(p, c));
+    const solvable = optionResults.filter((r) => r.ok).length;
     const wrong = options.length - solvable;
+    // Whether THIS puzzle's evaluation -- guard computation plus every strategy below -- ever had
+    // to call resolveBotPromptCommand. Batch 2 Task 1: report it, don't fold it into pass/fail.
+    let promptsDrained = optionResults.some((r) => r.drained);
 
     // A puzzle that cannot be failed, or cannot be solved, is a defect in the SUITE, not the policy.
     if (solvable === 0)
@@ -258,7 +341,8 @@ run("puzzles", () => {
     for (const [name, strategy] of LADDER) {
       const fresh = p.build().getState();
       const cmd = strategy(fresh, SEAT, getLegalCommands(fresh, SEAT));
-      const ok = cmd !== null && isAnswer(p, cmd);
+      const { ok, drained } = cmd !== null ? evaluate(p, cmd) : { ok: false, drained: false };
+      if (drained) promptsDrained = true;
       cells.push((ok ? "pass" : "FAIL").padStart(12));
       if (name === "valueRanked") {
         const agg = byClass.get(p.klass) ?? { n: 0, ok: 0 };
@@ -279,7 +363,8 @@ run("puzzles", () => {
       }
     }
     console.log(
-      `${p.id.padEnd(30)}${cells.join("")}   ${solvable}/${options.length} correct of legal`,
+      `${p.id.padEnd(30)}${cells.join("")}   ${solvable}/${options.length} correct of legal` +
+        `   prompts=${promptsDrained ? "drained" : "none"}`,
     );
   }
 
