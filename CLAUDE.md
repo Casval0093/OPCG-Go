@@ -96,10 +96,21 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   **Patch 3 in `tools/patch_engine.py` turns them all on: 1601 → 3666 files, 3370 → 6078 tests,
   0 failures, 89s → 87s.** +2065 files and +2708 tests for no measurable wall clock (`isolate: false`,
   and transform/import dominate). Nothing needed fixing; they were only unwired. Measured twice — by
-  hand-editing the include, then through `patch_engine.py` — identically. **Our OP01–OP14 conformance
-  baseline roughly doubled at zero cost, so quote 6078, not 3370.** (The suite is **6079** as of
-  the 2026-08-19 card corrections, which added one boundary test; 6078 remains the right figure
-  for what patch 3 itself bought.)
+  hand-editing the include, then through `patch_engine.py` — identically.
+  **THE "BASELINE ROUGHLY DOUBLED" READING IS WITHDRAWN — corrected 2026-08-19 by the mutation
+  sweep.** The file and test counts are right; the conformance reading was not. **1594 of those
+  2065 files assert nothing**: each is a lone `validateCardAbility(card)` call, and upstream
+  stubbed that function's body out to `void card; assert.ok(true);` with every real check
+  commented out (`src/cards/card-behavior-harness.ts`). So **1594 of the ~6078 tests (26%) are
+  `assert.ok(true)`**. The real gain from patch 3 is **470 files / ~913 engine-driven cases
+  covering ~397 card ids `tests/cards/**` never tested** — genuine, and it does include
+  `OP12-086` Koala, so the search-to-hand explanation above still stands. But behaviour-bearing
+  cases went **~3369 → ~4282, +27%, not double.** Quote 6078 as suite SIZE; never as an encoding
+  conformance baseline. Also: **zero substantive `src/cards` tests exist for OP01–OP08 or
+  EB01–EB03** — every one of those 1129 files is the stub — and **2 cards have no runnable test
+  at all** (`PRB02-006_p2`, `ST04-003`) because the stub is their only coverage. The harness is
+  upstream's own code and `tools/patch_engine.py` does not touch it; per the standing rule this
+  stays a local record.
   **"Nothing needed fixing" is a statement about *wiring*, not about correctness — those 6078
   tests and the encodings they check were authored from the same printed text, so a green suite
   proves self-consistency, not fidelity. `OP06-054` is the proof; see the audit fact below.**
@@ -158,7 +169,22 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   Run `python3 tools/mutation_check.py --set OP16` as part of any encoding batch's verification; a
   surviving mutant is a vacuous assertion and it exits 1. It found three gaps on `OP16-001` Ace
   that human review had passed — nothing asserted the [Rush] grant was *restricted* to its two
-  clauses at all.
+  clauses at all. **It reaches the vendored sets too now (`--vendor-set OP06`), and
+  `tools/mutation_sweep.py` runs the whole corpus in ~35 min instead of ~8h** by batching cards
+  whose test files are disjoint — verified against the serial tool on 40 cards / 134 mutants,
+  agreeing label-for-label. Both trap SIGTERM and restore the encoding, so a sweep is safe to stop.
+  **The rule applies to our own test files as well: writing `tools/test_mutation_tools.py` produced
+  a vacuous test on the first pass** — the no-files guard could be deleted with the test still
+  green, because it pinned the fallback path rather than the guard. Mutate your own guards out and
+  watch for red before believing a new test.
+- **`scripts/bootstrap.sh` used to skip patching and card corrections in silence — FIXED
+  2026-08-19.** It `cd`s into the engine before invoking `tools/patch_engine.py` and
+  `tools/correct_cards.py`, both of which default to a REPO-relative engine path. From that cwd
+  they printed `engine not found ... run ./scripts/bootstrap.sh` and exited, so a "successful"
+  bootstrap left the tree un-patched and un-corrected — no `orderCards` fix, no search-to-hand
+  fix, no first-turn DON!! fix, no 48 corrections, and `src/cards/**` still unwired. Both are now
+  invoked from `$ROOT`. If you ever see 1601 files / 3370 tests instead of 3665 / 6078, this is
+  why; re-run both from the repo root.
 - **Parallel batches get their own engine, not a shared one.** `cp -Rc vendor/tcg-engines DEST` is
   an APFS copy-on-write clone: ~8 s, near-zero disk, verified to run the suite clean. Two agents
   grafting different card sets into one 766 MB engine overwrite each other.
@@ -228,12 +254,35 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   **Do NOT read `docs/encoding-audit.md` as closing the second question — it does not.** That audit
   compares *data to data* and *text to text*; the only things it inspects about an encoding are a
   boolean "is there one" and a regex for `trigger: "trigger"`. It never reads the DSL body against the
-  printed card. **1975 definitions carry an `effects:` encoding (1763 of them pre-OP15) and exactly
-  ONE has had its DSL read against its printed text** — `OP06-054`, and even that surfaced because the
+  printed card. **1983 definitions carry an `effects:` encoding (1771 of them pre-OP15 — re-counted
+  2026-08-19 by `tools/card_deps.py`, which unlike the older count reads `_pN` variant ids; the
+  earlier 1975/1763 is superseded) and exactly ONE has had its DSL read against its printed text** — `OP06-054`, and even that surfaced because the
   *text* diverged. A card whose text and encoding are wrong in the same direction is invisible to
-  every check that exists today. `tools/mutation_check.py` is the right instrument but resolves cards
-  from `<repo>/cards/`, i.e. **OP15/OP16 only**; upstream's encodings and tests live in `vendor/` and
-  are out of its reach. So: **card data is verified, encoding semantics are not.**
+  every check that exists today.
+  **The reach half of this is FIXED — 2026-08-19, `tools/mutation_check.py --vendor-set` and
+  `tools/mutation_sweep.py` now cover the vendored tree, and the sweep has been run. Do not
+  re-derive it; see `docs/mutation-sweep.md`.** Measured over all 1771 pre-OP15 encodings:
+  **4297 mutants, 2683 killed — 62.4%.** So **37.6% of upstream's decision surface is unprotected**:
+  1614 perturbations of a filter, threshold, comparison, zone or once-per-turn flag that no test in
+  the 6078-test suite detects, and **178 cards where NOT ONE mutant died**. By contrast our own
+  **OP15+OP16 kill 523/523 — 100%**, same tool, same day: the difference is that those tests were
+  authored with `mutation_check.py` in the loop.
+  **Worst offenders, each matching a defect class already in this file:** `zone: "field"` →
+  `"character"` survives **15/15** (the C1/C2 Leader-exclusion defect, rulings #979/#993); deleting
+  a `cardCategory` filter survives **82%**; `eq` → `gte` survives **62%** (rulings #962/#963,
+  "power N" means exactly N). The dominant shape is a **boundary-only fixture** — `OP05-001` Sabo
+  filters `power gte 5000` and its only test body is a 5000-power Character, so deleting the filter,
+  flipping the comparison and shifting the value all still admit it. Same shape as `OP06-054`
+  Borsalino, which was found by hand; the sweep shows it is systemic.
+  **What this does NOT say, and the distinction matters: the sweep measures whether a wrong
+  encoding would be CAUGHT, never whether an encoding IS wrong.** A card whose text and encoding
+  are wrong in the same direction still passes every mutant. So: **card data is verified, encoding
+  semantics are now *measured for detectability* but still not verified for fidelity.**
+  **352 of the 1771 (19.9%) generate zero mutants and are outside the claim entirely** — the five
+  operators cannot perturb them. `player` scoping (~3400 sites), `zones: [...]` (1900), condition
+  objects (1305) and every negative `value:` (200 — the regex cannot match a `-`) are unreachable
+  today. Ranked, type-checked proposals in `docs/mutation-operators.md`; **left for its own branch
+  on purpose**, because widening the instrument changes what the 62.4% means.
 
 - **The OP01–OP14 data defects are FIXED — 48 corrections, 2026-08-19. Do not re-find them.**
   `data/card-corrections.json` is the table; `tools/correct_cards.py` applies it to the disposable
@@ -497,6 +546,12 @@ tools/ev_analysis.py            field-weighted EV + Nash + sensitivity   <- run 
 tools/coverage_report.py        card-effect encoding coverage against the vendored engine
 tools/variant_audit.py          alternate-art printings vs the base encoding they inherit
 tools/audit_encodings.py        is the encoding RIGHT (not just present) -> docs/encoding-audit.md
+tools/mutation_check.py         can a card's tests FAIL — serial, one mutant per test run
+tools/mutation_sweep.py         the same verdicts in disjoint batches, ~17x faster
+tools/card_deps.py              which test files can exercise which card (shared attribution)
+runs/                           mutation sweep results, one jsonl per set
+docs/mutation-sweep.md          the sweep's findings
+docs/mutation-operators.md      what the operators cannot see, and what to add next
 tools/verify_limitless.py       fetch/parse Limitless card pages; the adjudicator, automated
 tools/correct_cards.py          apply data/card-corrections.json to the disposable vendor/ tree
 data/card-corrections.json      48 verified card-data corrections, with from/to/why per field
@@ -519,6 +574,9 @@ python3 tools/ev_analysis.py --sensitivity Teach  # how fragile is that answer
 python3 tools/coverage_report.py --exclude-promos # encoding backlog
 python3 tools/audit_encodings.py --json data/encoding-audit.json  # is the encoding RIGHT
 python3 tools/correct_cards.py --check            # are the 48 corrections still applied (exit 1 if not)
+./runs/sweep_all.sh                               # mutation-sweep every pre-OP15 encoding (~35 min)
+./runs/status.sh                                  # aggregate the sweep
+python3 tools/mutation_check.py --vendor-set OP06 # mutation-check one upstream set, serially
 python3 tools/verify_limitless.py OP06-054        # what does the adjudicator actually print
 python3 -m unittest discover -s tools -p 'test_*.py'   # tools/ regression tests (56)
 ```
