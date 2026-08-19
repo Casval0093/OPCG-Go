@@ -251,6 +251,63 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   — the strategy never sees a prompt — but it biases every matchup the simulator produces, and it
   hits exactly the cards a tech-slot A/B is meant to evaluate. Asserted by `the prompt resolver never
   counters and never blocks` in `sim/puzzles.test.ts`.
+  **The resolver also ALWAYS activates a [Trigger]** — the life-damage prompt is `choiceKind:
+  "confirm"` with `activate`/`skip` (`battle.ts:197`) and the confirm branch picks `activate`
+  unconditionally. Per the Official Rule Manual this is a real choice: you may activate the
+  [Trigger] **instead of** adding the card to your hand, or decline and bank the card unrevealed. So
+  the bot never banks a Trigger life card, and "taking damage gains you a card" is only true for
+  life cards WITHOUT a [Trigger]. Third member of the same family as counter/block: resolver-owned,
+  looks like policy, is not.
+- **The SECOND player may illegally attack on their own first turn — found 2026-08-19 by auditing the
+  Official Rule Manual, NOT yet patched.** The manual's Battle Flow footnote is
+  *"Neither player can attack on their first turn."* `canAttackWith` (`battle.ts:712`) gates only on
+  `state.turnNumber === 1 && state.activeSeat === state.config.firstPlayer`, and turn numbering is
+  per player-turn, so the second player's own first turn is `turnNumber === 2` and passes. Measured:
+  turn 1 north (first) `declareAttack offered=false` correctly, **turn 2 south (second)
+  `offered=true`** — wrong — turns 3 and 4 correctly true. It is the only first-turn attack gate in
+  the engine (`state.ts:780` is the DON!!/draw one).
+  **Direction of the bias: every play/draw number so far UNDERSTATES first-player advantage**, because
+  the second player gets one extra Leader attack (anything they play is summoning-sick, so it is the
+  Leader only). That covers the 8.5 pts on a real Block 2+ deck, 26.7 on a vanilla pile and 54.5 on
+  ST01. Magnitude is unmeasured until a re-run — do not guess it.
+  **Fixing it will break the batch-2 puzzle fixtures**, which sit at `turnNumber: 1` with
+  `firstPlayer: "north"` while acting as south. The durable fix for a fixture is to **advance past
+  turn 1**, not to rely on the seat trick; the suite's SOLVABLE guards will fail loudly rather than
+  silently mis-score. Bundle this with the counter-policy patch, since that already forces a ladder
+  re-run.
+- **The Official Rule Manual PDF uses a subset font with a shifted cmap — plain text extraction is
+  garbage until you shift it back.** Every glyph is ASCII −31 (`'D'` is `c`, `'3'` is `R`, `'.'` is
+  `M`), spaces are frequently absent, and `⒎`/`⒏` are the `ff`/`ffi` ligatures. **Digits do not
+  survive extraction at all** (they encode below 0x20 and get dropped), so any rule stated as a
+  number — Life totals, character-area limits, "reduced to 0 cards" — is NOT readable this way and
+  must be checked another way. Decode with `chr(ord(c)+31)` for `0x21..0x5A`. No poppler, pypdf,
+  pdfplumber or PyObjC Quartz on this machine; `./.venv/bin/pip install pypdf` was used for the read
+  and no committed code depends on it.
+- **`OP16-017` LittleOars Jr. makes the Ace deck ~200x slower to simulate — EXPONENTIAL in the number
+  of copies in play. Measured 2026-08-19, do not re-derive.** This is the single reason the project's
+  PRIMARY deck cannot be batch-simulated affordably, and it is one card, not a general engine limit.
+  Per-command cost on this host: `green-vanilla-control` 4.6 ms, `st01` 5.4 ms,
+  **`mihawk-green-proxy` (a real ENCODED Block 2+ deck) 6.3 ms**, `ace-op16` **1,087 ms**.
+  So "encoded decks are slow" is FALSE and CLAUDE.md's ~2-4 games/s figure still holds for
+  everything else — do not retract it.
+  Isolated by bisection, all at `--turn-budget 6`, 1 game: Ace's LEADER with a vanilla main deck is
+  fast (4.9 ms/cmd), an inert leader with Ace's MAIN deck is slow (1,740 ms/cmd), and of the 15
+  distinct main-deck cards only `OP16-017` is slow — **192,908 ms vs 186-408 ms for the other 14**.
+  Scaling in copies is the diagnosis: **1 copy 405 ms, 2 copies 1,982 ms, 3 copies 20,065 ms,
+  4 copies 192,908 ms** -- roughly x10 per extra copy.
+  Mechanism (structural, from the encoding, not yet confirmed in a profiler): the card carries a
+  `permanentEffect` whose `modifyPower -4000` targets ITSELF (`self: true`) gated on a `notHasCard`
+  condition over your own character zone. `getCardPower` sums `getPermanentModifierTotal`, and
+  evaluating that effect's condition/target re-enters power evaluation for the other copies, so N
+  copies on board recurse into each other. Fix direction is memoisation or cycle-breaking inside
+  permanent-effect evaluation, NOT a change to the card.
+  **Consequence for the derive-from-batch plan:** at 106 s/game a 15-card x 2-arm x 200-game sweep is
+  ~7.4 days single-core; at the ~0.6 s/game every other deck manages it is ~1 hour. Fixing this is
+  the highest-leverage item on the engine track and it was on none of the audit's options A-D.
+- **`sim/catalog.json`'s `hasEffects`/`hasEffectText` flags are STALE for OP15/OP16** — it reports
+  `effects=False` for `OP16-118` Portgas.D.Ace, which demonstrably has an `[On Play]` two-prompt
+  search cascade, and for `OP16-017` above. Card count (2537) is current, the flags are not. Re-dump
+  with `./scripts/simulate.sh --dump-catalog` before trusting them for anything.
 - **A leader's printed text is NOT inert, and a printed power is NOT the power a card plays at —
   both bit this project on 2026-08-19.** `OP01-001` Roronoa Zoro, the leader BOTH seats use in all
   six batch-1 puzzles, is `[DON!! x1] [Your Turn] All of your Characters gain +1000 power`, encoded

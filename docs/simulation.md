@@ -506,6 +506,68 @@ for *inertness* instead (`OP16-060`, `OP05-022`, `OP11-040`) and asserts it.
   South 9 life so the K.O. position is no longer threatened; swapping the non-inert `OP01-001` in as a
   batch-2 leader; and asserting the counter and blocker resolvers select 1 instead of 0.
 
+### Audited against the Official Rule Manual — 2026-08-19
+
+Everything the batch-2 puzzles and the counter-policy design rest on was checked against the manual
+rather than against memory of the paper rules. Confirmed correct in the engine:
+
+- **Attack targets** — "you can either target your opponent's Leader or a **rested** Character".
+  Matches `legalAttackTargets`.
+- **Damage gate** — "the attacking card will win if its power is **greater than or equal to** the
+  power of the card being attacked". Matches `attackPower >= defensePower`; ties go to the attacker,
+  and damage is binary with no partial mitigation.
+- **Counter Step** — the defender "may perform the following actions in any order and as many times
+  as they like". Matches the prompt's `maxSelections = hand size`.
+- **Main Phase ordering** — "you may perform actions A to D in any order and as many times as you
+  wish". This is what makes the `sequencing` puzzle class legitimate rather than an artefact.
+- **DON!! giving** — no limit on the number of times; power is gained "during your turn" only, which
+  is exactly `shared.ts:462`'s `state.activeSeat === instance.controller` guard.
+- **First player** — places 1 DON!! on their first turn and does not draw. Both already fixed
+  (patches 4/5) and now confirmed against the manual.
+- **DON!! on a Character leaving the field** returns to the cost area **rested**. Matches
+  `koBattleCharacter`.
+- **Deck-out** — reducing a deck to 0 loses the game, including the replacement-effect case where a
+  Leader wins instead. Implemented as `processEmptyDeckDefeat` (`state.ts:61`). No gap.
+- **`[Blocker]` / `[Rush]` / `[Banish]` / `[Double Attack]`** glossary definitions all match the
+  engine's keyword handling, including `[Banish]` trashing the life card without its `[Trigger]`.
+
+Two things the audit found:
+
+**1. The second player may illegally attack on their own first turn.** The manual's Battle Flow
+footnote is *"Neither player can attack on their first turn."* The engine's only gate is
+`state.turnNumber === 1 && state.activeSeat === state.config.firstPlayer`, and turn numbering is per
+player-turn, so the second player's first turn (`turnNumber === 2`) passes it. Measured:
+
+| turnNumber | seat | that seat's own turn | `declareAttack` offered |
+|---|---|---|---|
+| 1 | north (first player) | #1 | `false` — correct |
+| 2 | south (second player) | **#1** | **`true` — wrong** |
+| 3 | north (first player) | #2 | `true` — correct |
+| 4 | south (second player) | #2 | `true` — correct |
+
+**Every play/draw figure in this file understates first-player advantage as a result**, because the
+second player gets one extra attack — the Leader only, since anything played that turn is
+summoning-sick. That applies to the 8.5 pts on a real Block 2+ deck, the 26.7 on a vanilla pile and
+the 54.5 on ST01. The magnitude is unmeasured; do not guess it. Not yet patched — it belongs with the
+counter-policy patch, which already forces a ladder re-run.
+
+Note the coupling: fixing this **breaks the batch-2 puzzle fixtures**, which sit at `turnNumber: 1`
+acting as south with `firstPlayer: "north"`. The durable fix is to advance a fixture past turn 1
+rather than rely on the seat trick. The SOLVABLE guards will fail loudly, not mis-score.
+
+**2. The resolver always activates a `[Trigger]`, which is a real choice it is not making.** The
+manual: when your Leader takes damage you check the top life card privately and "may reveal the card
+and activate its `[Trigger]` effect **instead of** adding it to your hand", or decline and add it to
+hand unrevealed. The engine builds that as `choiceKind: "confirm"` (`battle.ts:197`) with
+`activate`/`skip`, and `resolveBotPromptCommand`'s confirm branch takes `activate` unconditionally.
+So the bot never banks a Trigger life card. This is the third resolver-owned decision that looks like
+policy and is not, after counter play and blocker use.
+
+It also **qualifies the premise behind "tank early, counter late"**: taking damage only funds a later
+counter when the life card has no `[Trigger]`, because a Trigger card goes to resolution instead of
+hand. The measured probe used a vanilla body, so it showed the full effect; expected hand gain per
+damage taken is below 1 in a real deck.
+
 ### What batch 2 still does not establish
 
 The suite now has a floor across five classes and one confirmed defect in the default policy. It
