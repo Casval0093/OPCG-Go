@@ -47,7 +47,7 @@ Consequences that bind this plan:
    `vp check` on the changed file reports no lint or type errors. Report the actual output.
 10. Do not weaken or delete an existing puzzle to make a new one pass.
 
-## Task 1 — harness: multi-command puzzles and prompt pass-through
+## Task 1 — harness: multi-command puzzles and prompt pass-through — DONE
 
 `adjudicate()` currently applies exactly one command. Sequencing and DON!! puzzles need a puzzle to
 evaluate a *line* of several commands, and any command may open a prompt that would otherwise stall
@@ -63,21 +63,34 @@ the position.
 - Keep all 6 existing puzzles passing with identical scores (valueRanked 6/6, greedy 6/6,
   firstLegal 5/6).
 
-## Task 2 — class `koVsDamage`: attack target selection where only one choice is right
+## Task 2 — class `koVsDamage` — AMENDED 2026-08-19, then DONE
 
-At least 3 puzzles. A board where attacking the leader and K.O.ing a body are both *material* (so
-batch 1's `futile` predicate would accept either) but only one is correct, and the answer is derived
-from the engine.
+**As specified this task was not buildable, and the reason is architectural.** The plan asked for
+attack-target puzzles measuring policy quality. Verified against engine source and then confirmed by
+probe: `engine/legal.ts:181` emits ONE `declareAttack` descriptor per *attacker* with every legal
+target bundled into `targetIds`; `bot-strategies.ts:81` `commandFromDescriptor` takes `targetIds[0]`
+unconditionally; `battle.ts:737` `legalAttackTargets` pushes the defending leader first. All five
+ladder strategies build their command through that helper, `random` included, so **no policy can
+choose an attack target at all** — every attack hits the defending leader. A `koVsDamage` puzzle is
+therefore failed by all five for one structural reason and measures the descriptor API, not the
+policy.
 
-Make the distinction objective, not a matter of taste. Suggested basis: a body that will otherwise
-win the game for the opponent, versus one point of leader damage that changes nothing — e.g. the
-opponent has lethal-on-board next turn unless a specific attacker is removed. Derive "correct" from
-the engine by evaluating the resulting position, not from an opinion about tempo.
+Rebuilt as an **architecture probe** instead, per constraint 4 and the same reasoning that keeps
+Task 5 separate:
 
-At least one puzzle in this class must be one `greedy` fails; if none do, say so explicitly in the
-report rather than forcing it.
+- 3 positions, all `expect: "fail"`, all marked `architectural: true` and **excluded from the policy
+  totals**, reported under their own heading.
+- Kept rather than dropped because they demonstrate the *consequence* — a game lost that the position
+  could have won — which an API-level assertion cannot, and because `expect: "fail"` flips the day
+  target selection becomes reachable, so the suite reports it.
+- The mechanism is pinned separately and precisely by `no ladder strategy can choose an attack
+  target`, which asserts the descriptor really does carry ≥2 targets, that the leader is first, that
+  `commandFromDescriptor` collapses to it, and that 200 varied samples per strategy never name the
+  character.
+- Each carries a THREATENED guard: passing the turn must actually lose, verified by playing the idle
+  line out. Otherwise a position South survives regardless would score every policy "pass".
 
-## Task 3 — class `donAllocation`: DON!! attachment
+## Task 3 — class `donAllocation`: DON!! attachment — DONE
 
 At least 3 puzzles. `attachDon` appeared in the arena's branching table, so it is a real policy
 decision. Build positions where attaching DON!! to a specific body is required to make an attack
@@ -85,7 +98,7 @@ connect (attach to reach a power threshold) and where spreading or mis-assigning
 
 Verify the DON!! attachment rules against engine source first (how many, to whom, when) and cite it.
 
-## Task 4 — class `sequencing`: order of commands within one turn
+## Task 4 — class `sequencing`: order of commands within one turn — DONE
 
 At least 2 puzzles. Positions where the same set of commands wins if played in one order and does not
 in another — e.g. attach DON!! before attacking rather than after, or attack with the body that will
@@ -93,7 +106,7 @@ be needed as a target later. These use Task 1's sequence support.
 
 The answer must be the engine's verdict on the whole line, not on the first command.
 
-## Task 5 — separate suite: `resolveBotPromptCommand`, not the policy
+## Task 5 — separate suite: `resolveBotPromptCommand`, not the policy — DONE
 
 At least 2 positions covering defender-side counter play and, if reachable, blocker use.
 
@@ -102,10 +115,38 @@ architectural reason stated (the strategy never sees a prompt). Do not add these
 `valueRanked by decision class` totals. The point is to learn whether the prompt resolver throws
 away counters, which would bias every simulated matchup independently of the policy.
 
-## Task 6 — record the results
+## Task 6 — record the results — DONE
 
 Update `docs/simulation.md` (step 2 section) and the step-2 line in `CLAUDE.md` with the batch-2
 table and the honest headline: whether batch 2 actually separates `valueRanked` from `greedy`. If it
 does not, say so — that is the finding, and it points at the next measurement instead.
 
 Do not overstate. No claim may exceed what the run shows, and any inference must be labelled as one.
+
+## Outcome — 2026-08-19
+
+**Batch 2 does separate `valueRanked` from `greedy`, in `greedy`'s favour: 10/11 to 8/11.** Every
+point of the gap is command ORDER. `valueRanked` adds +100 to a `declareAttack` when the attacker's
+printed power is ≥5000, lifting the swing (1150) above the DON!! attach (1050), so it attacks before
+it buffs and then wastes the DON!! on a rested body; `greedy`'s two scores tie at 800 and the stable
+sort puts `attachDon` first because `legal.ts` emits those descriptors earlier. In
+`seq-attach-then-swing-for-lethal` that costs `valueRanked` the game.
+
+This does not overturn the step-1 ladder, where `valueRanked` beat `greedy` 76.0% over whole games.
+Both stand. What it establishes is that **the ladder gap does not come from DON!! sequencing**, and
+that the policy every simulation uses is the worse of the two in that dimension.
+
+The plan asked for at least one puzzle `greedy` fails. `seq-spread-not-concentrate` is one — but both
+policies fail it, for the same hard-coded "concentrate DON!! on the best attacker" habit, so it is a
+shared blind spot rather than a `greedy`-specific one. Stated here rather than forced, per Task 2's
+own instruction.
+
+Three engine facts fell out, all found by measurement and all recorded in `docs/simulation.md` and
+`CLAUDE.md`: no policy can choose an attack target; the prompt resolver never counters and never
+blocks (`Math.min(maxSelections, minSelections)` against `minSelections: 0`); and `OP01-001`, the
+leader all six batch-1 puzzles use, silently buffs every character when it holds a DON!!.
+
+Verification: `./scripts/simulate.sh --puzzles` → 5 tests pass, 14 positions. `vp check` on the
+changed file → no warnings, lint errors, or type errors. Five mutants confirmed to turn the suite
+red. Batch 1's published numbers are unchanged (valueRanked 6/6, greedy 6/6, firstLegal 5/6,
+random 0/6).
