@@ -25,7 +25,7 @@
 
 import { test } from "vite-plus/test";
 import { allCards } from "@tcg/op-cards";
-import { getLegalCommands } from "../../src/core.ts";
+import { applyCommand, getLegalCommands } from "../../src/core.ts";
 import {
   valueRankedStrategy,
   greedyStrategy,
@@ -61,11 +61,45 @@ interface Puzzle {
   /** Why exactly one family of answers is defensible. Prose, for the failure report. */
   why: string;
   build: () => OnePieceTestEngine;
-  /** True when `cmd` is a defensible answer in `state`. */
-  answer: (cmd: EngineCommand, state: MatchState, e: OnePieceTestEngine) => boolean;
+  /** Baseline for `valueRanked`, asserted. Set "fail" only for a puzzle it is known not to solve. */
+  expect: "pass" | "fail";
 }
 
 const SEAT: MatchSeat = "south";
+const OPP: MatchSeat = "north";
+
+/**
+ * What a command actually accomplishes, ADJUDICATED BY THE ENGINE rather than by a hand-written
+ * predicate. This is the second design of this function and the reason for the change matters:
+ * the first version hard-coded "the answer is an attack by the 8000 body", which silently
+ * MISCLASSIFIED south's own leader attack -- a 5000 leader reaches a 5000 leader on 0 life and wins
+ * outright. Any policy choosing it would have been reported as failing a puzzle it had just solved.
+ *
+ * The SOLVABLE/DISCRIMINATING guards cannot catch that class of defect: both were satisfied, because
+ * a correct answer and an incorrect answer each existed. Only the engine knows which commands win,
+ * so the engine is asked. Vanilla bodies and an empty defending hand mean the battle resolves inside
+ * applyCommand with no pending prompts (verified), so a single call is enough.
+ */
+function adjudicate(p: Puzzle, cmd: EngineCommand): { won: boolean; material: boolean } | null {
+  const before = p.build().getState();
+  const lifeBefore = before.players[OPP].life.length;
+  const bodiesBefore = before.players[OPP].characterArea.filter(Boolean).length;
+  const r = applyCommand(before, cmd);
+  if (!r.accepted) return null;
+  const after = r.state;
+  const damage = lifeBefore - after.players[OPP].life.length;
+  const koed = bodiesBefore - after.players[OPP].characterArea.filter(Boolean).length;
+  return { won: after.winner === SEAT, material: damage > 0 || koed > 0 };
+}
+
+/** Is `cmd` a defensible answer to `p`? Derived from what the engine says the command achieves. */
+function isAnswer(p: Puzzle, cmd: EngineCommand): boolean {
+  const out = adjudicate(p, cmd);
+  if (out === null) return false;
+  // lethal: nothing short of winning is defensible when the game can be won this turn.
+  // futile: any command that gains material is fine; the error under test is gaining nothing.
+  return p.klass === "lethal" ? out.won : out.won || out.material;
+}
 
 // `firstPlayer` is NORTH deliberately. canAttackWith() has
 //   if (state.turnNumber === 1 && state.activeSeat === state.config.firstPlayer) return false;
@@ -73,18 +107,25 @@ const SEAT: MatchSeat = "south";
 // makes every attack illegal on turn 1, which silently turns an attack puzzle into a position whose
 // only legal command is endTurn. The suite's SOLVABLE guard caught exactly that on the first run;
 // without it this would have been reported as the policy failing five lethal puzzles.
-function board(south: object, north: object): OnePieceTestEngine {
-  return OnePieceTestEngine.create(
+function board(
+  south: object,
+  north: object,
+  opts: { restLeader?: boolean } = {},
+): OnePieceTestEngine {
+  const engine = OnePieceTestEngine.create(
     { leaderCardId: LEADER, deck: 20, ...south },
     { leaderCardId: LEADER, deck: 20, ...north },
     { activeSeat: SEAT, firstPlayer: "north" },
   );
-}
-
-/** A declareAttack whose target is the opponent's leader. */
-function hitsLeader(cmd: EngineCommand, state: MatchState): boolean {
-  if (cmd.type !== "declareAttack") return false;
-  return state.cards[cmd.targetId]?.zone === "leader";
+  if (opts.restLeader) {
+    // The acting leader is a legal attacker in its own right, so resting it is how a puzzle isolates
+    // a choice among CHARACTERS. Found the hard way: a puzzle meant to force the 8000 body was also
+    // solvable by swinging the 5000 leader into a 5000 leader on 0 life.
+    const s = engine.getState();
+    const inst = s.cards[s.players[SEAT].leaderInstanceId];
+    if (inst) inst.rested = true;
+  }
+  return engine;
 }
 
 /** The concrete commands a seat could actually submit, expanded from the legal descriptors. */
@@ -111,25 +152,25 @@ const PUZZLES: Puzzle[] = [
   {
     id: "lethal-bare",
     klass: "lethal",
-    why: "North is on 0 life with an empty board; a 6000 body reaches a 5000 leader, so attacking it wins outright. Ending the turn throws the game away.",
+    why: "North is on 0 life with an empty board. Any attack that reaches the 5000 leader wins outright; ending the turn throws the game away.",
     build: () => board({ character: [{ cardId: P6000, playedOnTurn: 0 }] }, { life: 0 }),
-    answer: hitsLeader,
+    expect: "pass",
   },
   {
     id: "lethal-decoy-body",
     klass: "lethal",
-    why: "Same lethal, but a rested 4000 sits there as bait. K.O.ing it is a real play that accomplishes nothing; only the leader attack wins.",
+    why: "Same lethal, but a rested 4000 sits there as bait. K.O.ing it is a real play that accomplishes nothing; only a leader attack wins.",
     build: () =>
       board(
         { character: [{ cardId: P6000, playedOnTurn: 0 }] },
         { life: 0, character: [{ cardId: P4000, rested: true, playedOnTurn: 0 }] },
       ),
-    answer: hitsLeader,
+    expect: "pass",
   },
   {
-    id: "lethal-pick-the-attacker",
+    id: "lethal-reaching-attacker",
     klass: "lethal",
-    why: "Two attackers, one lethal: 8000 reaches the 5000 leader, 4000 does not (attackPower >= defensePower fails, so it is a whiff). Winning requires choosing the right body.",
+    why: "Two candidate bodies plus the leader. The 4000 does not reach a 5000 leader (attackPower >= defensePower fails, so it whiffs); the 8000 does, and so does the 5000 leader itself. Winning requires picking a body that reaches -- either of the two.",
     build: () =>
       board(
         {
@@ -140,27 +181,40 @@ const PUZZLES: Puzzle[] = [
         },
         { life: 0 },
       ),
-    answer: (cmd, state, e) =>
-      hitsLeader(cmd, state) &&
-      cmd.type === "declareAttack" &&
-      state.cards[cmd.attackerId]?.cardId === P8000 &&
-      e !== undefined,
+    expect: "pass",
+  },
+  {
+    id: "lethal-leader-rested",
+    klass: "lethal",
+    why: "The variant that isolates the character choice: the leader is rested and cannot attack, so the only winning command is the 8000 body. The 4000 whiffs against a 5000 leader.",
+    build: () =>
+      board(
+        {
+          character: [
+            { cardId: P4000, playedOnTurn: 0 },
+            { cardId: P8000, playedOnTurn: 0 },
+          ],
+        },
+        { life: 0 },
+        { restLeader: true },
+      ),
+    expect: "pass",
   },
   {
     id: "futile-unbeatable-body",
     klass: "futile",
-    why: "A 6000 cannot dent a rested 10000, and attacking it only rests the attacker. The 5000 leader is reachable for real damage, so the leader attack strictly dominates both the futile swing and passing.",
+    why: "A 6000 cannot dent a rested 10000 and gains nothing by trying. The 5000 leader is reachable for real damage, so only the futile swing and passing are wrong.",
     build: () =>
       board(
         { character: [{ cardId: P6000, playedOnTurn: 0 }] },
         { life: 2, character: [{ cardId: P10000, rested: true, playedOnTurn: 0 }] },
       ),
-    answer: hitsLeader,
+    expect: "pass",
   },
   {
     id: "futile-pick-any-productive",
     klass: "futile",
-    why: "An 8000 can K.O. the rested 4000 or damage the 5000 leader; both are defensible and no preference is asserted. It cannot beat the rested 10000, so only that swing is wrong.",
+    why: "An 8000 can K.O. the rested 4000 or damage the 5000 leader; both gain material and no preference is asserted between them. It cannot beat the rested 10000, so only that swing gains nothing.",
     build: () =>
       board(
         { character: [{ cardId: P8000, playedOnTurn: 0 }] },
@@ -172,10 +226,7 @@ const PUZZLES: Puzzle[] = [
           ],
         },
       ),
-    answer: (cmd, state) => {
-      if (cmd.type !== "declareAttack") return false;
-      return state.cards[cmd.targetId]?.cardId !== P10000;
-    },
+    expect: "pass",
   },
 ];
 
@@ -187,32 +238,44 @@ run("puzzles", () => {
       `${"".padEnd(30)}${names.map((n) => n.slice(0, 11).padStart(12)).join("")}   guards`,
   );
 
-  const failures: string[] = [];
+  const suiteDefects: string[] = [];
+  const regressions: string[] = [];
   const byClass = new Map<string, { n: number; ok: number }>();
 
   for (const p of PUZZLES) {
-    const engine = p.build();
-    const state = engine.getState();
+    const state = p.build().getState();
     const options = concrete(state, SEAT);
-    const solvable = options.filter((c) => p.answer(c, state, engine)).length;
+    const solvable = options.filter((c) => isAnswer(p, c)).length;
     const wrong = options.length - solvable;
 
-    // A puzzle that cannot be failed, or cannot be solved, is a defect in the SUITE.
-    if (solvable === 0) failures.push(`${p.id}: BROKEN — no legal command satisfies the answer`);
-    if (wrong === 0) failures.push(`${p.id}: VACUOUS — every legal command satisfies the answer`);
+    // A puzzle that cannot be failed, or cannot be solved, is a defect in the SUITE, not the policy.
+    if (solvable === 0)
+      suiteDefects.push(`${p.id}: BROKEN — no legal command satisfies the answer`);
+    if (wrong === 0)
+      suiteDefects.push(`${p.id}: VACUOUS — every legal command satisfies the answer`);
 
     const cells: string[] = [];
     for (const [name, strategy] of LADDER) {
-      const fresh = p.build();
-      const s = fresh.getState();
-      const cmd = strategy(s, SEAT, getLegalCommands(s, SEAT));
-      const ok = cmd !== null && p.answer(cmd, s, fresh);
+      const fresh = p.build().getState();
+      const cmd = strategy(fresh, SEAT, getLegalCommands(fresh, SEAT));
+      const ok = cmd !== null && isAnswer(p, cmd);
       cells.push((ok ? "pass" : "FAIL").padStart(12));
       if (name === "valueRanked") {
         const agg = byClass.get(p.klass) ?? { n: 0, ok: 0 };
         agg.n += 1;
         if (ok) agg.ok += 1;
         byClass.set(p.klass, agg);
+        // The measured policy's result is the PRIMARY output, so it is asserted rather than merely
+        // printed. Without this the suite exited 0 even if valueRanked regressed from 6/6 to 0/6.
+        // Lower rungs stay diagnostics only -- their scores calibrate difficulty, nothing more.
+        if (ok && p.expect === "fail") {
+          regressions.push(`${p.id}: expected valueRanked to FAIL but it passed — update expect`);
+        }
+        if (!ok && p.expect === "pass") {
+          regressions.push(
+            `${p.id}: valueRanked FAILED a puzzle it is expected to solve — ${p.why}`,
+          );
+        }
       }
     }
     console.log(
@@ -225,9 +288,14 @@ run("puzzles", () => {
     console.log(`  ${klass.padEnd(10)} ${agg.ok}/${agg.n}`);
   }
 
-  if (failures.length) {
-    console.log("\nSUITE DEFECTS (these are bugs in the puzzles, not in the policy):");
-    for (const f of failures) console.log(`  ${f}`);
-    throw new Error(`${failures.length} puzzle(s) are broken or vacuous`);
+  if (suiteDefects.length) {
+    console.log("\nSUITE DEFECTS (bugs in the puzzles, not in the policy):");
+    for (const f of suiteDefects) console.log(`  ${f}`);
   }
+  if (regressions.length) {
+    console.log("\nPOLICY REGRESSIONS (bugs in the policy, or a stale baseline):");
+    for (const f of regressions) console.log(`  ${f}`);
+  }
+  const all = [...suiteDefects, ...regressions];
+  if (all.length) throw new Error(all.join(" | "));
 });

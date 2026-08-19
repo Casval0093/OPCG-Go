@@ -465,9 +465,15 @@ The `tools/` tests are stdlib `unittest`, matching the tools' own stdlib-only co
       Full table: `docs/simulation.md`.
    2. **Puzzle suite** — STARTED 2026-08-19, `./scripts/simulate.sh --puzzles`. 5 positions in 2
       classes (lethal, futile), both verified against `battle.ts` before authoring. `valueRanked`
-      **5/5** — the first *absolute* statement about the policy: it does not blunder basic lethal or
-      waste attacks it cannot win. **But `greedy` also scores 5/5 and `firstLegal` 4/5, so the suite
-      is too easy to explain the 76% ladder gap — do NOT read 5/5 as "the policy is good."** The next
+      **6/6** — the first *absolute* statement about the policy: it does not blunder basic lethal or
+      waste attacks it cannot win. **But `greedy` also scores 6/6 and `firstLegal` 5/6, so the suite
+      is too easy to explain the 76% ladder gap — do NOT read 6/6 as "the policy is good."**
+      **Two structural lessons, both worth keeping:** (i) the answer is **adjudicated by the engine**
+      (apply the command, inspect `winner` / life delta / K.O.s), because a hand-written predicate
+      misclassified south's own leader as a losing attack — a 5000 leader reaches a 5000 leader on 0
+      life. The SOLVABLE/DISCRIMINATING guards **cannot** catch a mislabelled answer, only a broken or
+      vacuous one. (ii) `valueRanked`'s result is **asserted** per puzzle via `expect`, not merely
+      printed; before that the suite exited 0 even if the policy regressed to 0/6. The next
       batch must target `greedy`'s myopia: sequencing, DON!! allocation, K.O.-vs-damage, holding a
       counter. **The guards earned their keep immediately:** the first run reported all 5 as BROKEN,
       which was a defect in the *positions*, not the policy — see the turn-1 attack rule below.

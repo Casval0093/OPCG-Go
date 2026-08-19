@@ -325,11 +325,12 @@ suite so puzzle *difficulty* is visible: if `random` solves it, it is too easy t
 |---|---|---|---|---|---|---|
 | lethal-bare | pass | pass | pass | FAIL | FAIL | 2/3 |
 | lethal-decoy-body | pass | pass | pass | FAIL | FAIL | 2/5 |
-| lethal-pick-the-attacker | pass | pass | **FAIL** | FAIL | FAIL | 1/4 |
+| lethal-reaching-attacker | pass | pass | pass | FAIL | FAIL | 2/4 |
+| lethal-leader-rested | pass | pass | **FAIL** | FAIL | FAIL | 1/3 |
 | futile-unbeatable-body | pass | pass | pass | FAIL | FAIL | 2/5 |
 | futile-pick-any-productive | pass | pass | pass | FAIL | FAIL | 4/7 |
 
-`valueRanked` **5/5** — lethal 3/3, futile 2/2.
+`valueRanked` **6/6** — lethal 4/4, futile 2/2.
 
 ### The suite is working and too easy, and that is the finding
 
@@ -337,16 +338,42 @@ suite so puzzle *difficulty* is visible: if `random` solves it, it is too easy t
 does not blunder basic lethal recognition or waste attacks on bodies it cannot beat. Step 1 could not
 say that.
 
-**But `greedy` also scores 5/5, so these puzzles cannot explain the 76% ladder gap.** Whatever
+**But `greedy` also scores 6/6, so these puzzles cannot explain the 76% ladder gap.** Whatever
 `valueRanked` does better is not in this sample. And `firstLegal` — "submit the first legal command" —
-solves 4 of 5, which puts the suite near the bottom of the difficulty range. Only
-`lethal-pick-the-attacker` separates it.
+solves 5 of 6, which puts the suite near the bottom of the difficulty range. Only
+`lethal-leader-rested` separates it.
 
 So step 2 has established a floor and **not** met its real goal, which was to explain where the ladder
 gap comes from. The next batch has to target where `greedy`'s myopia specifically fails — sequencing
 across a turn, DON!! allocation, choosing between a K.O. and leader damage on a board where only one
 is right, holding a counter rather than spending it. Those need more setup per position than an
-attack-only puzzle. **Do not read 5/5 as "the policy is good."**
+attack-only puzzle. **Do not read 6/6 as "the policy is good."**
+
+### The answer is adjudicated by the engine, not by a hand-written predicate
+
+The first version of this suite hard-coded one puzzle's answer as "an attack by the 8000 body". That
+**misclassified a winning command**: south's own 5000 leader is a legal attacker and reaches a 5000
+leader on 0 life, so it wins outright. The puzzle reported 1/4 correct instead of 2/4, and `firstLegal`
+was marked FAIL on a puzzle it had actually solved.
+
+**The SOLVABLE/DISCRIMINATING guards cannot catch that**, and it is worth being precise about why: both
+were satisfied: a correct answer existed and an incorrect answer existed. The guards detect *broken*
+and *vacuous* positions, never a *mislabelled* one. Only the engine knows which commands win, so the
+engine is now asked — a candidate command is applied and the resulting state inspected (`winner`,
+opponent life delta, opponent bodies K.O.'d). Verified that battles resolve fully inside
+`applyCommand` here, with no pending prompts, because the bodies are vanilla and the defender's hand
+is empty.
+
+`lethal-leader-rested` is the variant that preserves the original intent: with the leader rested, the
+8000 body is the only winning command, and that is the one puzzle `firstLegal` still fails.
+
+### The valueRanked baseline is asserted, not just printed
+
+Each puzzle declares `expect: "pass" | "fail"` for `valueRanked` and the suite throws on a mismatch in
+either direction. Before this, a regression from 6/6 to 0/6 still exited 0 — the primary result could
+be lost silently. Lower rungs stay diagnostics only; their scores calibrate difficulty and nothing
+more. Both directions were mutation-checked: flipping an `expect` to `"fail"`, and inverting the
+adjudicator, each turn the suite red.
 
 ### Two classes, both verified against engine source first
 
