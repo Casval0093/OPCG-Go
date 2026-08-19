@@ -173,9 +173,9 @@ def _mutants(src: str) -> list[Mutant]:
             )
         )
 
-    # 5. Drop the once-per-turn guard.
-    m = re.search(r"oncePerTurn: true", scan)
-    if m:
+    # 5. Drop the once-per-turn guard. `finditer`, not `search`: a card can carry more than one
+    #    such guard (OP12-081 has two) and mutating only the first silently under-reports the gap.
+    for m in re.finditer(r"oncePerTurn: true", scan):
         out.append(
             Mutant(
                 f"drop oncePerTurn @{_at(src, m.start())}",

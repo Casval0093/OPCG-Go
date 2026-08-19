@@ -220,6 +220,15 @@ class TestMutants(unittest.TestCase):
         self.assertTrue(any(x.startswith("comparison lte->gte") for x in labels), labels)
         self.assertTrue(any(x.startswith("value 5000->4000") for x in labels), labels)
 
+    def test_every_once_per_turn_guard_is_mutated_not_just_the_first(self):
+        """A card can carry two OPT guards (OP12-081 does). `re.search` mutated only the first, so
+        the second was reported as covered when it had never been perturbed."""
+        src = ("effects: {\n  a: { oncePerTurn: true },\n"
+               "  b: { oncePerTurn: true },\n  c: { oncePerTurn: true },\n}\n")
+        labels = [m.label for m in mc._mutants(src) if m.label.startswith("drop oncePerTurn")]
+        self.assertEqual(len(labels), 3, labels)
+        self.assertEqual(len(set(labels)), 3, "each site must be labelled with its own line")
+
     def test_comments_are_never_mutated(self):
         src = 'const a = 1;\n// zone: "field" is discussed here\nconst b = 2;\n'
         self.assertEqual(mc._mutants(src), [])

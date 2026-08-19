@@ -1,3 +1,4 @@
+{"card": "PRB02-006_p2", "status": "no-effective-test", "killed": 0, "mutants": 1, "survivors": ["only inert test(s)"]}
 {"card": "OP14-001", "status": "survivors", "killed": 0, "mutants": 4, "survivors": ["delete filter:anyOf @L58", "delete filter:trait @L61", "delete filter:trait @L62", "drop oncePerTurn @L70"]}
 {"card": "OP14-020", "status": "survivors", "killed": 1, "mutants": 6, "survivors": ["delete filter:attribute @L52", "delete filter:cost @L80", "delete filter:cardCategory @L94", "comparison gte->lte @L80", "drop oncePerTurn @L101"]}
 {"card": "OP14-040", "status": "ok", "killed": 3, "mutants": 3, "survivors": []}
@@ -118,4 +119,3 @@
 {"card": "OP14-093", "status": "survivors", "killed": 2, "mutants": 4, "survivors": ["delete filter:cardCategory @L46", "delete filter:cost @L55"]}
 {"card": "OP14-102", "status": "ok", "killed": 4, "mutants": 4, "survivors": []}
 {"card": "EB04-020", "status": "survivors", "killed": 1, "mutants": 5, "survivors": ["delete filter:trait @L43", "delete filter:trait @L63", "delete filter:cost @L86", "value 3000->2000 @L50"]}
-{"card": "PRB02-006_p2", "status": "no-effective-test", "killed": 0, "mutants": 1, "survivors": ["only inert test(s)"]}

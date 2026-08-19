@@ -2,8 +2,8 @@
 {"card": "OP11-021", "status": "survivors", "killed": 1, "mutants": 4, "survivors": ["delete filter:anyOf @L57", "delete filter:trait @L60", "delete filter:trait @L61"]}
 {"card": "OP11-022", "status": "survivors", "killed": 2, "mutants": 7, "survivors": ["delete filter:cardCategory @L86", "delete filter:anyOf @L90", "delete filter:trait @L93", "delete filter:name @L94", "drop oncePerTurn @L106"]}
 {"card": "OP11-040", "status": "survivors", "killed": 0, "mutants": 2, "survivors": ["delete filter:trait @L55", "comparison gte->lte @L61"]}
-{"card": "OP11-041", "status": "survivors", "killed": 2, "mutants": 3, "survivors": ["drop oncePerTurn @L67"]}
-{"card": "OP11-062", "status": "survivors", "killed": 1, "mutants": 3, "survivors": ["value 1000->0 @L99", "drop oncePerTurn @L73"]}
+{"card": "OP11-041", "status": "survivors", "killed": 2, "mutants": 4, "survivors": ["drop oncePerTurn @L67", "drop oncePerTurn @L99"]}
+{"card": "OP11-062", "status": "survivors", "killed": 1, "mutants": 4, "survivors": ["value 1000->0 @L99", "drop oncePerTurn @L73", "drop oncePerTurn @L103"]}
 {"card": "OP11-002", "status": "survivors", "killed": 0, "mutants": 2, "survivors": ["delete filter:power @L58", "comparison lte->gte @L60"]}
 {"card": "OP11-004", "status": "survivors", "killed": 2, "mutants": 3, "survivors": ["delete filter:trait @L66"]}
 {"card": "ST16-004", "status": "ok", "killed": 1, "mutants": 1, "survivors": []}
@@ -42,7 +42,7 @@
 {"card": "OP11-092", "status": "survivors", "killed": 1, "mutants": 5, "survivors": ["delete filter:excludeName @L71", "delete filter:cost @L75", "delete filter:trait @L80", "delete filter:cardCategory @L85"]}
 {"card": "OP11-095", "status": "survivors", "killed": 4, "mutants": 5, "survivors": ["delete filter:trait @L54"]}
 {"card": "OP11-101", "status": "survivors", "killed": 2, "mutants": 3, "survivors": ["delete filter:trait @L57"]}
-{"card": "OP11-102", "status": "survivors", "killed": 1, "mutants": 3, "survivors": ["comparison gte->lte @L85", "drop oncePerTurn @L72"]}
+{"card": "OP11-102", "status": "survivors", "killed": 1, "mutants": 4, "survivors": ["comparison gte->lte @L85", "drop oncePerTurn @L72", "drop oncePerTurn @L115"]}
 {"card": "OP11-104", "status": "ok", "killed": 1, "mutants": 1, "survivors": []}
 {"card": "OP11-106", "status": "ok", "killed": 2, "mutants": 2, "survivors": []}
 {"card": "OP11-118", "status": "survivors", "killed": 1, "mutants": 2, "survivors": ["delete filter:cost @L79"]}

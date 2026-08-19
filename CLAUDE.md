@@ -262,15 +262,28 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   **The reach half of this is FIXED — 2026-08-19, `tools/mutation_check.py --vendor-set` and
   `tools/mutation_sweep.py` now cover the vendored tree, and the sweep has been run. Do not
   re-derive it; see `docs/mutation-sweep.md`.** Measured over all 1771 pre-OP15 encodings:
-  **4297 mutants, 2683 killed — 62.4%.** So **37.6% of upstream's decision surface is unprotected**:
-  1614 perturbations of a filter, threshold, comparison, zone or once-per-turn flag that no test in
-  the 6078-test suite detects, and **178 cards where NOT ONE mutant died**. By contrast our own
+  **4307 mutants, 2685 killed — 62.3%.** So **37.7% of upstream's decision surface is unprotected**:
+  1622 perturbations of a filter, threshold, comparison, zone or once-per-turn flag that no test in
+  the 6078-test suite detects, and **177 cards where NOT ONE mutant died**. By contrast our own
   **OP15+OP16 kill 523/523 — 100%**, same tool, same day: the difference is that those tests were
   authored with `mutation_check.py` in the loop.
   **Worst offenders, each matching a defect class already in this file:** `zone: "field"` →
   `"character"` survives **15/15** (the C1/C2 Leader-exclusion defect, rulings #979/#993); deleting
   a `cardCategory` filter survives **82%**; `eq` → `gte` survives **62%** (rulings #962/#963,
-  "power N" means exactly N). The dominant shape is a **boundary-only fixture** — `OP05-001` Sabo
+  "power N" means exactly N); `oncePerTurn` survives **48%**.
+  **All 177 were triaged card by card against printed text and the SC rulings — `docs/mutation-triage.md`.
+  348 of 382 survivors (91%) are fixable TEST defects, 20 are equivalent mutants, 13 are clauses no
+  test executes, and exactly ONE is a suspected wrong encoding — `OP13-084`, which was already known.
+  Do not re-triage these 177.** Six fixture habits explain nearly all of it: boundary-only fixtures;
+  monotone containment assertions (`toContain`/`arrayContaining`/`legal === true`-only) that cannot
+  see a widened candidate pool; single-candidate zones; one negative control failing several filters
+  at once; `oncePerTurn` assertions masked by an already-unpayable cost (these read as the
+  best-written tests); and power grants asserted only as "did the attack land" when the margin
+  exceeds the 1000 mutation step.
+  **Caveat on the triage, not the sweep: only the 177 FULLY vacuous cards were read. 595 more cards
+  have some surviving mutants and were never triaged** — including **`OP14-020` Mihawk, which killed
+  1 of 6**, so one of the two chosen decks' leaders is on no worklist. Its 5 survivors were read out
+  of band and are all ordinary fixture defects. The dominant shape is a **boundary-only fixture** — `OP05-001` Sabo
   filters `power gte 5000` and its only test body is a 5000-power Character, so deleting the filter,
   flipping the comparison and shifting the value all still admit it. Same shape as `OP06-054`
   Borsalino, which was found by hand; the sweep shows it is systemic.

@@ -8,7 +8,7 @@ holds OP15/OP16 only, so every encoding the vendored engine owns was outside its
 
 | corpus | cards | mutants | killed | kill rate | cards where **no** mutant died |
 |---|---:|---:|---:|---:|---:|
-| pre-OP15 (upstream's encodings) | 1,419 | 4,297 | 2,683 | **62.4 %** | **178** |
+| pre-OP15 (upstream's encodings) | 1,419 | 4,307 | 2,685 | **62.3 %** | **177** |
 | OP15 + OP16 (this repo's encodings) | 180 | 523 | 523 | **100 %** | **0** |
 
 The 1,419 pre-OP15 rows are the cards that produce at least one mutant; the other 352 of the
@@ -23,9 +23,9 @@ upstream's were not. The sweep measures whether a test can detect a wrong encodi
 about whether the encoding is right. A card whose text and encoding are wrong in the same direction
 still passes every mutant, in both corpora.
 
-**37.6 % of upstream's decision surface is unprotected**: 1,614 perturbations of a filter,
+**37.7 % of upstream's decision surface is unprotected**: 1,622 perturbations of a filter,
 threshold, comparison, zone or once-per-turn flag changed the encoding and no test in the entire
-6,078-test suite noticed. 178 cards are unprotected in full — not one of their mutants died.
+6,078-test suite noticed. 177 cards are unprotected in full — not one of their mutants died.
 
 ## Which operators survive, and why that ordering matters
 
@@ -33,26 +33,27 @@ threshold, comparison, zone or once-per-turn flag changed the encoding and no te
 |---|---:|---:|---:|
 | `zone: "field"` → `"character"` | 15 | 15 | **100 %** |
 | delete `filter: "cardCategory"` | 318 | 261 | **82 %** |
-| `comparison: "eq"` → `"gte"` | 112 | 70 | **62 %** |
 | delete `filter: "color"` | 61 | 39 | 64 % |
-| delete `filter: "state"` | 100 | 56 | 56 % |
+| `comparison: "eq"` → `"gte"` | 112 | 70 | **62 %** |
 | delete `filter: "baseCost"` | 39 | 22 | 56 % |
-| drop `oncePerTurn` | 213 | 97 | 46 % |
-| delete `filter: "name"` | 155 | 72 | 46 % |
+| delete `filter: "state"` | 100 | 56 | 56 % |
+| drop `oncePerTurn` | 223 | 106 | 48 % |
+| delete `filter: "name"` | 155 | 71 | 46 % |
 | delete `filter: "trait"` | 536 | 221 | 41 % |
 | delete `filter: "cost"` | 690 | 273 | 40 % |
-| `comparison: "gte"` → `"lte"` | 248 | 94 | 38 % |
 | delete `filter: "anyOf"` | 92 | 35 | 38 % |
+| `comparison: "gte"` → `"lte"` | 248 | 94 | 38 % |
+| delete `filter: "basePower"` | 38 | 12 | 32 % |
 | `value: N` → `N−1000` | 507 | 139 | 27 % |
 | delete `filter: "power"` | 116 | 31 | 27 % |
 | delete `filter: "excludeName"` | 111 | 20 | 18 % |
 | `comparison: "lte"` → `"gte"` | 852 | 148 | 17 % |
 | delete `filter: "hasTrigger"` | 20 | 1 | 5 % |
 | delete `filter: "excludeSelf"` / `dynamicCost` / `noBaseEffect` / `allOf` | 56 | 0 | 0 % |
-| **total** | **4,297** | **1,611** | **37.5 %** |
+| **total** | **4,307** | **1,621** | **37.6 %** |
 
-The labelled survivors sum to 1,613 rather than the 1,614 the headline arithmetic gives
-(4,297 − 2,683). The two cards with no runnable test at all carry 3 mutants between them but are
+The labelled survivors sum to 1,621 rather than the 1,622 the headline arithmetic gives
+(4,307 − 2,685). The two cards with no runnable test at all carry 3 mutants between them but are
 recorded once per card rather than once per mutant, since none of the three was ever run.
 
 The top three rows are the ones with teeth, because each maps onto a defect class this project has
@@ -72,6 +73,12 @@ already been bitten by:
 
 At the other end, `lte` → `gte` dies 83 % of the time. That is the reassuring end of the table:
 inclusive threshold flips are the perturbation upstream's fixtures are most likely to catch.
+
+**These figures are the second run.** The first put the corpus at 4,297 mutants / 62.4 %, then two
+changes landed: patch 8 fixed `OP07-030` Pappag's always-true assertion (one survivor became a
+kill), and operator 5 was fixed to use `finditer` rather than `search`, so a card with more than one
+`oncePerTurn` guard now has all of them mutated instead of just the first — +10 mutants across 9
+cards. The first run's results are kept under `runs/v1/`.
 
 ## The dominant survivor shape: boundary-only fixtures
 

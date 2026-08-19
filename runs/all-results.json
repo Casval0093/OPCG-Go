@@ -87,9 +87,10 @@
 "card": "OP06-009",
 "status": "survivors",
 "killed": 0,
-"mutants": 1,
+"mutants": 2,
 "survivors": [
-"drop oncePerTurn @L71"
+"drop oncePerTurn @L71",
+"drop oncePerTurn @L98"
 ]
 },
 "OP06-023": {
@@ -334,10 +335,12 @@
 },
 "OP06-118": {
 "card": "OP06-118",
-"status": "ok",
+"status": "survivors",
 "killed": 1,
-"mutants": 1,
-"survivors": []
+"mutants": 2,
+"survivors": [
+"drop oncePerTurn @L104"
+]
 },
 "OP06-017": {
 "card": "OP06-017",
@@ -2120,6 +2123,15 @@
 "mutants": 1,
 "survivors": []
 },
+"ST04-003": {
+"card": "ST04-003",
+"status": "no-effective-test",
+"killed": 0,
+"mutants": 2,
+"survivors": [
+"only inert test(s)"
+]
+},
 "PRB01-001": {
 "card": "PRB01-001",
 "status": "survivors",
@@ -2173,15 +2185,6 @@
 "mutants": 1,
 "survivors": [
 "value 4000->3000 @L76"
-]
-},
-"ST04-003": {
-"card": "ST04-003",
-"status": "no-effective-test",
-"killed": 0,
-"mutants": 2,
-"survivors": [
-"only inert test(s)"
 ]
 },
 "OP05-001": {
@@ -3124,12 +3127,10 @@
 },
 "OP07-030": {
 "card": "OP07-030",
-"status": "survivors",
-"killed": 0,
+"status": "ok",
+"killed": 1,
 "mutants": 1,
-"survivors": [
-"delete filter:name @L38"
-]
+"survivors": []
 },
 "OP07-031": {
 "card": "OP07-031",
@@ -5913,6 +5914,15 @@
 "mutants": 4,
 "survivors": []
 },
+"PRB02-006_p2": {
+"card": "PRB02-006_p2",
+"status": "no-effective-test",
+"killed": 0,
+"mutants": 1,
+"survivors": [
+"only inert test(s)"
+]
+},
 "OP14-001": {
 "card": "OP14-001",
 "status": "survivors",
@@ -7019,15 +7029,6 @@
 "value 3000->2000 @L50"
 ]
 },
-"PRB02-006_p2": {
-"card": "PRB02-006_p2",
-"status": "no-effective-test",
-"killed": 0,
-"mutants": 1,
-"survivors": [
-"only inert test(s)"
-]
-},
 "OP12-001": {
 "card": "OP12-001",
 "status": "survivors",
@@ -7075,21 +7076,22 @@
 "card": "OP12-061",
 "status": "survivors",
 "killed": 1,
-"mutants": 7,
+"mutants": 8,
 "survivors": [
 "delete filter:name @L64",
 "delete filter:cardCategory @L68",
 "delete filter:cost @L69",
 "delete filter:name @L89",
 "comparison gte->lte @L91",
-"drop oncePerTurn @L81"
+"drop oncePerTurn @L81",
+"drop oncePerTurn @L100"
 ]
 },
 "OP12-081": {
 "card": "OP12-081",
 "status": "survivors",
 "killed": 0,
-"mutants": 8,
+"mutants": 9,
 "survivors": [
 "delete filter:cardCategory @L49",
 "delete filter:cost @L59",
@@ -7098,7 +7100,8 @@
 "comparison gte->lte @L56",
 "comparison gte->lte @L61",
 "comparison gte->lte @L78",
-"drop oncePerTurn @L90"
+"drop oncePerTurn @L90",
+"drop oncePerTurn @L108"
 ]
 },
 "OP12-003": {
@@ -10541,19 +10544,21 @@
 "card": "OP11-041",
 "status": "survivors",
 "killed": 2,
-"mutants": 3,
+"mutants": 4,
 "survivors": [
-"drop oncePerTurn @L67"
+"drop oncePerTurn @L67",
+"drop oncePerTurn @L99"
 ]
 },
 "OP11-062": {
 "card": "OP11-062",
 "status": "survivors",
 "killed": 1,
-"mutants": 3,
+"mutants": 4,
 "survivors": [
 "value 1000->0 @L99",
-"drop oncePerTurn @L73"
+"drop oncePerTurn @L73",
+"drop oncePerTurn @L103"
 ]
 },
 "OP11-002": {
@@ -10905,10 +10910,11 @@
 "card": "OP11-102",
 "status": "survivors",
 "killed": 1,
-"mutants": 3,
+"mutants": 4,
 "survivors": [
 "comparison gte->lte @L85",
-"drop oncePerTurn @L72"
+"drop oncePerTurn @L72",
+"drop oncePerTurn @L115"
 ]
 },
 "OP11-104": {
@@ -13328,12 +13334,14 @@
 "card": "OP13-002",
 "status": "survivors",
 "killed": 1,
-"mutants": 5,
+"mutants": 7,
 "survivors": [
 "delete filter:cardCategory @L96",
 "delete filter:basePower @L97",
 "value 6000->5000 @L97",
-"drop oncePerTurn @L70"
+"drop oncePerTurn @L70",
+"drop oncePerTurn @L88",
+"drop oncePerTurn @L102"
 ]
 },
 "OP13-012": {
@@ -13365,8 +13373,8 @@
 "OP13-046": {
 "card": "OP13-046",
 "status": "survivors",
-"killed": 1,
-"mutants": 3,
+"killed": 2,
+"mutants": 4,
 "survivors": [
 "delete filter:trait @L63",
 "drop oncePerTurn @L49"

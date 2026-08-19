@@ -8,7 +8,7 @@
 {"card": "OP06-003", "status": "survivors", "killed": 4, "mutants": 5, "survivors": ["delete filter:cardCategory @L56"]}
 {"card": "OP06-004", "status": "ok", "killed": 1, "mutants": 1, "survivors": []}
 {"card": "OP06-007", "status": "ok", "killed": 3, "mutants": 3, "survivors": []}
-{"card": "OP06-009", "status": "survivors", "killed": 0, "mutants": 1, "survivors": ["drop oncePerTurn @L71"]}
+{"card": "OP06-009", "status": "survivors", "killed": 0, "mutants": 2, "survivors": ["drop oncePerTurn @L71", "drop oncePerTurn @L98"]}
 {"card": "OP06-023", "status": "survivors", "killed": 1, "mutants": 3, "survivors": ["delete filter:state @L51", "delete filter:cost @L75"]}
 {"card": "OP06-025", "status": "ok", "killed": 4, "mutants": 4, "survivors": []}
 {"card": "OP06-026", "status": "survivors", "killed": 2, "mutants": 4, "survivors": ["delete filter:attribute @L45", "delete filter:cost @L49"]}
@@ -38,7 +38,7 @@
 {"card": "OP06-110", "status": "survivors", "killed": 0, "mutants": 1, "survivors": ["comparison lte->gte @L38"]}
 {"card": "OP06-111", "status": "survivors", "killed": 4, "mutants": 6, "survivors": ["delete filter:cost @L42", "comparison eq->gte @L42"]}
 {"card": "OP06-113", "status": "survivors", "killed": 1, "mutants": 2, "survivors": ["delete filter:trait @L39"]}
-{"card": "OP06-118", "status": "ok", "killed": 1, "mutants": 1, "survivors": []}
+{"card": "OP06-118", "status": "survivors", "killed": 1, "mutants": 2, "survivors": ["drop oncePerTurn @L104"]}
 {"card": "OP06-017", "status": "survivors", "killed": 1, "mutants": 2, "survivors": ["value 3000->2000 @L75"]}
 {"card": "OP06-018", "status": "ok", "killed": 8, "mutants": 8, "survivors": []}
 {"card": "OP06-019", "status": "ok", "killed": 6, "mutants": 6, "survivors": []}

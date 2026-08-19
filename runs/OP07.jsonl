@@ -16,7 +16,7 @@
 {"card": "OP07-024", "status": "ok", "killed": 3, "mutants": 3, "survivors": []}
 {"card": "OP07-025", "status": "survivors", "killed": 1, "mutants": 3, "survivors": ["delete filter:cost @L44", "comparison lte->gte @L46"]}
 {"card": "OP07-026", "status": "ok", "killed": 1, "mutants": 1, "survivors": []}
-{"card": "OP07-030", "status": "survivors", "killed": 0, "mutants": 1, "survivors": ["delete filter:name @L38"]}
+{"card": "OP07-030", "status": "ok", "killed": 1, "mutants": 1, "survivors": []}
 {"card": "OP07-031", "status": "ok", "killed": 1, "mutants": 1, "survivors": []}
 {"card": "OP07-032", "status": "ok", "killed": 2, "mutants": 2, "survivors": []}
 {"card": "OP07-033", "status": "survivors", "killed": 3, "mutants": 4, "survivors": ["delete filter:excludeName @L50"]}

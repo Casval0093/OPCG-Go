@@ -2,8 +2,8 @@
 {"card": "OP12-020", "status": "survivors", "killed": 2, "mutants": 4, "survivors": ["delete filter:baseCost @L81", "drop oncePerTurn @L86"]}
 {"card": "OP12-040", "status": "survivors", "killed": 0, "mutants": 1, "survivors": ["delete filter:trait @L51"]}
 {"card": "OP12-041", "status": "survivors", "killed": 1, "mutants": 5, "survivors": ["delete filter:cardCategory @L57", "delete filter:trait @L58", "delete filter:baseCost @L59", "drop oncePerTurn @L65"]}
-{"card": "OP12-061", "status": "survivors", "killed": 1, "mutants": 7, "survivors": ["delete filter:name @L64", "delete filter:cardCategory @L68", "delete filter:cost @L69", "delete filter:name @L89", "comparison gte->lte @L91", "drop oncePerTurn @L81"]}
-{"card": "OP12-081", "status": "survivors", "killed": 0, "mutants": 8, "survivors": ["delete filter:cardCategory @L49", "delete filter:cost @L59", "delete filter:baseCost @L78", "delete filter:cardCategory @L97", "comparison gte->lte @L56", "comparison gte->lte @L61", "comparison gte->lte @L78", "drop oncePerTurn @L90"]}
+{"card": "OP12-061", "status": "survivors", "killed": 1, "mutants": 8, "survivors": ["delete filter:name @L64", "delete filter:cardCategory @L68", "delete filter:cost @L69", "delete filter:name @L89", "comparison gte->lte @L91", "drop oncePerTurn @L81", "drop oncePerTurn @L100"]}
+{"card": "OP12-081", "status": "survivors", "killed": 0, "mutants": 9, "survivors": ["delete filter:cardCategory @L49", "delete filter:cost @L59", "delete filter:baseCost @L78", "delete filter:cardCategory @L97", "comparison gte->lte @L56", "comparison gte->lte @L61", "comparison gte->lte @L78", "drop oncePerTurn @L90", "drop oncePerTurn @L108"]}
 {"card": "OP12-003", "status": "survivors", "killed": 2, "mutants": 6, "survivors": ["delete filter:power @L58", "delete filter:color @L63", "delete filter:cardCategory @L67", "comparison lte->gte @L60"]}
 {"card": "OP12-004", "status": "survivors", "killed": 2, "mutants": 3, "survivors": ["delete filter:cardCategory @L39"]}
 {"card": "OP12-006", "status": "survivors", "killed": 2, "mutants": 5, "survivors": ["delete filter:anyOf @L47", "delete filter:color @L57", "delete filter:cardCategory @L61"]}
