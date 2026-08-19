@@ -208,6 +208,15 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
 
   So the answer to "is the list complete enough to scope primitives?" is **yes for the top 3, no for
   the other 17, and OP17 will not change that split.**
+- **The first player may not attack on their own first turn — `canAttackWith` enforces it, and it
+  silently voids hand-built attack fixtures.** `if (state.turnNumber === 1 && state.activeSeat ===
+  state.config.firstPlayer) return false;` in `battle.ts`. A fixture that seats the acting player as
+  `firstPlayer` on turn 1 therefore has **no legal attack at all** — the only legal command is
+  `endTurn`. This is not hypothetical: the first run of the puzzle suite reported `valueRanked`
+  failing all five attack puzzles, and the cause was the fixture, not the policy. **When building an
+  attack position, seat the acting player as the SECOND player** (`firstPlayer: "north"` when acting
+  as south), or advance past turn 1. This is also why the suite asserts a SOLVABLE guard per puzzle
+  rather than trusting the position.
 - **There is no encoding backlog in the existing sets — it is 0, not 331/125.** Both figures
   were `coverage_report.py` bugs, now fixed: 309 cards inherit their encoding by spread
   (`{ ...baseCard, id: "..._p2" }`) and the check never followed it; 22 have a null printed
@@ -502,7 +511,21 @@ The `tools/` tests are stdlib `unittest`, matching the tools' own stdlib-only co
       **No ladder result may be used to argue for or against buying throughput.** The decision rule
       below survives untouched because it rests on the *bias* argument, not on this.
       Full table: `docs/simulation.md`.
-   2. **Puzzle suite** — 30–50 hand-built positions with an unambiguous best play (lethal on board,
+   2. **Puzzle suite** — STARTED 2026-08-19, `./scripts/simulate.sh --puzzles`. 5 positions in 2
+      classes (lethal, futile), both verified against `battle.ts` before authoring. `valueRanked`
+      **6/6** — the first *absolute* statement about the policy: it does not blunder basic lethal or
+      waste attacks it cannot win. **But `greedy` also scores 6/6 and `firstLegal` 5/6, so the suite
+      is too easy to explain the 76% ladder gap — do NOT read 6/6 as "the policy is good."**
+      **Two structural lessons, both worth keeping:** (i) the answer is **adjudicated by the engine**
+      (apply the command, inspect `winner` / life delta / K.O.s), because a hand-written predicate
+      misclassified south's own leader as a losing attack — a 5000 leader reaches a 5000 leader on 0
+      life. The SOLVABLE/DISCRIMINATING guards **cannot** catch a mislabelled answer, only a broken or
+      vacuous one. (ii) `valueRanked`'s result is **asserted** per puzzle via `expect`, not merely
+      printed; before that the suite exited 0 even if the policy regressed to 0/6. The next
+      batch must target `greedy`'s myopia: sequencing, DON!! allocation, K.O.-vs-damage, holding a
+      counter. **The guards earned their keep immediately:** the first run reported all 5 as BROKEN,
+      which was a defect in the *positions*, not the policy — see the turn-1 attack rule below.
+      Original plan text: 30–50 hand-built positions with an unambiguous best play (lethal on board,
       a blocker that must be used, a counter that must be played to survive, removal that must hit
       the one relevant body). Best value for effort: needs no opponent and no statistics, and
       failures are **diagnostic** — you learn which decision class is broken, not just that a number
