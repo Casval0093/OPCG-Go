@@ -1,0 +1,625 @@
+{
+  "generated": "2026-08-19",
+  "adjudicator": "https://onepiece.limitlesstcg.com/cards/<ID>",
+  "note": "Engine-vs-Limitless disagreements only. Where Limitless agreed with the engine the npm dataset was the wrong side and no correction is emitted. Applied by tools/correct_cards.py; re-adjudicate with tools/verify_limitless.py.",
+  "corrections": [
+    {
+      "id": "EB01-039",
+      "kind": "string",
+      "field": "effect",
+      "from": "[Main] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): K.O. up to 1 of your opponent's Characters with a cost of 8 or less.[Trigger] Ad up to 1 DON!! card from your DON!! deck and set it as active.",
+      "to": "[Main] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): K.O. up to 1 of your opponent's Characters with a cost of 8 or less.[Trigger] Add up to 1 DON!! card from your DON!! deck and set it as active.",
+      "standard": true,
+      "why": "the glued Trigger text misspelled \"Ad\" for \"Add\"",
+      "verified": "2026-08-19"
+    },
+    {
+      "id": "EB03-009",
+      "kind": "number",
+      "field": "counter",
+      "from": null,
+      "to": 2000,
+      "standard": true,
+      "verified": "2026-08-19",
+      "why": "Limitless prints counter 2000; the engine omits the field entirely"
+    },
+    {
+      "id": "EB03-009",
+      "kind": "number",
+      "field": "power",
+      "from": null,
+      "to": 0,
+      "standard": true,
+      "verified": "2026-08-19",
+      "why": "Limitless prints power 0; the engine omits the field entirely"
+    },
+    {
+      "id": "EB03-034",
+      "kind": "traits",
+      "field": "traits",
+      "from": [
+        "Big Mom Pirates"
+      ],
+      "to": [
+        "Rocks Pirates"
+      ],
+      "standard": true,
+      "verified": "2026-08-19",
+      "why": "Limitless prints Rocks Pirates"
+    },
+    {
+      "id": "EB03-050",
+      "kind": "number",
+      "field": "power",
+      "from": null,
+      "to": 0,
+      "standard": true,
+      "verified": "2026-08-19",
+      "why": "Limitless prints power 0; the engine omits the field entirely"
+    },
+    {
+      "id": "EB04-025",
+      "kind": "number",
+      "field": "counter",
+      "from": null,
+      "to": 1000,
+      "standard": true,
+      "verified": "2026-08-19",
+      "why": "Limitless prints counter 1000; the engine omits the field entirely"
+    },
+    {
+      "id": "EB04-025",
+      "kind": "string",
+      "field": "effect",
+      "from": "[On Play] Play up to 1 {Alabasta} type Character card with a cost of 8 or less other than [Nefeltari Vivi] from your hand. Then, your opponent places 1 card from your hand at the bottom of their deck.",
+      "to": "[On Play] Play up to 1 {Alabasta} type Character card with a cost of 8 or less other than [Nefeltari Vivi] from your hand. Then, your opponent places 1 card from their hand at the bottom of their deck.",
+      "standard": true,
+      "why": "the opponent places a card from THEIR hand, not from yours -- the engine text named the wrong player",
+      "verified": "2026-08-19"
+    },
+    {
+      "id": "OP01-005",
+      "kind": "traits",
+      "field": "traits",
+      "from": [
+        "Film"
+      ],
+      "to": [
+        "FILM"
+      ],
+      "standard": false,
+      "verified": "2026-08-19",
+      "why": "Limitless prints FILM"
+    },
+    {
+      "id": "OP01-011",
+      "kind": "traits",
+      "field": "traits",
+      "from": [
+        "Film"
+      ],
+      "to": [
+        "FILM"
+      ],
+      "standard": false,
+      "verified": "2026-08-19",
+      "why": "Limitless prints FILM"
+    },
+    {
+      "id": "OP01-016",
+      "kind": "number",
+      "field": "counter",
+      "from": 2000,
+      "to": 1000,
+      "standard": false,
+      "verified": "2026-08-19",
+      "why": "Limitless prints counter 1000; the engine stores 2000"
+    },
+    {
+      "id": "OP01-018",
+      "kind": "traits",
+      "field": "traits",
+      "from": [
+        "Giant New Giant Pirate Crew"
+      ],
+      "to": [
+        "Giant",
+        "New Giant Pirates"
+      ],
+      "standard": false,
+      "verified": "2026-08-19",
+      "why": "Limitless prints Giant/New Giant Pirates"
+    },
+    {
+      "id": "OP02-028",
+      "kind": "traits",
+      "field": "traits",
+      "from": [
+        "Film Straw Hat Crew"
+      ],
+      "to": [
+        "FILM",
+        "Straw Hat Crew"
+      ],
+      "standard": false,
+      "verified": "2026-08-19",
+      "why": "Limitless prints FILM/Straw Hat Crew"
+    },
+    {
+      "id": "OP02-033",
+      "kind": "traits",
+      "field": "traits",
+      "from": [
+        "Film Fish-Man Straw Hat Crew"
+      ],
+      "to": [
+        "FILM",
+        "Fish-Man",
+        "Straw Hat Crew"
+      ],
+      "standard": false,
+      "verified": "2026-08-19",
+      "why": "Limitless prints FILM/Fish-Man/Straw Hat Crew"
+    },
+    {
+      "id": "OP02-034",
+      "kind": "traits",
+      "field": "traits",
+      "from": [
+        "Animal Film Straw Hat Crew"
+      ],
+      "to": [
+        "FILM",
+        "Animal",
+        "Straw Hat Crew"
+      ],
+      "standard": false,
+      "verified": "2026-08-19",
+      "why": "Limitless prints FILM/Animal/Straw Hat Crew"
+    },
+    {
+      "id": "OP02-035",
+      "kind": "traits",
+      "field": "traits",
+      "from": [
+        "Film Heart Pirates Supernovas"
+      ],
+      "to": [
+        "FILM",
+        "Supernovas",
+        "Heart Pirates"
+      ],
+      "standard": false,
+      "verified": "2026-08-19",
+      "why": "Limitless prints FILM/Supernovas/Heart Pirates"
+    },
+    {
+      "id": "OP02-036",
+      "kind": "traits",
+      "field": "traits",
+      "from": [
+        "Film Straw Hat Crew"
+      ],
+      "to": [
+        "FILM",
+        "Straw Hat Crew"
+      ],
+      "standard": false,
+      "verified": "2026-08-19",
+      "why": "Limitless prints FILM/Straw Hat Crew"
+    },
+    {
+      "id": "OP02-037",
+      "kind": "traits",
+      "field": "traits",
+      "from": [
+        "Film Straw Hat Crew"
+      ],
+      "to": [
+        "FILM",
+        "Straw Hat Crew"
+      ],
+      "standard": false,
+      "verified": "2026-08-19",
+      "why": "Limitless prints FILM/Straw Hat Crew"
+    },
+    {
+      "id": "OP02-039",
+      "kind": "traits",
+      "field": "traits",
+      "from": [
+        "Film Straw Hat Crew"
+      ],
+      "to": [
+        "FILM",
+        "Straw Hat Crew"
+      ],
+      "standard": false,
+      "verified": "2026-08-19",
+      "why": "Limitless prints FILM/Straw Hat Crew"
+    },
+    {
+      "id": "OP02-040",
+      "kind": "traits",
+      "field": "traits",
+      "from": [
+        "Straw Hat Crew"
+      ],
+      "to": [
+        "FILM",
+        "Straw Hat Crew"
+      ],
+      "standard": false,
+      "verified": "2026-08-19",
+      "why": "Limitless prints FILM/Straw Hat Crew"
+    },
+    {
+      "id": "OP02-041",
+      "kind": "traits",
+      "field": "traits",
+      "from": [
+        "Straw Hat Crew Supernovas"
+      ],
+      "to": [
+        "FILM",
+        "Supernovas",
+        "Straw Hat Crew"
+      ],
+      "standard": false,
+      "verified": "2026-08-19",
+      "why": "Limitless prints FILM/Supernovas/Straw Hat Crew"
+    },
+    {
+      "id": "OP02-043",
+      "kind": "traits",
+      "field": "traits",
+      "from": [
+        "Film Straw Hat Crew Supernovas"
+      ],
+      "to": [
+        "FILM",
+        "Supernovas",
+        "Straw Hat Crew"
+      ],
+      "standard": false,
+      "verified": "2026-08-19",
+      "why": "Limitless prints FILM/Supernovas/Straw Hat Crew"
+    },
+    {
+      "id": "OP02-045",
+      "kind": "traits",
+      "field": "traits",
+      "from": [
+        "Film Straw Hat Crew Supernovas"
+      ],
+      "to": [
+        "FILM",
+        "Supernovas",
+        "Straw Hat Crew"
+      ],
+      "standard": false,
+      "verified": "2026-08-19",
+      "why": "Limitless prints FILM/Supernovas/Straw Hat Crew"
+    },
+    {
+      "id": "OP02-046",
+      "kind": "traits",
+      "field": "traits",
+      "from": [
+        "Film Straw Hat Crew"
+      ],
+      "to": [
+        "FILM",
+        "Straw Hat Crew"
+      ],
+      "standard": false,
+      "verified": "2026-08-19",
+      "why": "Limitless prints FILM/Straw Hat Crew"
+    },
+    {
+      "id": "OP02-072",
+      "kind": "traits",
+      "field": "traits",
+      "from": [
+        "Film Neo Navy"
+      ],
+      "to": [
+        "FILM",
+        "Neo Navy"
+      ],
+      "standard": false,
+      "verified": "2026-08-19",
+      "why": "Limitless prints FILM/Neo Navy"
+    },
+    {
+      "id": "OP03-036",
+      "kind": "traits",
+      "field": "traits",
+      "from": [
+        "NULL"
+      ],
+      "to": [
+        "East Blue",
+        "Black Cat Pirates"
+      ],
+      "standard": false,
+      "verified": "2026-08-19",
+      "why": "Limitless prints East Blue/Black Cat Pirates"
+    },
+    {
+      "id": "OP03-038",
+      "kind": "traits",
+      "field": "traits",
+      "from": [
+        "NULL"
+      ],
+      "to": [
+        "East Blue",
+        "Krieg Pirates"
+      ],
+      "standard": false,
+      "verified": "2026-08-19",
+      "why": "Limitless prints East Blue/Krieg Pirates"
+    },
+    {
+      "id": "OP03-112",
+      "kind": "number",
+      "field": "counter",
+      "from": 2000,
+      "to": 1000,
+      "standard": false,
+      "verified": "2026-08-19",
+      "why": "Limitless prints counter 1000; the engine stores 2000"
+    },
+    {
+      "id": "OP03-114",
+      "kind": "traits",
+      "field": "traits",
+      "from": [
+        "Big Mom Pirates"
+      ],
+      "to": [
+        "The Four Emperors",
+        "Big Mom Pirates"
+      ],
+      "standard": false,
+      "verified": "2026-08-19",
+      "why": "Limitless prints The Four Emperors/Big Mom Pirates"
+    },
+    {
+      "id": "OP05-040",
+      "kind": "traits",
+      "field": "traits",
+      "from": [
+        "NULL"
+      ],
+      "to": [
+        "Donquixote Pirates"
+      ],
+      "standard": true,
+      "verified": "2026-08-19",
+      "why": "Limitless prints Donquixote Pirates"
+    },
+    {
+      "id": "OP05-096",
+      "kind": "traits",
+      "field": "traits",
+      "from": null,
+      "to": [
+        "Celestial Dragons"
+      ],
+      "standard": true,
+      "verified": "2026-08-19",
+      "why": "Limitless prints Celestial Dragons"
+    },
+    {
+      "id": "OP06-051",
+      "kind": "number",
+      "field": "counter",
+      "from": 4000,
+      "to": 2000,
+      "standard": true,
+      "verified": "2026-08-19",
+      "why": "Limitless prints counter 2000; the engine stores 4000"
+    },
+    {
+      "id": "OP06-054",
+      "kind": "fragment",
+      "field": "effects.permanentEffects[0].conditions[0].value",
+      "from": "condition: \"handCount\",\n            player: \"self\",\n            comparison: \"lte\",\n            value: 4,",
+      "to": "condition: \"handCount\",\n            player: \"self\",\n            comparison: \"lte\",\n            value: 5,",
+      "standard": true,
+      "why": "the Blocker grant fired one card too late; printed threshold is 5 or less",
+      "verified": "2026-08-19"
+    },
+    {
+      "id": "OP06-054",
+      "kind": "string",
+      "field": "effect",
+      "from": "If you have 4 or less cards in your hand, this Character gains [Blocker].\n(After your opponent declares an attack, you may rest this card to make it the new target of the attack.)",
+      "to": "If you have 5 or less cards in your hand, this Character gains [Blocker].\n(After your opponent declares an attack, you may rest this card to make it the new target of the attack.)",
+      "standard": true,
+      "why": "printed \"5 or less cards in your hand\"; the engine stored 4 or less",
+      "verified": "2026-08-19"
+    },
+    {
+      "id": "OP06-116",
+      "kind": "string",
+      "field": "effect",
+      "from": "[Main] Choose one:\n• K.O. up to 1 of your opponent's Characters with a cost of 5 or less.\n• If your opponent has 1 Life card, deal 1 damage to your opponent.\nThen, add 1 card from the top of your Life cards to your hand.",
+      "to": "[Main] Choose one:\n• K.O. up to 1 of your opponent's Characters with a cost of 5 or less.\n• If your opponent has 1 Life card, deal 1 damage to your opponent. Then, add 1 card from the top of your Life cards to your hand.",
+      "standard": true,
+      "why": "\"Then, add 1 card...\" belongs to the second bullet; the line break made it read as an unconditional third clause",
+      "verified": "2026-08-19"
+    },
+    {
+      "id": "OP06-116",
+      "kind": "string",
+      "field": "trigger",
+      "from": "Draw 1 cards.",
+      "to": "Draw 1 card.",
+      "standard": true,
+      "why": "printed \"Draw 1 card.\"",
+      "verified": "2026-08-19"
+    },
+    {
+      "id": "OP07-004",
+      "kind": "traits",
+      "field": "traits",
+      "from": [
+        "Mountain Bandits Mountain Bandits"
+      ],
+      "to": [
+        "Mountain Bandits"
+      ],
+      "standard": true,
+      "verified": "2026-08-19",
+      "why": "Limitless prints Mountain Bandits"
+    },
+    {
+      "id": "OP07-009",
+      "kind": "traits",
+      "field": "traits",
+      "from": [
+        "Mountain Bandits Mountain Bandits"
+      ],
+      "to": [
+        "Mountain Bandits"
+      ],
+      "standard": true,
+      "verified": "2026-08-19",
+      "why": "Limitless prints Mountain Bandits"
+    },
+    {
+      "id": "OP08-061",
+      "kind": "number",
+      "field": "counter",
+      "from": null,
+      "to": 1000,
+      "standard": true,
+      "verified": "2026-08-19",
+      "why": "Limitless prints counter 1000; the engine omits the field entirely"
+    },
+    {
+      "id": "OP08-082",
+      "kind": "number",
+      "field": "counter",
+      "from": 1000,
+      "to": 2000,
+      "standard": true,
+      "verified": "2026-08-19",
+      "why": "Limitless prints counter 2000; the engine stores 1000"
+    },
+    {
+      "id": "OP10-043",
+      "kind": "number",
+      "field": "counter",
+      "from": 1000,
+      "to": 2000,
+      "standard": true,
+      "verified": "2026-08-19",
+      "why": "Limitless prints counter 2000; the engine stores 1000"
+    },
+    {
+      "id": "OP10-064",
+      "kind": "traits",
+      "field": "traits",
+      "from": [
+        "The Vinsmoke Family Kingdom of GERMA"
+      ],
+      "to": [
+        "Kingdom of GERMA"
+      ],
+      "standard": true,
+      "verified": "2026-08-19",
+      "why": "Limitless prints Kingdom of GERMA"
+    },
+    {
+      "id": "OP11-012",
+      "kind": "traits",
+      "field": "traits",
+      "from": [
+        "Navy SWORD"
+      ],
+      "to": [
+        "Straw Hat Crew"
+      ],
+      "standard": true,
+      "verified": "2026-08-19",
+      "why": "Limitless prints Straw Hat Crew"
+    },
+    {
+      "id": "OP13-009",
+      "kind": "traits",
+      "field": "traits",
+      "from": [
+        "Mountain Bandits Mountain Bandits"
+      ],
+      "to": [
+        "Mountain Bandits"
+      ],
+      "standard": true,
+      "verified": "2026-08-19",
+      "why": "Limitless prints Mountain Bandits"
+    },
+    {
+      "id": "OP13-013",
+      "kind": "traits",
+      "field": "traits",
+      "from": [
+        "Mountain Bandits Mountain Bandits"
+      ],
+      "to": [
+        "Mountain Bandits"
+      ],
+      "standard": true,
+      "verified": "2026-08-19",
+      "why": "Limitless prints Mountain Bandits"
+    },
+    {
+      "id": "OP14-019",
+      "kind": "number",
+      "field": "cost",
+      "from": 4,
+      "to": 1,
+      "standard": true,
+      "verified": "2026-08-19",
+      "why": "Limitless prints cost 1; the engine stores 4"
+    },
+    {
+      "id": "OP14-031",
+      "kind": "number",
+      "field": "counter",
+      "from": null,
+      "to": 1000,
+      "standard": true,
+      "verified": "2026-08-19",
+      "why": "Limitless prints counter 1000; the engine omits the field entirely"
+    },
+    {
+      "id": "ST01-014",
+      "kind": "traits",
+      "field": "traits",
+      "from": [
+        "Straw Hat Crew"
+      ],
+      "to": [
+        "Animal",
+        "Straw Hat Crew"
+      ],
+      "standard": false,
+      "verified": "2026-08-19",
+      "why": "Limitless prints Animal/Straw Hat Crew"
+    },
+    {
+      "id": "ST17-002",
+      "kind": "number",
+      "field": "counter",
+      "from": null,
+      "to": 1000,
+      "standard": true,
+      "verified": "2026-08-19",
+      "why": "Limitless prints counter 1000; the engine omits the field entirely"
+    }
+  ]
+}

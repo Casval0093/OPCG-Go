@@ -97,7 +97,9 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   0 failures, 89s → 87s.** +2065 files and +2708 tests for no measurable wall clock (`isolate: false`,
   and transform/import dominate). Nothing needed fixing; they were only unwired. Measured twice — by
   hand-editing the include, then through `patch_engine.py` — identically. **Our OP01–OP14 conformance
-  baseline roughly doubled at zero cost, so quote 6078, not 3370.**
+  baseline roughly doubled at zero cost, so quote 6078, not 3370.** (The suite is **6079** as of
+  the 2026-08-19 card corrections, which added one boundary test; 6078 remains the right figure
+  for what patch 3 itself bought.)
   **"Nothing needed fixing" is a statement about *wiring*, not about correctness — those 6078
   tests and the encodings they check were authored from the same printed text, so a green suite
   proves self-consistency, not fidelity. `OP06-054` is the proof; see the audit fact below.**
@@ -222,29 +224,87 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   (`{ ...baseCard, id: "..._p2" }`) and the check never followed it; 22 have a null printed
   effect written as `effect: "NULL"` and the check read the key's presence as text.
   309 + 22 = 331 and 103 + 22 = 125 — both reconcile exactly. Do not re-add this work item.
-  **This measures whether a card HAS an encoding, never whether the encoding is RIGHT. Both
-  questions are open and only the first one is closed; the second is `docs/encoding-audit.md`.**
+  **This measures whether a card HAS an encoding, never whether the encoding is RIGHT.**
+  **Do NOT read `docs/encoding-audit.md` as closing the second question — it does not.** That audit
+  compares *data to data* and *text to text*; the only things it inspects about an encoding are a
+  boolean "is there one" and a regex for `trigger: "trigger"`. It never reads the DSL body against the
+  printed card. **1975 definitions carry an `effects:` encoding (1763 of them pre-OP15) and exactly
+  ONE has had its DSL read against its printed text** — `OP06-054`, and even that surfaced because the
+  *text* diverged. A card whose text and encoding are wrong in the same direction is invisible to
+  every check that exists today. `tools/mutation_check.py` is the right instrument but resolves cards
+  from `<repo>/cards/`, i.e. **OP15/OP16 only**; upstream's encodings and tests live in `vendor/` and
+  are out of its reach. So: **card data is verified, encoding semantics are not.**
 
-- **OP01–OP14 encodings are audited and defective, and the green test suite cannot see it —
-  2026-08-19, `docs/encoding-audit.md`, re-run `python3 tools/audit_encodings.py`.**
-  Printed-text agreement is 96.4% (1606/1666). Verified against Limitless, engine-side and
-  Standard-legal: **11 wrong/absent numeric stats** (`OP06-051` counter 4000→2000, `OP08-082`
-  and `OP10-043` 1000→2000, `OP14-019` cost 4→1, plus 6 where the key is missing outright —
-  `EB03-009` Makino has neither power nor counter), **9 wrong trait values** (`OP11-012` stores
-  `["Navy SWORD"]` for Straw Hat Crew; `EB03-034` stores Big Mom Pirates for Rocks Pirates;
-  `OP05-096` is `[]` while its own effect keys on `{Celestial Dragons}`), and **7 printed
-  `[Trigger]` abilities that exist in neither the text field nor the `effects:` encoding**
-  (`EB04-028`, `OP06-056`, `OP06-102`, `OP06-103`, `OP08-076`, `OP12-101`, `OP13-059`).
-  **The proof that tests do not help: `OP06-054` Borsalino** is printed "5 or less cards in your
-  hand" and encoded `handCount lte 4`, and `tests/cards/characters/op06-054-borsalino.test.ts`
-  asserts `test("does not gain Blocker with five cards in hand")` — the opposite of the card, and
-  it passes. A per-card test asserts that the encoding matches *the text the encoder read*, so it
-  is blind to wrong source text and will actively resist the fix.
-  **Neither data source is authoritative — adjudicate every divergence on Limitless.** Of six
-  adjudicated, the engine won four (`OP09-058`, `OP11-020`, `OP13-077`, `OP05-032`) and lost two
-  (`OP06-054`, `OP13-084`). Do not bulk-apply the npm dataset over the engine.
-  Also: **70 Standard-legal encodings are referenced by no test at all** (generous upper-bound
-  counting), including 14 OP15 and 12 OP16 — ours, not upstream's.
+- **The OP01–OP14 data defects are FIXED — 48 corrections, 2026-08-19. Do not re-find them.**
+  `data/card-corrections.json` is the table; `tools/correct_cards.py` applies it to the disposable
+  `vendor/` tree and `scripts/bootstrap.sh` runs it, so it survives a re-clone the same way
+  `patch_engine.py` does. Re-verify with `python3 tools/correct_cards.py --check` (exit 1 if any
+  correction is unapplied or has drifted). Closed: **numeric disagreements 13 → 0**, **trait value
+  disagreements 29 → 0**, **trait-filter missed matches 21 cards → 0**, printed text
+  1607→**1609/1666**. Suite **6078 → 6079 pass, 0 fail** (one test added). Non-`OP` packs included:
+  `EB01`, `EB03`, `EB04`, `ST01`, `ST17` (inside `PRB02`).
+  **`tools/verify_limitless.py` now automates the adjudication** the audit used to do by hand —
+  Limitless serves `Disallow:` (empty), so fetching is explicitly permitted, and pages cache to
+  `.cache/limitless/`.
+  **All 48 were then second-sourced against the official Bandai list** (`en.onepiece-cardgame.com`,
+  `POST freewords=<ID>&search=true`) so a bug in our own scraper could not have skewed them all one
+  way: **48/48 confirmed, 0 contradicted.** Two facts from that check worth keeping: **`EB04` has no
+  series id — its cards live under `?series=569114` labelled `[OP14-EB04]`**, matching the engine's
+  shared `OP14EB04` directory; and **the official EN site prints counter bare, not `+2000`** (the `+`
+  is a Limitless/JP convention).
+  **Still open and deliberately so:** the trait-*matching* change (below), the **10 missing
+  `[Trigger]` abilities**, `OP13-084`'s wrong ability (needs `setBasePowerLiteral`), and the 445 absent
+  card definitions.
+  **The "70 Standard-legal encodings referenced by no test" figure is WITHDRAWN — the real number is
+  0.** Of the 74 unmentioned ids, **63 are vanilla** (no printed effect text and no `effects:` block,
+  so nothing a test could assert) and **11 have printed text but no encoding** — and all 11 are exactly
+  the 8 OP15 + 3 OP16 already enumerated in `data/parked-clauses.json`. **Zero cards carry an
+  `effects:` encoding with no test.** `section_tests` now prints the three buckets separately so the
+  aggregate cannot be quoted as a coverage gap again; this dropped the audit's Standard-legal finding
+  count from 506 to 436.
+
+- **A wrong test FIXTURE is as invisible to a green suite as a wrong encoding — two proof cases now,
+  and correcting the data is what exposed both.** Exactly 3 of 6078 tests went red, in 2 files.
+  (a) `OP06-054` Borsalino, printed "5 or less" and encoded `handCount lte 4`, had a case named
+  `test("does not gain Blocker with five cards in hand")` — the opposite of the card, passing. The
+  audit predicted it "will actively resist the fix"; it did. (b) `tests/cards/characters/`
+  `eb03-008-hibari.test.ts` used **`OP11-012` Franky as its SWORD-trait body**, but `OP11-012` is a
+  Straw Hat Crew card that the engine had stored as `["Navy SWORD"]` — data and test shared one wrong
+  trait, so both cases passed while asserting something the card cannot do. Fixes are patches 6 and 7
+  in `tools/patch_engine.py`: Borsalino now asserts **both** sides of the boundary (5 gains, 6 does
+  not), because a one-sided threshold test is what let it hide; Hibari uses `OP11-092` Helmeppo, which
+  is genuinely Navy/SWORD. **When a data correction turns a test red, suspect the test's premise
+  before suspecting the correction.**
+
+- **Filling in a missing `[Trigger]` TEXT field without its encoding is a regression, not a partial
+  fix — verified by reading the engine, do not re-litigate.** Every read of the card-level `trigger`
+  string is OR'd with the encoded block (`battle.ts:337`, `battle.ts:603`,
+  `effects/targeting.ts:122`, `effects/actions.ts:1355`):
+  `hasTrigger = hasPrintedTrigger || effectBlocksFor(card, "trigger").length > 0`, and that decides
+  whether a Life card taken as damage goes to `resolution` or to `hand`. For the 10 unencoded cards
+  both sides are false today, so the ability is silently skipped; adding only the text flips
+  `hasPrintedTrigger` true and routes the card to `resolution` **with no block for the resolver to
+  run**. Text and encoding must land together.
+  Corollary, and the reason a scary-looking number is NOT a bug: **243 cards carry the literal
+  `[Trigger]` marker inside their `effect` string** with an empty `trigger:` field — the engine-side
+  twin of the importer's `split_trigger` bug — but they all encode their Trigger, so by that same OR
+  the ability fires and play is unaffected. Only 2 of the 243 were touched, for wrong *values* not
+  wrong shape (`EB01-039` had `"Ad"` for `"Add"`, `OP06-116` had `"Draw 1 cards."`). Restructuring the
+  other 241 is churn.
+
+- **Two parser traps in `tools/audit_encodings.py`, both fixed 2026-08-19 — and one had inflated the
+  audit's own findings.** (a) `str_list` could not follow a `const` reference: `ST01` declares
+  `const strawHat = ["Straw Hat Crew"];` and writes `traits: strawHat`, which read as `[]`, so **all
+  13 ST01 cards were reported as trait defects when 12 were already correct and correctly split** —
+  only `ST01-014` was real (missing `Animal`). That also inflated the missed-match table by 17 cards.
+  It now returns `None`, not `[]`, for a reference it cannot resolve, so "absent" and "empty" stay
+  distinct. **So the old "all 13 ST01 cards have `traits: []`" claim is withdrawn.** (b) `balanced`
+  treated an apostrophe inside a `//` comment as a string opening and ran to EOF — our own OP15/OP16
+  comments say `K.O.'d` — and it returned `source[start:]` instead of failing, **silently mis-scoping
+  68 definitions**. Harmless in practice (fields precede the overshoot, and the audit's JSON is
+  byte-identical before and after the fix) but it would read a neighbour's fields in a multi-card
+  `PRB01`/`PRB02` file. Both now covered by `tools/test_correct_cards.py`, which is
+  mutation-verified: 16 mutants, 0 survivors.
 
 - **Trait matching is structurally unsound, and the fix is two halves that do not work alone.**
   Upstream stores a multi-trait card as ONE space-joined string — `OP01-003` is
@@ -252,7 +312,7 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   correctly, so this is upstream's defect. `effects/targeting.ts` branches on `match: "includes"`
   to a **substring** test, which is what makes the joined store work at all — and **597 of 599
   trait filters set it**. It is also why **19 of the 164 official traits are proper substrings of
-  another official trait**, producing **175 Standard-legal false matches**: `Animal` matches all 84
+  another official trait**, producing **170 Standard-legal false matches** (was 175; the trait-value corrections removed the `SWORD` and `The Vinsmoke Family` rows): `Animal` matches all 84
   `Animal Kingdom Pirates`, `Navy` matches `Former Navy`/`Neo Navy`, and **`Whitebeard Pirates`
   matches `Former Whitebeard Pirates`/`Whitebeard Pirates Allies` (10 Standard)** — which is
   `OP16-001` Ace's key trait, so the engine is currently **more generous than the card in the
@@ -436,6 +496,10 @@ docs/research-findings.md       all verified competitive data (matrix, leaders, 
 tools/ev_analysis.py            field-weighted EV + Nash + sensitivity   <- run this
 tools/coverage_report.py        card-effect encoding coverage against the vendored engine
 tools/variant_audit.py          alternate-art printings vs the base encoding they inherit
+tools/audit_encodings.py        is the encoding RIGHT (not just present) -> docs/encoding-audit.md
+tools/verify_limitless.py       fetch/parse Limitless card pages; the adjudicator, automated
+tools/correct_cards.py          apply data/card-corrections.json to the disposable vendor/ tree
+data/card-corrections.json      48 verified card-data corrections, with from/to/why per field
 tools/import_cards.py           card data for sets the engine lacks, via npm (in-policy)
 data/cards-OP15-en.json         imported OP15, 119 cards
 data/cards-OP16-en.json         imported OP16, 119 cards
@@ -453,7 +517,10 @@ python3 tools/ev_analysis.py                      # who is the best deck right n
 python3 tools/ev_analysis.py --sensitivity Teach  # how fragile is that answer
 ./scripts/bootstrap.sh                            # ~2 min; ends with the engine suite passing
 python3 tools/coverage_report.py --exclude-promos # encoding backlog
-python3 -m unittest discover -s tools -p 'test_*.py'   # tools/ regression tests
+python3 tools/audit_encodings.py --json data/encoding-audit.json  # is the encoding RIGHT
+python3 tools/correct_cards.py --check            # are the 48 corrections still applied (exit 1 if not)
+python3 tools/verify_limitless.py OP06-054        # what does the adjudicator actually print
+python3 -m unittest discover -s tools -p 'test_*.py'   # tools/ regression tests (56)
 ```
 
 `ev_analysis.py` needs numpy; scipy is optional (Nash is skipped without it).

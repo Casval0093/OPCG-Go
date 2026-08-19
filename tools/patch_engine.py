@@ -202,6 +202,57 @@ STAGE_TURN_FIX = """  test("plays a stage, activates it, and projects the modifi
     ]);"""
 
 
+# --- Patch 6: two upstream tests assert the card data that data/card-corrections.json fixes -------
+#
+# Both are the failure mode docs/encoding-audit.md is built around: a per-card test asserts that the
+# encoding matches *the text the encoder read*, so when that text was wrong the test is wrong in the
+# same direction and passes. Correcting the data turns them red, which is the proof the correction is
+# real -- these two are the only red in 6078 tests.
+#
+# `OP06-054` Borsalino is printed "5 or less cards in your hand" and was encoded `handCount lte 4`,
+# with a case literally named "does not gain Blocker with five cards in hand". Rather than move the
+# number by one, assert BOTH sides of the corrected boundary: 5 gains, 6 does not. A single-sided
+# threshold test is what let the defect hide.
+
+BORSALINO_ANCHOR = """  test("does not gain Blocker with five cards in hand", () => {
+    const { borsalinoId, engine, lifeBefore } = attackBorsalinoController(5);"""
+
+BORSALINO_FIX = """  // OPCG-Go patch: printed "5 or less", encoded `lte 4`, and this case asserted the opposite of the
+  // card and passed. data/card-corrections.json moves the threshold to 5; both sides of the boundary
+  // are asserted now so the next wrong threshold cannot hide in a one-sided test.
+  test("gains Blocker with five cards in hand", () => {
+    const { borsalinoId, engine, lifeBefore } = attackBorsalinoController(5);
+    const blocker = engine.pendingDecision("battleBlocker", "north").steps[0];
+
+    expect(blocker?.kind).toBe("selectEntity");
+    if (blocker?.kind !== "selectEntity") throw new Error("Expected Borsalino's Blocker choice.");
+    expect(blocker.candidates.map((candidate) => candidate.ref.id)).toContain(borsalinoId);
+    engine.resolveDecision("battleBlocker", { selectedIds: [borsalinoId] }, "north");
+
+    const view = engine.getView("north");
+    expect(view.players.north.lifeCount).toBe(lifeBefore);
+    expect(
+      view.players.north.characters.find((card) => card?.instanceId === borsalinoId)?.rested,
+    ).toBe(true);
+  });
+
+  test("does not gain Blocker with six cards in hand", () => {
+    const { borsalinoId, engine, lifeBefore } = attackBorsalinoController(6);"""
+
+# `EB03-008` Hibari's test used `OP11-012` Franky as its SWORD-trait body. Limitless prints
+# OP11-012 as Straw Hat Crew; the engine stored ["Navy SWORD"]. So the test and the card data shared
+# one wrong trait and both assertions passed. `OP11-092` Helmeppo is genuinely Navy/SWORD (checked on
+# Limitless, 7000 power) and still beats the 3000-power Doma that both tests attack.
+
+HIBARI_ANCHOR = """import { eb01Doma005, eb03Hibari008, op11Franky012 } from "@tcg/op-cards";"""
+
+HIBARI_FIX = """// OPCG-Go patch: this test used OP11-012 Franky as its SWORD body, but OP11-012 is a Straw Hat Crew
+// card -- Limitless prints "Straw Hat Crew" and the engine wrongly stored ["Navy SWORD"]. Both cases
+// passed only because the card data and the test shared the same wrong trait, which is exactly the
+// OP06-054 failure mode. OP11-092 Helmeppo is really Navy/SWORD and at 7000 power still beats Doma.
+import { eb01Doma005, eb03Hibari008, op11Helmeppo092 } from "@tcg/op-cards";"""
+
+
 PATCHES = [
     {
         "name": "bot-harness: resolve orderCards prompts",
@@ -239,6 +290,24 @@ PATCHES = [
         "apply": lambda s: s.replace(MULLIGAN_DON_ANCHOR, MULLIGAN_DON_FIX, 1).replace(
             STAGE_TURN_ANCHOR, STAGE_TURN_FIX, 1
         ),
+    },
+    {
+        "name": "tests: OP06-054's Blocker threshold asserted the defect, not the card",
+        "relpath": "tests/cards/characters/op06-054-borsalino.test.ts",
+        "anchor": BORSALINO_ANCHOR,
+        "already": 'test("does not gain Blocker with six cards in hand"',
+        "apply": lambda s: s.replace(BORSALINO_ANCHOR, BORSALINO_FIX, 1),
+    },
+    {
+        "name": "tests: EB03-008 Hibari used a non-SWORD card as its SWORD body",
+        "relpath": "tests/cards/characters/eb03-008-hibari.test.ts",
+        "anchor": HIBARI_ANCHOR,
+        "already": "op11Helmeppo092",
+        # The comment goes in first, anchored on the original import line; only then can the
+        # remaining identifiers be swapped wholesale, or the anchor would already be gone.
+        "apply": lambda s: s.replace(HIBARI_ANCHOR, HIBARI_FIX, 1)
+        .replace("op11Franky012", "op11Helmeppo092")
+        .replace("frankyId", "helmeppoId"),
     },
 ]
 

@@ -13,7 +13,8 @@ PY="$ROOT/.venv/bin/python"
 [ -x "$PY" ] || PY="$(command -v python3)"
 [ -n "$PY" ] || { echo "no python3 found; install Python 3 and re-run" >&2; exit 1; }
 
-"$PY" "$ROOT/tools/graft_cards.py"   # copy cards/OP15|OP16 into the vendored engine
-"$PY" "$ROOT/tools/patch_engine.py"  # local engine fixes; vendor/ is gitignored so they re-apply
-cd packages/engine && ./node_modules/.bin/vp test run   # expect 3370 pass in ~80s
+"$PY" "$ROOT/tools/graft_cards.py"    # copy cards/OP15|OP16 into the vendored engine
+"$PY" "$ROOT/tools/patch_engine.py"   # local engine fixes; vendor/ is gitignored so they re-apply
+"$PY" "$ROOT/tools/correct_cards.py"  # verified card-data corrections, same reason: vendor/ is disposable
+cd packages/engine && ./node_modules/.bin/vp test run   # expect 6079 pass in ~90s
 echo "Bootstrap OK."
