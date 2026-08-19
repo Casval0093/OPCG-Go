@@ -51,7 +51,9 @@ threshold, comparison, zone or once-per-turn flag changed the encoding and no te
 | delete `filter: "excludeSelf"` / `dynamicCost` / `noBaseEffect` / `allOf` | 56 | 0 | 0 % |
 | **total** | **4,297** | **1,611** | **37.5 %** |
 
-The labelled survivors sum to 1,611 rather than the 1,614 the headline arithmetic gives (4,297 − 2,683), because 3 mutants belong to the two cards with no runnable test at all and were never individually run — they are recorded once per card, not once per mutant.
+The labelled survivors sum to 1,613 rather than the 1,614 the headline arithmetic gives
+(4,297 − 2,683). The two cards with no runnable test at all carry 3 mutants between them but are
+recorded once per card rather than once per mutant, since none of the three was ever run.
 
 The top three rows are the ones with teeth, because each maps onto a defect class this project has
 already been bitten by:
