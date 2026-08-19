@@ -219,6 +219,109 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   attack position, seat the acting player as the SECOND player** (`firstPlayer: "north"` when acting
   as south), or advance past turn 1. This is also why the suite asserts a SOLVABLE guard per puzzle
   rather than trusting the position.
+- **The bot cannot choose an ATTACK TARGET — every attack any policy declares hits the defending
+  leader. Verified 2026-08-19, do not re-derive, and it is NOT an engine rules bug.**
+  `engine/legal.ts:181` emits one `declareAttack` descriptor per **attacker** with all targets bundled
+  into `targetIds`; `bot-strategies.ts:81` `commandFromDescriptor` unconditionally takes
+  `targetIds[0]`; and `battle.ts:737` `legalAttackTargets` pushes the defending **leader first**. All
+  five ladder strategies route through that helper, `random` included — so target choice is
+  unreachable, not merely unexercised. Probed on a board offering leader **and** a rested 4000 body:
+  200 samples per strategy, **zero** character targets from valueRanked/greedy/firstLegal/random.
+  Only exception: a `rushCharacter`-only attacker the turn it is played, where the leader is excluded.
+  Unlike the `orderCards` and search-to-hand defects this produces **legal** commands, so nothing
+  aborts — it is blind play, not a crash, and `patch_engine.py` does not touch it. **Consequences:**
+  battle-based removal never happens in any simulated game, so every number measured so far assumes a
+  board that shrinks only via card effects; `random` is NOT a control for it (same helper); the two
+  `futile` puzzles' passes do **not** demonstrate target discrimination, since a leader attack always
+  gains material; and a `koVsDamage` puzzle class is **not buildable as a policy measurement** — all
+  five policies fail it for one architectural reason. This is the concrete mechanism behind the
+  already-recorded warning that a weak policy reports every conditional tech card as bad — the whole
+  point of the simulator. Attack target selection joins counter/blocker play (owned by
+  `resolveBotPromptCommand`) as a thing that looks like a policy decision and is not; what is left
+  policy-attributable is attacker choice, DON!! attachment, and command ordering.
+  Full write-up: `docs/simulation.md`.
+- **The bot NEVER counters and NEVER blocks — verified 2026-08-19, do not re-diagnose.**
+  `resolveBotPromptCommand`'s `selectCards` branch takes
+  `Math.min(prompt.maxSelections, prompt.minSelections)`, which is always `minSelections`; both
+  defensive prompts are built with `minSelections: 0` — the counter step (`battle.ts:146`) and the
+  block step (`engine/queue.ts:52`). So the selection is always empty. **Measured, not merely read:**
+  a defender holding 1 and then 3 real counter cards took the damage both times, and an ACTIVE
+  character carrying the genuine `blocker` keyword was offered in the prompt and declined.
+  **Combined with the attack-target fact above, simulated combat has NO defensive interaction at
+  all** — every battle resolves on printed power plus attached DON!!. This is Task 5's answer and it
+  is worse than "plays counters badly": it never plays them. **It is not a mark against any policy**
+  — the strategy never sees a prompt — but it biases every matchup the simulator produces, and it
+  hits exactly the cards a tech-slot A/B is meant to evaluate. Asserted by `the prompt resolver never
+  counters and never blocks` in `sim/puzzles.test.ts`.
+  **The resolver also ALWAYS activates a [Trigger]** — the life-damage prompt is `choiceKind:
+  "confirm"` with `activate`/`skip` (`battle.ts:197`) and the confirm branch picks `activate`
+  unconditionally. Per the Official Rule Manual this is a real choice: you may activate the
+  [Trigger] **instead of** adding the card to your hand, or decline and bank the card unrevealed. So
+  the bot never banks a Trigger life card, and "taking damage gains you a card" is only true for
+  life cards WITHOUT a [Trigger]. Third member of the same family as counter/block: resolver-owned,
+  looks like policy, is not.
+- **The SECOND player may illegally attack on their own first turn — found 2026-08-19 by auditing the
+  Official Rule Manual, NOT yet patched.** The manual's Battle Flow footnote is
+  *"Neither player can attack on their first turn."* `canAttackWith` (`battle.ts:712`) gates only on
+  `state.turnNumber === 1 && state.activeSeat === state.config.firstPlayer`, and turn numbering is
+  per player-turn, so the second player's own first turn is `turnNumber === 2` and passes. Measured:
+  turn 1 north (first) `declareAttack offered=false` correctly, **turn 2 south (second)
+  `offered=true`** — wrong — turns 3 and 4 correctly true. It is the only first-turn attack gate in
+  the engine (`state.ts:780` is the DON!!/draw one).
+  **Direction of the bias: every play/draw number so far UNDERSTATES first-player advantage**, because
+  the second player gets one extra Leader attack (anything they play is summoning-sick, so it is the
+  Leader only). That covers the 8.5 pts on a real Block 2+ deck, 26.7 on a vanilla pile and 54.5 on
+  ST01. Magnitude is unmeasured until a re-run — do not guess it.
+  **Fixing it will break the batch-2 puzzle fixtures**, which sit at `turnNumber: 1` with
+  `firstPlayer: "north"` while acting as south. The durable fix for a fixture is to **advance past
+  turn 1**, not to rely on the seat trick; the suite's SOLVABLE guards will fail loudly rather than
+  silently mis-score. Bundle this with the counter-policy patch, since that already forces a ladder
+  re-run.
+- **The Official Rule Manual PDF uses a subset font with a shifted cmap — plain text extraction is
+  garbage until you shift it back.** Every glyph is ASCII −31 (`'D'` is `c`, `'3'` is `R`, `'.'` is
+  `M`), spaces are frequently absent, and `⒎`/`⒏` are the `ff`/`ffi` ligatures. **Digits do not
+  survive extraction at all** (they encode below 0x20 and get dropped), so any rule stated as a
+  number — Life totals, character-area limits, "reduced to 0 cards" — is NOT readable this way and
+  must be checked another way. Decode with `chr(ord(c)+31)` for `0x21..0x5A`. No poppler, pypdf,
+  pdfplumber or PyObjC Quartz on this machine; `./.venv/bin/pip install pypdf` was used for the read
+  and no committed code depends on it.
+- **`OP16-017` LittleOars Jr. makes the Ace deck ~200x slower to simulate — EXPONENTIAL in the number
+  of copies in play. Measured 2026-08-19, do not re-derive.** This is the single reason the project's
+  PRIMARY deck cannot be batch-simulated affordably, and it is one card, not a general engine limit.
+  Per-command cost on this host: `green-vanilla-control` 4.6 ms, `st01` 5.4 ms,
+  **`mihawk-green-proxy` (a real ENCODED Block 2+ deck) 6.3 ms**, `ace-op16` **1,087 ms**.
+  So "encoded decks are slow" is FALSE and CLAUDE.md's ~2-4 games/s figure still holds for
+  everything else — do not retract it.
+  Isolated by bisection, all at `--turn-budget 6`, 1 game: Ace's LEADER with a vanilla main deck is
+  fast (4.9 ms/cmd), an inert leader with Ace's MAIN deck is slow (1,740 ms/cmd), and of the 15
+  distinct main-deck cards only `OP16-017` is slow — **192,908 ms vs 186-408 ms for the other 14**.
+  Scaling in copies is the diagnosis: **1 copy 405 ms, 2 copies 1,982 ms, 3 copies 20,065 ms,
+  4 copies 192,908 ms** -- roughly x10 per extra copy.
+  Mechanism (structural, from the encoding, not yet confirmed in a profiler): the card carries a
+  `permanentEffect` whose `modifyPower -4000` targets ITSELF (`self: true`) gated on a `notHasCard`
+  condition over your own character zone. `getCardPower` sums `getPermanentModifierTotal`, and
+  evaluating that effect's condition/target re-enters power evaluation for the other copies, so N
+  copies on board recurse into each other. Fix direction is memoisation or cycle-breaking inside
+  permanent-effect evaluation, NOT a change to the card.
+  **Consequence for the derive-from-batch plan:** at 106 s/game a 15-card x 2-arm x 200-game sweep is
+  ~7.4 days single-core; at the ~0.6 s/game every other deck manages it is ~1 hour. Fixing this is
+  the highest-leverage item on the engine track and it was on none of the audit's options A-D.
+- **`sim/catalog.json`'s `hasEffects`/`hasEffectText` flags are STALE for OP15/OP16** — it reports
+  `effects=False` for `OP16-118` Portgas.D.Ace, which demonstrably has an `[On Play]` two-prompt
+  search cascade, and for `OP16-017` above. Card count (2537) is current, the flags are not. Re-dump
+  with `./scripts/simulate.sh --dump-catalog` before trusting them for anything.
+- **A leader's printed text is NOT inert, and a printed power is NOT the power a card plays at —
+  both bit this project on 2026-08-19.** `OP01-001` Roronoa Zoro, the leader BOTH seats use in all
+  six batch-1 puzzles, is `[DON!! x1] [Your Turn] All of your Characters gain +1000 power`, encoded
+  as a `permanentEffect` keyed on `donAttached >= 1` — so a single DON!! on the **leader** silently
+  buffs every character you control. It surfaced as a 5000 body attacking at 6000 and made no sense
+  until the card was read. The six batch-1 puzzles survive **only** because they hold 0 active DON!!
+  so the condition cannot fire; `fixture integrity` in `sim/puzzles.test.ts` now asserts that, so
+  adding DON!! to one of them fails loudly. Separately `OP13-003` Gol.D.Roger prints **7000** and
+  **plays at 9000**, which silently made a puzzle built on the printed value unwinnable.
+  **There is no vanilla leader in the game — all 135 have effect text**, so a synthetic position
+  cannot avoid the problem by picking a "plain" leader; screen for INERTNESS instead and assert it.
+  The screened set is `OP16-060`, `OP05-022` (5000) and `OP11-040` (6000).
 - **There is no encoding backlog in the existing sets — it is 0, not 331/125.** Both figures
   were `coverage_report.py` bugs, now fixed: 309 cards inherit their encoding by spread
   (`{ ...baseCard, id: "..._p2" }`) and the check never followed it; 22 have a null printed
@@ -578,25 +681,38 @@ The `tools/` tests are stdlib `unittest`, matching the tools' own stdlib-only co
       **No ladder result may be used to argue for or against buying throughput.** The decision rule
       below survives untouched because it rests on the *bias* argument, not on this.
       Full table: `docs/simulation.md`.
-   2. **Puzzle suite** — STARTED 2026-08-19, `./scripts/simulate.sh --puzzles`. 5 positions in 2
-      classes (lethal, futile), both verified against `battle.ts` before authoring. `valueRanked`
-      **6/6** — the first *absolute* statement about the policy: it does not blunder basic lethal or
-      waste attacks it cannot win. **But `greedy` also scores 6/6 and `firstLegal` 5/6, so the suite
-      is too easy to explain the 76% ladder gap — do NOT read 6/6 as "the policy is good."**
-      **Two structural lessons, both worth keeping:** (i) the answer is **adjudicated by the engine**
-      (apply the command, inspect `winner` / life delta / K.O.s), because a hand-written predicate
-      misclassified south's own leader as a losing attack — a 5000 leader reaches a 5000 leader on 0
-      life. The SOLVABLE/DISCRIMINATING guards **cannot** catch a mislabelled answer, only a broken or
-      vacuous one. (ii) `valueRanked`'s result is **asserted** per puzzle via `expect`, not merely
-      printed; before that the suite exited 0 even if the policy regressed to 0/6. The next
-      batch must target `greedy`'s myopia: sequencing, DON!! allocation, K.O.-vs-damage, holding a
-      counter. **The guards earned their keep immediately:** the first run reported all 5 as BROKEN,
-      which was a defect in the *positions*, not the policy — see the turn-1 attack rule below.
-      Original plan text: 30–50 hand-built positions with an unambiguous best play (lethal on board,
-      a blocker that must be used, a counter that must be played to survive, removal that must hit
-      the one relevant body). Best value for effort: needs no opponent and no statistics, and
-      failures are **diagnostic** — you learn which decision class is broken, not just that a number
-      is low. Unit tests for the policy; fits the per-card-test culture already here.
+   2. ~~**Puzzle suite**~~ — **DONE 2026-08-19**, both batches. `./scripts/simulate.sh --puzzles`,
+      **14 positions in 5 classes**, every class verified against engine source before authoring.
+      **HEADLINE: `greedy` 10/11 beats `valueRanked` 8/11 — the default policy is the worse of the
+      two, and every point of the gap is command ORDER.** `valueRanked` adds +100 to a
+      `declareAttack` when the attacker's PRINTED power is ≥5000, lifting the swing (1150) above the
+      DON!! attach (1050), so it swings before it buffs and then wastes the DON!! on a body that has
+      already rested; `greedy`'s two scores tie at 800 and the stable sort puts `attachDon` first
+      because `legal.ts` emits those descriptors earlier (line 152 vs 171). In
+      `seq-attach-then-swing-for-lethal` that costs `valueRanked` **the game**.
+      **This does NOT overturn the step-1 ladder** — `valueRanked` beat `greedy` 76.0% over whole
+      games and both results stand. What it establishes: **the ladder gap does not come from DON!!
+      sequencing**, and where it does come from is still unmeasured. Do not "fix" `valueRanked` by
+      deleting the +100 without re-running the ladder; the puzzles measure 11 hand-built positions,
+      the ladder measures 200 games.
+      By class, `valueRanked`: lethal 4/4, futile 2/2, donAllocation 2/3, **sequencing 0/2**.
+      `seq-spread-not-concentrate` is a **shared** blind spot — both policies hard-code "concentrate
+      DON!! on the best attacker" and the position rewards spreading — so the plan's ask for a
+      `greedy`-specific failure was not met, and that is reported rather than forced.
+      **Batch 1's published numbers are unchanged** (valueRanked 6/6, greedy 6/6, firstLegal 5/6,
+      random 0/6) and must stay that way: batch 1 scores ONE command with no decision context, batch
+      2 plays the WHOLE turn with a seeded LCG. Feeding real randomness to batch 1 moved `random`
+      from 0/6 to 4/6 — an instrument change, not a policy change. **Never average the two modes.**
+      **Structural lessons, all still load-bearing:** (i) the answer is **adjudicated by the engine**,
+      never by a hand-written predicate — one misclassified south's own leader attack, and the
+      SOLVABLE/DISCRIMINATING guards cannot catch a *mislabelled* answer, only a broken or vacuous
+      one; (ii) `valueRanked`'s result is **asserted** per puzzle via `expect`, or the suite exits 0
+      through a regression to 0/14; (iii) batch-2 guards enumerate the **whole legal line space**
+      (up to depth 6, 209 lines on the two-body two-DON!! positions), which is why the suite needs a
+      60s timeout; (iv) an opponent-reply puzzle also asserts **THREATENED** — passing the turn must
+      actually lose, or the position asks nothing; (v) every new guard was **mutation-checked**, five
+      mutants, all confirmed red.
+      Full table and mechanism: `docs/simulation.md`; plan and outcome: `docs/plans/policy-puzzle-batch-2.md`.
    3. **Meta calibration** — sim matchup win rates against the 213k-game EN ladder matrix.
       **Newly possible:** this repo used to note that no matchup between two *different* decks had
       ever been simulated because `OP16-001` Ace was not in the engine. OP15/OP16 encoding is now
