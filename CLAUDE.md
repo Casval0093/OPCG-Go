@@ -145,6 +145,47 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   a deck that leans on a turn-1 play is where the surplus would have mattered most. Reported by
   Ping as "the player going first can only have one DON, the opposition got two"; that end state is
   correct, and the defect was the engine handing the leader 2 on turn one.
+- **The arena's decision log is real, is written PER DECISION, and three things about it are
+  load-bearing — added 2026-08-19, see `docs/arena.md` "The decision log".** It answers Ping's ask to
+  record human and LLM decisions, and it replaces `arena/results/last-run.json` as the corpus (that
+  file stays, as the summary `branching.ts` reads).
+  - **`replayMatch(config, commands)` DID NOT EXIST** while `docs/arena.md`, `arena/types.ts` and
+    `arena/driver.ts` all cited it as the guarantee that a thin `DecisionLog` was enough because the
+    position was "exactly reconstructable". It is implemented now (`arena/replay.ts`) **and** the
+    position is stored inline, so the corpus no longer depends on it; `--verify-replay` folds the
+    recorded commands back over a fresh match and reproduced ST01 exactly, going red when one command
+    is dropped. Do not re-add a claim that a summary log suffices "because replay".
+  - **`process.exit(0)` at the end of `arena/main.ts` was discarding `process.exitCode`, so
+    `--integrity` could never fail a run** — a hard hidden-information violation printed `FAIL` and
+    exited 0. Fixed to `process.exit(process.exitCode ?? 0)` and verified 1-on-mutant / 0-on-clean.
+    This was pre-existing and is the same anti-pattern as a test that cannot fail.
+  - **`author` (`human` | `model` | `heuristic`) is a recorded FIELD, per decision, not per agent**,
+    because a council routes procedural decisions to the heuristic and degrades to it on a refusal,
+    rate limit or exhausted budget. The trap it closes: `scriptedAgent` emits a `reason` for
+    **every** decision ("improved score 1210"), so a "has a reason" difficulty filter reports a
+    scripted game as **100% contested**. Measured after the fix: scripted 2-game run `contested: 0`;
+    a human game with 8 typed notes among 29 decisions `contested: 8`.
+  - The position snapshot is `deriveFeatures(view, seat)` verbatim — **projection-derived, so it
+    cannot leak, and `integrity.ts` already proves that.** Never snapshot `MatchState` into a log;
+    `driver.ts`'s `audit` hook says so explicitly and it still holds.
+  - Durability is measured, not assumed: a 40-game run `kill -9`'d at game 6 left **747 decisions /
+    6 complete games** readable. Cost: **~390 KB per ST01 game, ~690 KB per real Block 2+ game.**
+    `arena/logs/` is gitignored; keep a game by copying it to `arena/corpus/` (tracked).
+  - **`menu[chosenIndex]` is the corpus's one invariant.** The driver plays option 0 when an agent
+    answers out of range, so `chosenIndex` records the APPLIED index and `requestedIndex` keeps the
+    bad request (`null` when honoured). Recording the request in `chosenIndex` gave rows whose index
+    was absent from their own menu. Do not "simplify" the two fields back into one.
+  - `arena/log.test.ts` runs under plain `node --test` from a clean checkout — **no engine clone, no
+    vitest** — because `log.ts` imports engine types with `import type` only. **17 tests, 16 mutants,
+    16 caught** by `tools/mutation_check_arena.py`. The **LLM** half was verified with a stand-in
+    model-authored agent (9 model / 3 degraded / 3 dissent, 0 broken rows), **not** a live API call —
+    the provider adapters are untouched and still have never made one.
+- **`arena/` does not run on a clean checkout: `arena/node_modules` is missing and
+  `scripts/bootstrap.sh` does not create it.** `providers/anthropic.ts` imports
+  `@anthropic-ai/sdk` at module load and `main.ts` reaches it through `agents/council.ts`, so even a
+  scripted-only run dies with `ERR_MODULE_NOT_FOUND` before a game starts. Fix is `npm ci` inside
+  `arena/` (2 s, 8 packages, `arena/package-lock.json` is committed). Not folded into bootstrap here
+  because that script's contract is stdlib-and-pnpm only; just know it is a required step.
 - **Real Block 2+ decks now simulate end to end**, 400/400 `rules-win`, median 9 turns.
 - **Do not calibrate on ST01.** The play/draw gap is **54.5 pts** on ST01, **26.7** on a vanilla
   Block 2+ pile, and **8.5 pts** on a real Block 2+ deck — the last of which is plausible. The gap
@@ -606,6 +647,9 @@ data/card-corrections.json      48 verified card-data corrections, with from/to/
 tools/import_cards.py           card data for sets the engine lacks, via npm (in-policy)
 data/cards-OP15-en.json         imported OP15, 119 cards
 data/cards-OP16-en.json         imported OP16, 119 cards
+arena/log.ts                    decision corpus: append-only NDJSON, one record per decision
+arena/replay.ts                 replayMatch — reconstruct a recorded game from (config, commands)
+tools/mutation_check_arena.py   mutation harness for arena/log.test.ts (13 mutants, 0 may survive)
 bench/throughput.test.ts        engine throughput benchmark
 data/op16-matchup-matrix.json   the matchup matrix, machine-readable
 data/card-coverage.json         all 2,282 cards classified encoded/gap/vanilla
@@ -624,6 +668,9 @@ python3 tools/audit_encodings.py --json data/encoding-audit.json  # is the encod
 python3 tools/correct_cards.py --check            # are the 48 corrections still applied (exit 1 if not)
 python3 tools/verify_limitless.py OP06-054        # what does the adjudicator actually print
 python3 -m unittest discover -s tools -p 'test_*.py'   # tools/ regression tests (56)
+node --test arena/log.test.ts                     # decision-log suite (14); needs NO engine clone
+python3 tools/mutation_check_arena.py             # prove those 14 can fail (13 mutants)
+./scripts/arena.sh --replay arena/logs/<f>.jsonl --contested   # read a played game back
 ```
 
 `ev_analysis.py` needs numpy; scipy is optional (Nash is skipped without it).

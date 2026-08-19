@@ -31,6 +31,7 @@ import type {
 } from "../src/types.ts";
 import { buildDecision } from "./enumerate.ts";
 import { deriveFeatures } from "./features.ts";
+import { menuOf, type DecisionSink, type LoggedRejection } from "./log.ts";
 import type {
   Agent,
   AgentAnswer,
@@ -58,6 +59,13 @@ export interface DriverOptions {
    * whole point of the projection boundary is that nothing which makes decisions holds this object.
    */
   audit?: (state: MatchState) => void;
+  /**
+   * The decision log. Written DURING the game, one record per applied command, so a game that is
+   * abandoned — the `--serve` human seat closing the tab — keeps everything it played. This is the
+   * sink the projection boundary permits: it is handed the seat's own feature block, never `state`.
+   * See the header of `log.ts` for why the two hooks are not the same hook.
+   */
+  sink?: DecisionSink;
 }
 
 /** Progress data that is safe for any viewer. */
@@ -174,19 +182,24 @@ export async function runArenaMatch(
     const agent = agents[seat];
     const view = projectStateForSeat(state, seat);
     let answer: AgentAnswer;
+    // Computed once and reused across retries: the view has not changed, so re-deriving it per
+    // attempt produced an identical object. It is also exactly what the log stores as the position.
+    //
+    // Unconditional, INCLUDING for forced decisions, and that is not just tidiness: a forced choice
+    // the engine then refuses drops into the retry loop below, which DOES consult the agent. Deriving
+    // this lazily left `features` null on exactly that path, and `prompt.ts` stringifies it, so a
+    // council would have been asked to re-choose with the literal `null` in place of every derived
+    // number — a silent quality loss that reads as a bad model answer rather than a driver bug.
+    const features = deriveFeatures(view, seat);
 
     if (decision.forced) {
-      // Auto-played. Not billed, not logged as a decision — there was nothing to decide.
+      // Auto-played. Not billed, and not a decision — there was nothing to decide. It is still
+      // logged, as an `auto` record, because a transcript missing the forced steps is not a game.
       answer = { index: 0, reason: null };
     } else {
       options.onDecision?.(decision, view);
       answer = normalize(
-        await agent.decide({
-          view,
-          decision,
-          features: deriveFeatures(view, seat),
-          rejection: null,
-        }),
+        await agent.decide({ view, decision, features, rejection: null }),
       );
     }
 
@@ -198,6 +211,9 @@ export async function runArenaMatch(
     // submitting a byte-identical `resolvePrompt`. So a rejected choice is REMOVED from the menu
     // before re-asking, which turns a guaranteed failure into an actual recovery.
     const rejected = new Set<number>();
+    /** Every pick the engine refused, kept for the log: a near-miss is how an enumerate/engine
+     *  mismatch gets diagnosed, and it used to be discarded the moment the retry succeeded. */
+    const rejections: LoggedRejection[] = [];
     let lastReason = "";
     // Because each rejection REMOVES a choice, the loop is bounded by the menu size and cannot spin.
     // So the cap is the menu, not a fixed 3: if any legal option exists we will reach it.
@@ -218,19 +234,48 @@ export async function runArenaMatch(
         // Only accepted commands enter the record. `replayMatch(config, commands)` must reproduce the
         // game exactly, and a rejected command in that list is noise at best.
         commands.push(choice.command);
-        if (!decision.forced) {
-          decisions.push({
-            commandIndex: commands.length - 1,
+        const commandIndex = commands.length - 1;
+        if (decision.forced) {
+          options.sink?.auto({
+            commandIndex,
+            seat,
+            turn: decision.turnNumber,
+            kind: choice.kind,
+            label: choice.label,
+            command: choice.command,
+          });
+        } else {
+          const entry: DecisionLog = {
+            commandIndex,
             seat,
             agent: agent.name,
+            author: answer.author ?? agent.author,
             turnNumber: decision.turnNumber,
             source: decision.source,
             kind: choice.kind,
             choiceCount: decision.choices.length,
-            chosenIndex: answer.index,
+            // `choice.index`, NOT `answer.index`. Line above falls back to `choices[0]` when an agent
+            // answers out of range, so recording the REQUEST would give a row whose `chosenIndex` is
+            // absent from its own `menu` — and `menu[chosenIndex] === what was played` is the one
+            // invariant the corpus exists to provide. The bad request is kept below instead of lost.
+            chosenIndex: choice.index,
+            requestedIndex: answer.index === choice.index ? null : answer.index,
             chosenLabel: choice.label,
             reason: answer.reason ?? null,
             disagreement: answer.disagreement ?? null,
+          };
+          decisions.push(entry);
+          // `GameRecord.decisions` stays the SUMMARY — `branching.ts` reads it and a fat entry would
+          // multiply `last-run.json` by ~20x for no reader. The corpus fields go to the sink only.
+          options.sink?.decision({
+            ...entry,
+            phase: decision.phase,
+            position: features,
+            menu: menuOf(decision.choices),
+            rejections,
+            prompt: decision.prompt,
+            truncated: decision.truncated,
+            command: choice.command,
           });
         }
         state = result.state;
@@ -244,6 +289,7 @@ export async function runArenaMatch(
       attempt++;
       rejected.add(answer.index);
       lastReason = String(result.reason ?? "Command rejected.");
+      rejections.push({ i: answer.index, label: choice.label, reason: lastReason });
       const remaining = decision.choices.filter((c) => !rejected.has(c.index));
       if (attempt > retryCap || remaining.length === 0) break;
 
@@ -253,7 +299,7 @@ export async function runArenaMatch(
           // The narrowed menu is what the agent answers against, so a re-asked agent cannot repeat
           // itself. Indices stay stable because `Choice.index` is assigned once, at enumeration.
           decision: { ...decision, choices: remaining, forced: remaining.length === 1 },
-          features: deriveFeatures(view, seat),
+          features,
           rejection: lastReason,
         }),
       );
@@ -261,6 +307,19 @@ export async function runArenaMatch(
 
     if (!applied) {
       termination = "illegal-command";
+      // The rejections ARE the diagnosis, and until now they lived only in a console line — so a
+      // killed or unattended session could not say why it died. Record before breaking out.
+      options.sink?.abort({
+        commandIndex: commands.length,
+        seat,
+        turn: decision.turnNumber,
+        source: decision.source,
+        kind: decision.choices[0]?.kind ?? "?",
+        position: features,
+        menu: menuOf(decision.choices),
+        rejections,
+        prompt: decision.prompt,
+      });
       illegalDetail =
         `${decision.source}/${decision.choices[0]?.kind ?? "?"} on turn ${decision.turnNumber}: ` +
         `${rejected.size} of ${decision.choices.length} choice(s) rejected — last reason: ${lastReason}` +

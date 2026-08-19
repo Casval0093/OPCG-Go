@@ -9,6 +9,7 @@ exercised against the live API** — see "What is not done".
 ./scripts/arena.sh --show-prompt --north players/deepseek-flash.json               # what a model sees; costs nothing
 ./scripts/arena.sh --games 20 --integrity                                          # hidden-info audit + branching
 ./scripts/arena.sh --serve --north players/deepseek-flash.json                     # you vs a DeepSeek council
+./scripts/arena.sh --replay arena/logs/<file>.jsonl --contested                     # read your own game back
 ```
 
 ## Decks
@@ -45,6 +46,8 @@ arena/providers/     the vendor seam: types.ts (shared contract) · anthropic.ts
 arena/agents/        human.ts (browser) · scripted.ts (anchor) · council.ts (LLM)
 arena/server.ts      zero-dependency HTTP + SSE + image proxy/cache
 arena/web/board.html both fields, card art, click-a-card-to-filter-moves
+arena/log.ts         the decision corpus: append-only NDJSON, written per decision
+arena/replay.ts      replayMatch — reconstruct a recorded game from (config, commands)
 arena/integrity.ts   proves no seat can see hidden information — with a mutation probe
 arena/branching.ts   decisions-per-game report
 players/*.json       one file per entrant; names a model, never a credential
@@ -119,6 +122,175 @@ option offered, so the next one is diagnosable in a single run.
 
 **The underlying mismatch is still there and is worth chasing** — it is exactly the trait-filter class
 CLAUDE.md already records (`OP02-013_p3` misspells `"Whitebeard Piratess"`, the trait Ace keys on).
+
+## The decision log
+
+Every non-forced decision is written to `arena/logs/<timestamp>.jsonl` **as it is made**, with the
+position it was made in, the whole menu it was chosen from, who chose, and why. This is
+`docs/policy-proposals.md` §A2's "decision corpus — every `(state, legal moves, choice, reason)`
+tuple", and it is also the review tool for a human game.
+
+```bash
+./scripts/arena.sh --serve --deck-south sim/decks/ace-op16.json      # logs by default
+./scripts/arena.sh --replay arena/logs/2026-08-19T18-20-53.jsonl     # summary + transcript
+./scripts/arena.sh --replay <file> --contested                       # only the positions that were hard
+./scripts/arena.sh --replay <file> --verbose                         # include the moves NOT taken
+./scripts/arena.sh --games 5 --verify-replay                         # does the record reproduce the game
+./scripts/arena.sh --games 5 --no-log                                # opt out
+node --test arena/log.test.ts                                        # 14 tests, no engine needed
+python3 tools/mutation_check_arena.py                                # 13 mutants, all must be caught
+```
+
+### What was already there, and what was missing
+
+`driver.ts` always built a `DecisionLog[]` and `main.ts` always wrote it — to a single
+`arena/results/last-run.json`, **overwritten every run and written only after the last game
+finished**. Four gaps, and the first is the one that mattered:
+
+1. **A `--serve` session abandoned mid-game left nothing.** Ping's own games are the scarcest data
+   this project will ever hold, and a human game is precisely the one someone walks away from.
+2. **Run N+1 destroyed run N.** There was no corpus, only a most-recent snapshot.
+3. **The position was not stored.** That is `(choice, reason)`, not the tuple above.
+4. **A human's `reason` was hardcoded `null`** in `agents/human.ts`. So "record human decisions"
+   recorded *which index*, never *why* — the half worth having.
+
+`replayMatch(config, commands)`, cited in `docs/arena.md`, `arena/types.ts` and `arena/driver.ts` as
+the property that made a stored decision "verifiable rather than merely recorded", **did not exist
+anywhere in the tree.** That was the stated justification for gap 3. It exists now (`arena/replay.ts`),
+and the log no longer leans on it: the position is stored inline, and replay *audits* the record
+instead of being the only way to read it. `--verify-replay` folds each game's commands back over a
+fresh match and compares — 2/2 and 1/1 reproduced exactly on ST01, and the check goes red when a single
+command is dropped.
+
+### NDJSON, flushed per decision
+
+One JSON object per line, `writeSync` to an append-mode fd, no buffering. A killed process leaves a
+**valid** file, short by at most one record, and `readLog` reports a torn final line rather than
+hiding it. Measured, not assumed: a 40-game run `kill -9`'d at game 6 left **747 decisions and 6
+complete games** readable, and `--replay` parsed it without complaint.
+
+Record types: `run` (once), `game` (config included, so the log alone is replayable), `auto` (a forced
+command — three fields, kept so a transcript is a readable game), `decision`, `abort`, `outcome`.
+
+A **corrupt middle** line is skipped and counted (`corrupt`), not fatal. That is the same promise as
+the torn tail, and only the tail honoured it at first — one bad line mid-file threw and denied access
+to every intact decision around it. The default filename also carries the **pid**: `logStamp` has
+one-second resolution and the writer appends by design, so without it two runs started in the same
+second merged into one file with two `run` headers and two games both numbered `game: 1`.
+
+### The position snapshot is `deriveFeatures`, and that is a security decision
+
+`position` is the same feature block the agent was handed. Free — the driver already computes it — and
+`features.ts` is derived **from the projection**, so it cannot contain hidden information and
+`integrity.ts` proves that rather than asserting it. A logger that snapshotted `MatchState` would be a
+second, unaudited path out of the projection boundary, which is what `driver.ts`'s `audit` hook warns
+against in as many words. `--integrity` still PASSes with the log wired, and the mutation probe still
+fires.
+
+`positionKey` follows the same rule: a fingerprint of (position, menu labels) — the "fingerprint plus
+the legal-move set" key `docs/policy-proposals.md` names for CRN caching, but computed from the
+projection so it stays usable by something that will only ever hold a view. **It is not
+`semanticState`'s hash and is not comparable with it.**
+
+### `author` is a field, not a guess from the agent's name
+
+Every decision records `human` / `model` / `heuristic`, and it is per-decision rather than per-agent
+because the two differ: a council routes procedural decisions to the heuristic and **degrades** to it
+on a refusal, a rate limit or an exhausted call budget. This doc already says a council that quietly
+became a heuristic would void a tournament's standings; that fact is now in every row instead of only
+in an end-of-run counter.
+
+It is also what makes the corpus filterable, and one filter needed it. `contested` — the sampling
+criterion for the bank — is *disagreement non-empty, or a non-heuristic author wrote a reason*.
+Without `author` it would have been "has a reason", and `scriptedAgent` narrates **every** decision it
+makes (`improved score 1210`), so a scripted game would have come back **100% contested**. Measured
+after the fix: a scripted 2-game run reports `contested: 0`; a human game with 8 typed notes among 29
+decisions reports `contested: 8`.
+
+### The corpus invariant: `menu[chosenIndex]` is what was played
+
+The driver falls back to option 0 when an agent answers out of range, so recording the agent's
+*request* as `chosenIndex` produced rows whose `chosenIndex` was absent from their own `menu` —
+self-contradictory, and exactly what a distilled policy would learn a wrong label→index mapping from.
+`chosenIndex` is now the index actually applied, and the bad request is kept as `requestedIndex`
+(`null` when the pick was honoured), which turns a corrupted row into a model-quality signal that the
+transcript and `summarise` both surface. Verified with a stand-in agent that hallucinates index 999 on
+every fifth decision: **2 out-of-range requests recorded, 0 rows whose `chosenIndex` is absent from
+their menu.**
+
+### Capturing a human's reason
+
+The board carries an **optional** free-text note above the move list, sent with the click and cleared
+after it. Optional is the design: at 60–110 substantive decisions per seat per game a mandatory box
+would be abandoned by turn three, and an abandoned box that still submits is worse than none. That
+makes a typed reason a signal in itself — it marks the positions Ping thought were worth a note, which
+is exactly what `contested` reads.
+
+Verified end to end by driving the seat over the same HTTP surface the browser uses (SSE stream →
+`POST /api/choose {index, reason}`): 8 human decisions landed in the log with their notes and
+`author: "human"`, alongside 21 correctly attributed to the scripted opponent.
+
+Two incidental fixes came with it. The side panel was a 4-row CSS grid holding 5 children and laid out
+correctly **only** because `#prompt` is `display:none` most of the time (a `display:none` element is not
+a grid item); a sixth child would have stolen the flexible row from the move list, so it is flexbox now.
+And `POST /api/choose` trims and caps the note at 600 characters server-side, because that is the
+boundary an arbitrary POST reaches.
+
+### `process.exit(0)` was discarding every audit's verdict
+
+Found while checking that `--verify-replay` could fail. `main()` ended with `process.exit(0)`, which
+overrides `process.exitCode`, and **both** audits in the file fail by setting that field — the replay
+check and, already, the integrity checks. So `--integrity` has never been able to fail a run: a hard
+hidden-information violation printed `FAIL` and exited 0. Now `process.exit(process.exitCode ?? 0)`,
+verified red (1) against a mutated `replay.ts` and green (0) clean.
+
+### Size, and what to keep
+
+**~390 KB per ST01 game, ~690 KB per real Block 2+ game** (`mihawk-green-proxy`), the menu being most
+of it. So Ping's 10–20 human games are ~14 MB and a 200-game council run is ~140 MB. `arena/logs/` is
+therefore gitignored as working output; a game worth **keeping** — a human game, or a council game with
+real dissent — gets copied to `arena/corpus/`, which is tracked.
+
+Incidental and stated rather than buried: those two Mihawk games reported **112.5** substantive
+decisions per seat per game against the **89.2** in the table below. Two games is not a measurement and
+the branching table is not being revised — but do not assume the two figures are the same quantity
+until someone re-runs it properly.
+
+### Tests
+
+`node --test arena/log.test.ts` — **17 tests**, and they run from a clean checkout with **no engine, no
+vitest, no 767 MB clone**, because `log.ts` imports the engine's types with `import type` only and
+Node's type stripping erases those lines. Mutation-checked by
+`python3 tools/mutation_check_arena.py`: **16 mutants, 16 caught, 0 survivors.** CLAUDE.md records that
+tests which cannot fail are this project's most frequent defect, so the harness is committed rather
+than run once — a mutant that survives names the vacuous test, and a mutant whose anchor has moved is
+reported STALE rather than passing quietly (that fired once, on the short-write fix, and is why the
+anchor is current).
+
+One thing is deliberately **not** mutated and therefore claims no coverage: the retry loop around
+`writeSync`, which can return fewer bytes than asked and does not retry itself. A regular-file write
+does not come back short in practice, so any test claiming to cover it would pass with the loop
+deleted — i.e. it would be precisely the vacuous test the harness exists to catch. The loop stays as
+documented defence.
+
+**The LLM half of "human and LLM decisions" is verified without a live API call.** A stand-in agent
+shaped exactly like `councilAgent`'s return value — `author: "model"`, a reason, a dissent set, and a
+per-decision degrade — plays a real game through the real driver into the real log: **9 model-authored
+decisions, 3 degraded from the same agent name and correctly attributed to `heuristic`, 3 carrying
+dissent.** What that does not cover is the provider adapters themselves, which this change did not
+touch and which CLAUDE.md records have never made a live call.
+
+### Five defects found reviewing this change, all fixed
+
+Reported and fixed before merge, listed because three were introduced by the change itself:
+
+| defect | consequence |
+|---|---|
+| `features` hoisted to `null` for forced decisions | a forced choice the engine then refuses re-asks the agent, so a council would have re-chosen with `null` in place of every derived number — silent, and looks like a bad model answer |
+| `chosenIndex` recorded the request, not the applied index | rows whose `chosenIndex` is absent from their own `menu` |
+| default log path collided at one-second granularity | two runs in the same second merge into one file with duplicate game numbers |
+| `readLog` threw on a corrupt middle line | one bad line denied access to the whole corpus |
+| `verifyDecisionAnchors` exported, never called | dead code with an untested off-by-one tolerance that read as a guarantee — deleted |
 
 ## Integrity
 
@@ -268,8 +440,11 @@ card id, so an SC swap is a one-file change.
   arena plays single matches today.
 - **No clock.** Ping's call — not needed yet. The engine has no wall clock, so a 30-minute round
   would be modelled as a per-player chess clock in the driver, counting LLM latency.
-- **No decision bank.** `GameRecord.decisions` captures every non-forced decision with its reason and
-  its disagreement set, and `replayMatch(config, commands)` makes each one exactly reconstructable —
-  but nothing yet stores, features, or retrieves them, so the learning loop is not closed.
+- **The decision bank stores and reads back, but does not RETRIEVE.** Decisions are now persisted
+  per decision with their position, menu, author and reason (see "The decision log"), and
+  `replayMatch` exists, so the corpus is durable and verifiable. What is still missing is the second
+  half of the learning loop: nothing *features* or *retrieves* a stored position — no nearest-position
+  lookup, no distillation. `positionKey` is the intended index and is deliberately projection-derived
+  so a retrieval path cannot become a leak, but nothing consumes it yet.
 - **Play quality is unmeasured.** The scripted mirror is 5–5 over 10 games, which is a symmetry check,
   not a skill test.

@@ -34,12 +34,24 @@ export interface BoardPayload {
   message: string | null;
 }
 
+/**
+ * A human's answer. The `reason` is OPTIONAL and that is the whole design: at ~60 substantive
+ * decisions per seat per game, a mandatory text box would be abandoned by the third turn and the
+ * seat would stop being playable. So the board offers a box, sends whatever is in it, and never
+ * blocks on it — which makes a typed reason a signal in itself, marking the positions Ping thought
+ * were worth a note. `log.ts`'s `contested` filter uses exactly that.
+ */
+export interface HumanChoice {
+  index: number;
+  reason: string | null;
+}
+
 export interface ArenaServer {
   readonly url: string;
   /** Publish a new board state to every connected client. */
   publish(payload: Partial<BoardPayload>): void;
-  /** Block until the human clicks a choice. Resolves with the chosen index. */
-  awaitChoice(decision: Decision, view: PlayerView, rejection: string | null): Promise<number>;
+  /** Block until the human clicks a choice. Resolves with the chosen index and any typed reason. */
+  awaitChoice(decision: Decision, view: PlayerView, rejection: string | null): Promise<HumanChoice>;
   close(): void;
 }
 
@@ -79,7 +91,7 @@ export function startServer(options: {
     awaitingYou: false,
     message: "Waiting for the match to start…",
   };
-  let pending: ((index: number) => void) | null = null;
+  let pending: ((choice: HumanChoice) => void) | null = null;
 
   const broadcast = () => {
     const frame = `data: ${JSON.stringify(current)}\n\n`;
@@ -159,16 +171,20 @@ export function startServer(options: {
       let body = "";
       req.on("data", (chunk) => (body += chunk));
       req.on("end", () => {
-        const index = Number(JSON.parse(body || "{}").index);
+        const payload = JSON.parse(body || "{}") as { index?: unknown; reason?: unknown };
+        const index = Number(payload.index);
         if (!pending || !Number.isInteger(index)) {
           res.writeHead(409).end('{"ok":false}');
           return;
         }
+        // Capped and trimmed here rather than in the browser: this is the boundary an arbitrary POST
+        // can reach, and an unbounded string would go straight into every log line.
+        const raw = typeof payload.reason === "string" ? payload.reason.trim().slice(0, 600) : "";
         const resolvePending = pending;
         pending = null;
         publish({ awaitingYou: false, decision: null, message: "Resolving…" });
         res.writeHead(200).end('{"ok":true}');
-        resolvePending(index);
+        resolvePending({ index, reason: raw.length > 0 ? raw : null });
       });
       return;
     }
@@ -183,7 +199,7 @@ export function startServer(options: {
     url,
     publish,
     awaitChoice(decision, view, rejection) {
-      return new Promise<number>((resolvePromise) => {
+      return new Promise<HumanChoice>((resolvePromise) => {
         pending = resolvePromise;
         publish({
           view,

@@ -88,12 +88,24 @@ export interface AgentContext {
 }
 
 /**
+ * WHO actually decided. Recorded per decision, not per agent, because the two differ: a council
+ * routes procedural decisions to the heuristic and DEGRADES to it on a refusal, a rate limit or an
+ * exhausted call budget. `docs/arena.md` is emphatic that a council which quietly became a heuristic
+ * would void a tournament's standings — this is that fact written into every row instead of only into
+ * an end-of-run counter, which is also what makes "human decisions" and "LLM decisions" separable in
+ * the corpus without sniffing an agent's name.
+ */
+export type Author = "human" | "model" | "heuristic";
+
+/**
  * An agent's answer. A bare number is the choice index; the object form additionally carries the
  * reasoning that makes the decision log useful, and — for a council — which proposals lost.
  */
 export interface AgentAnswer {
   index: number;
   reason?: string | null;
+  /** Overrides the agent's own `author` for THIS decision. A council sets it when it degrades. */
+  author?: Author;
   /**
    * One entry per proposer that wanted a different move. Non-empty means the position was
    * genuinely contested, which is the sampling criterion for the decision bank.
@@ -103,6 +115,8 @@ export interface AgentAnswer {
 
 export interface Agent {
   readonly name: string;
+  /** Default author for this agent's answers. A single answer may override it. */
+  readonly author: Author;
   /** Returns the chosen `Choice`'s index. Out-of-range answers are re-prompted, then defaulted. */
   decide(context: AgentContext): Promise<number | AgentAnswer>;
   /** Called once when the match ends, so an agent can log or reflect. */
@@ -140,12 +154,22 @@ export interface DecisionLog {
   commandIndex: number;
   seat: MatchSeat;
   agent: string;
+  /** Who really made this one. See `Author` — it is not derivable from `agent`. */
+  author: Author;
   turnNumber: number;
   source: Decision["source"];
   /** `Choice.kind` of the option taken — the axis the branching-factor breakdown is grouped by. */
   kind: string;
   choiceCount: number;
+  /** Index of the option ACTUALLY applied. Always present in this decision's own `menu`. */
   chosenIndex: number;
+  /**
+   * The index the agent asked for, when it differed from the one applied — i.e. it was out of range
+   * and the driver fell back to option 0. `null` when the agent's pick was honoured, which is the
+   * normal case. A non-null value here is a model-quality signal (a hallucinated or unparsed answer),
+   * and it used to be silently written into `chosenIndex` where it corrupted the row instead.
+   */
+  requestedIndex: number | null;
   chosenLabel: string;
   /** Free-text reason, when the agent supplies one. */
   reason: string | null;
