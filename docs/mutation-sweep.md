@@ -168,6 +168,9 @@ tool:
 python3 tools/mutation_sweep.py --verify runs/serial.jsonl --engine PATH
 ```
 
+The sweep is deterministic: re-running OP06 (94 cards, 283 mutants) on a fresh clone reproduces
+the recorded verdicts exactly — same killed counts, same survivor labels, card for card.
+
 Both tools trap `SIGTERM` and restore every mutated encoding before exiting, and `--resume` picks
 up from the jsonl, so a sweep can be stopped at any moment. This is not theoretical: an early run
 killed with a plain `pkill` left an `oncePerTurn: false` mutant behind in a clone. Verify with
