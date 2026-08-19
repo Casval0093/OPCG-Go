@@ -76,7 +76,9 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   [Whitebeard Pirates] bodies and refused four. **The trait filter was never wrong** — the prompt's
   own `eligibleIds` was correct and every refused card was in it; all 104 trait/name filters across
   `cards/OP15` + `cards/OP16` resolve to real catalog values, so there is no
-  "Whitebeard Piratess"-class typo in the encodings. Blast radius was **171 of the 185 encodings
+  "Whitebeard Piratess"-class typo in the encodings. **That clears the filter *values* only —
+  the trait *matching semantics* are separately broken, and that is not this note. Do not read
+  this as "traits have been checked": see the trait-matching fact below.** Blast radius was **171 of the 185 encodings
   with a `search` action** (every one that reveals to hand), and only 19 are OP15/OP16 — the other
   152 are upstream's own cards. Fix is patch 2 in `tools/patch_engine.py`; A/B on the 10-game Ace
   mirror with the arena's masking retry disabled: **`illegal-command=1` → `rules-win=10`**. Engine
@@ -96,6 +98,9 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   and transform/import dominate). Nothing needed fixing; they were only unwired. Measured twice — by
   hand-editing the include, then through `patch_engine.py` — identically. **Our OP01–OP14 conformance
   baseline roughly doubled at zero cost, so quote 6078, not 3370.**
+  **"Nothing needed fixing" is a statement about *wiring*, not about correctness — those 6078
+  tests and the encodings they check were authored from the same printed text, so a green suite
+  proves self-consistency, not fidelity. `OP06-054` is the proof; see the audit fact below.**
   **An interim version of this note carried an OP12-only sample (+100 files / +132 tests) and warned
   that a bulk enable "may surface pre-existing failures elsewhere". The full enable has been run and
   nothing fails, so that caveat is VOID — do not reinstate it.**
@@ -208,6 +213,49 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   (`{ ...baseCard, id: "..._p2" }`) and the check never followed it; 22 have a null printed
   effect written as `effect: "NULL"` and the check read the key's presence as text.
   309 + 22 = 331 and 103 + 22 = 125 — both reconcile exactly. Do not re-add this work item.
+  **This measures whether a card HAS an encoding, never whether the encoding is RIGHT. Both
+  questions are open and only the first one is closed; the second is `docs/encoding-audit.md`.**
+
+- **OP01–OP14 encodings are audited and defective, and the green test suite cannot see it —
+  2026-08-19, `docs/encoding-audit.md`, re-run `python3 tools/audit_encodings.py`.**
+  Printed-text agreement is 96.4% (1606/1666). Verified against Limitless, engine-side and
+  Standard-legal: **11 wrong/absent numeric stats** (`OP06-051` counter 4000→2000, `OP08-082`
+  and `OP10-043` 1000→2000, `OP14-019` cost 4→1, plus 6 where the key is missing outright —
+  `EB03-009` Makino has neither power nor counter), **9 wrong trait values** (`OP11-012` stores
+  `["Navy SWORD"]` for Straw Hat Crew; `EB03-034` stores Big Mom Pirates for Rocks Pirates;
+  `OP05-096` is `[]` while its own effect keys on `{Celestial Dragons}`), and **7 printed
+  `[Trigger]` abilities that exist in neither the text field nor the `effects:` encoding**
+  (`EB04-028`, `OP06-056`, `OP06-102`, `OP06-103`, `OP08-076`, `OP12-101`, `OP13-059`).
+  **The proof that tests do not help: `OP06-054` Borsalino** is printed "5 or less cards in your
+  hand" and encoded `handCount lte 4`, and `tests/cards/characters/op06-054-borsalino.test.ts`
+  asserts `test("does not gain Blocker with five cards in hand")` — the opposite of the card, and
+  it passes. A per-card test asserts that the encoding matches *the text the encoder read*, so it
+  is blind to wrong source text and will actively resist the fix.
+  **Neither data source is authoritative — adjudicate every divergence on Limitless.** Of six
+  adjudicated, the engine won four (`OP09-058`, `OP11-020`, `OP13-077`, `OP05-032`) and lost two
+  (`OP06-054`, `OP13-084`). Do not bulk-apply the npm dataset over the engine.
+  Also: **70 Standard-legal encodings are referenced by no test at all** (generous upper-bound
+  counting), including 14 OP15 and 12 OP16 — ours, not upstream's.
+
+- **Trait matching is structurally unsound, and the fix is two halves that do not work alone.**
+  Upstream stores a multi-trait card as ONE space-joined string — `OP01-003` is
+  `traits: ["Straw Hat Crew Supernovas"]` — on **838 cards**. Our own OP15/OP16 store `["A","B"]`
+  correctly, so this is upstream's defect. `effects/targeting.ts` branches on `match: "includes"`
+  to a **substring** test, which is what makes the joined store work at all — and **597 of 599
+  trait filters set it**. It is also why **19 of the 164 official traits are proper substrings of
+  another official trait**, producing **175 Standard-legal false matches**: `Animal` matches all 84
+  `Animal Kingdom Pirates`, `Navy` matches `Former Navy`/`Neo Navy`, and **`Whitebeard Pirates`
+  matches `Former Whitebeard Pirates`/`Whitebeard Pirates Allies` (10 Standard)** — which is
+  `OP16-001` Ace's key trait, so the engine is currently **more generous than the card in the
+  direction that flatters the Ace deck**, against ruling #961 which makes the grant narrower.
+  **Splitting the joined values is a precondition, not the fix**: with traits split and `includes`
+  kept, `"Former Whitebeard Pirates".includes("Whitebeard Pirates")` is still true. Both halves are
+  required — (1) split the 838 values, (2) collapse the `targeting.ts` branches to
+  `(card.traits ?? []).includes(expectedTrait)`. **Step 2 leaves all 597 `match: "includes"`
+  declarations untouched**, because once traits are split that is already what they mean; the only
+  casualties are the **21 filters with genuine prefix intent**, `CP` (14) and `GERMA` (7), neither
+  of which is an official trait. This is an engine behaviour change, so it wants its own branch and
+  a before/after 6078-test run — do not fold it in with the data corrections.
 - **Variant printed text is not trustworthy; base text is.** 39 of 315 spread printings
   disagree with the base whose encoding they execute — 16 have lost the `−` from a debuff
   ("give 3000 power" for a card that gives −3000), 12 differ by a bracketed keyword.
