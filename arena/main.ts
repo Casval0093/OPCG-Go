@@ -22,6 +22,17 @@ import {
   type CouncilMember,
 } from "./agents/council.ts";
 import { startServer, type ArenaServer } from "./server.ts";
+import {
+  contested,
+  defaultLogPath,
+  openDecisionLog,
+  readLog,
+  renderTranscript,
+  sinkFor,
+  summarise,
+  type DecisionLogWriter,
+} from "./log.ts";
+import { verifyReplay } from "./replay.ts";
 import type { Agent, GameRecord } from "./types.ts";
 import { reportBranching } from "./branching.ts";
 import { auditor, selfTest, type Violation } from "./integrity.ts";
@@ -44,6 +55,16 @@ interface Args {
   integrity: boolean;
   /** Print exactly what a model would see at the first real decision, then exit. Costs nothing. */
   showPrompt: boolean;
+  /** Decision-log path. Empty means "a stamped file under arena/logs/"; `--no-log` disables it. */
+  log: string;
+  noLog: boolean;
+  /** Read a decision log back: summary, then transcript. No engine work, no games played. */
+  replay: string;
+  /** With `--replay`: print the options NOT taken, and restrict to contested decisions. */
+  verbose: boolean;
+  contested: boolean;
+  /** Re-apply each game's recorded commands and check the outcome reproduces. Roughly 2x runtime. */
+  verifyReplay: boolean;
 }
 
 function parseArgs(argv: string[]): Args {
@@ -61,6 +82,12 @@ function parseArgs(argv: string[]): Args {
     port: 8787,
     integrity: false,
     showPrompt: false,
+    log: "",
+    noLog: false,
+    replay: "",
+    verbose: false,
+    contested: false,
+    verifyReplay: false,
   };
   for (let i = 0; i < argv.length; i++) {
     const flag = argv[i];
@@ -78,6 +105,12 @@ function parseArgs(argv: string[]): Args {
       case "--port": args.port = Number(value); i++; break;
       case "--integrity": args.integrity = true; args.quiet = true; break;
       case "--show-prompt": args.showPrompt = true; args.quiet = true; break;
+      case "--log": args.log = value!; i++; break;
+      case "--no-log": args.noLog = true; break;
+      case "--replay": args.replay = value!; i++; break;
+      case "--verbose": args.verbose = true; break;
+      case "--contested": args.contested = true; break;
+      case "--verify-replay": args.verifyReplay = true; break;
       default:
         throw new Error(`unknown option: ${flag}`);
     }
@@ -148,8 +181,48 @@ function makeAgent(
   }
 }
 
+/**
+ * Read a decision log back. Deliberately the FIRST thing `main` does: reviewing a log must not need
+ * decks, an opponent, or a card catalog, because the common case is looking at a game that has
+ * already been played — possibly one that was abandoned halfway, which is the case NDJSON exists for.
+ */
+function replayLog(args: Args): void {
+  const path = resolve(args.root, args.replay);
+  const { entries, torn, unknown, corrupt } = readLog(path);
+  console.log(`${path}\n${summarise(entries)}`);
+  if (torn) {
+    console.log(
+      "  NOTE: the final line is incomplete — this run was killed mid-write. Every earlier " +
+        "record is intact; exactly one decision was lost.",
+    );
+  }
+  if (unknown > 0) {
+    console.log(`  NOTE: ${unknown} record(s) of an unknown type — written by a newer format version.`);
+  }
+  if (corrupt > 0) {
+    console.log(
+      `  WARNING: ${corrupt} non-final line(s) were not valid JSON and were skipped. That means two ` +
+        `processes appended to this path, or a write was truncated. Everything else below is intact.`,
+    );
+  }
+  console.log("");
+  if (args.contested) {
+    const hard = contested(entries);
+    console.log(`CONTESTED DECISIONS (${hard.length}) — a written reason or a dissenting proposer\n`);
+    console.log(renderTranscript(hard, { verbose: args.verbose }));
+  } else {
+    console.log(renderTranscript(entries, { verbose: args.verbose }));
+  }
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
+
+  if (args.replay) {
+    replayLog(args);
+    process.exit(0);
+  }
+
   const south: Deck = loadDeck(args.root, args.deckSouth);
   const north: Deck = loadDeck(args.root, args.deckNorth);
   assertPlayable(south, north);
@@ -222,6 +295,20 @@ async function main() {
     process.exit(0);
   }
 
+  // Opened AFTER `--show-prompt` exits, so inspecting a prompt never leaves an empty log behind.
+  const writer: DecisionLogWriter | null = args.noLog
+    ? null
+    : openDecisionLog(args.log ? resolve(args.root, args.log) : defaultLogPath(args.root), {
+        south: `${agents.south.name} (${south.name})`,
+        north: `${agents.north.name} (${north.name})`,
+        deckSouth: args.deckSouth,
+        deckNorth: args.deckNorth,
+        games: args.games,
+        seed: args.seed,
+        catalog: allCards.length,
+      });
+  if (writer) console.log(`decisions -> ${writer.path}`);
+
   const audit = args.integrity ? auditor() : null;
   const records: GameRecord[] = [];
   const tally: Record<string, number> = { south: 0, north: 0, none: 0 };
@@ -232,6 +319,7 @@ async function main() {
       south: agents.south.name,
       north: agents.north.name,
     });
+    writer?.game({ game: g + 1, seats: { south: agents.south.name, north: agents.north.name }, config });
     const record = await runArenaMatch(config, agents, {
       maxCommands: 800,
       onUpdate: (views, progress) => {
@@ -239,7 +327,10 @@ async function main() {
         server.publish({ view: views[humanSeat], progress });
       },
       audit: audit?.audit,
+      // Written per decision, not per run: a game abandoned in the browser keeps what it played.
+      sink: writer ? sinkFor(writer, g + 1) : undefined,
     });
+    writer?.outcome({ game: g + 1, ...record.outcome, decisions: record.decisions.length });
     records.push(record);
     tally[record.outcome.winner ?? "none"]!++;
     terminations[record.outcome.termination] = (terminations[record.outcome.termination] ?? 0) + 1;
@@ -258,6 +349,25 @@ async function main() {
   );
 
   reportBranching(records);
+
+  // Does the recorded command list actually reproduce the game it claims to? This is what makes a
+  // logged decision verifiable rather than merely written down, and it was asserted in three comments
+  // for a function that did not exist. Opt-in, because a replay costs about what the game cost.
+  if (args.verifyReplay) {
+    let bad = 0;
+    for (const [index, record] of records.entries()) {
+      const verdict = verifyReplay(record);
+      if (verdict.ok) continue;
+      bad++;
+      console.log(`\nREPLAY MISMATCH game ${index + 1}:`);
+      for (const line of verdict.mismatches) console.log(`  ${line}`);
+    }
+    console.log(
+      `\nREPLAY  ${records.length - bad}/${records.length} game(s) reproduced exactly from ` +
+        `(config, commands)` + (bad ? " *** MISMATCHES ABOVE ***" : ""),
+    );
+    if (bad > 0) process.exitCode = 1;
+  }
 
   if (audit) {
     const byCheck = new Map<string, Violation[]>();
@@ -308,11 +418,19 @@ async function main() {
   const outPath = resolve(outDir, "last-run.json");
   writeFileSync(outPath, JSON.stringify({ args, records }, null, 1));
   console.log(`wrote ${outPath}`);
+  if (writer) {
+    writer.close();
+    console.log(`wrote ${writer.path}   (read it with: --replay ${writer.path})`);
+  }
 
   if (server) {
     console.log("board still served; Ctrl-C to stop.");
   } else {
-    process.exit(0);
+    // `process.exit(0)` was here, and it DISCARDED `process.exitCode`. Both audits in this file set
+    // that field to fail a run — the integrity checks and the replay verification — so the hard
+    // integrity failure has never actually been able to fail one. Exiting with what was set is the
+    // difference between an audit and a decoration. Verified by mutating replay.ts: 1 -> exit 1.
+    process.exit(process.exitCode ?? 0);
   }
 }
 

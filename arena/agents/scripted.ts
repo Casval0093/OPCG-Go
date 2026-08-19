@@ -156,6 +156,7 @@ export function scriptedAgent(mode: ScriptedMode = "improved", label?: string): 
 
   return {
     name: label ?? `scripted:${mode}`,
+    author: "heuristic",
     async decide(context: AgentContext) {
       const first = context.decision.choices[0]!;
       if (first.kind === "chooseJoKenPo") {
@@ -179,6 +180,7 @@ export function scriptedAgent(mode: ScriptedMode = "improved", label?: string): 
 export function firstLegalAgent(): Agent {
   return {
     name: "scripted:firstLegal",
+    author: "heuristic",
     async decide() {
       return 0;
     },

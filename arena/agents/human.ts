@@ -8,13 +8,17 @@ import type { Agent, AgentContext } from "../types.ts";
 export function humanAgent(server: ArenaServer, name = "human"): Agent {
   return {
     name,
+    author: "human",
     async decide(context: AgentContext) {
-      const index = await server.awaitChoice(
+      // The reason comes back from the board's optional note field. It is the only thing a human seat
+      // contributes to the decision corpus that an LLM seat does not get for free, and it was
+      // hardcoded `null` until now — so "record human decisions" recorded which index, never why.
+      const { index, reason } = await server.awaitChoice(
         context.decision,
         context.view,
         context.rejection,
       );
-      return { index, reason: null };
+      return { index, reason };
     },
     async finish(view, outcome) {
       server.publish({

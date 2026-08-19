@@ -14,3 +14,6 @@ sim/results/
 .env
 arena/.cache/
 arena/results/
+# Decision logs are working output: one file per run, ~400 KB per ST01 game. A game worth KEEPING
+# (a human game, a council game with real dissent) gets copied to arena/corpus/, which is tracked.
+arena/logs/
