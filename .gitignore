@@ -22,3 +22,7 @@ arena/logs/
 # results live in runs/*.jsonl, which IS tracked.
 .clones/
 runs/*.out
+
+# Pristine upstream engine clone, kept un-patched as the baseline for upstream measurements
+# (CLAUDE.md: "measure upstream facts in a CLEAN upstream clone, never in vendor/")
+.engine-base/
