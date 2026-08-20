@@ -14,6 +14,38 @@ holds OP15/OP16 only, so every encoding the vendored engine owns was outside its
 The 1,419 pre-OP15 rows are the cards that produce at least one mutant; the other 352 of the
 1,771 encoded pre-OP15 definitions produce none and are discussed under *Instrument coverage*.
 
+### The OP15/OP16 row depends on WHICH path measured it, and the two disagree by 33 cards
+
+`mutation_check.py` has two entry points for these two sets and they are not interchangeable. The
+**180 cards / 523 mutants** above came from `--vendor-set`, which is what `runs/sweep_all.sh` drives.
+Running the same 213 encoded cards through `--set` instead gives **105 OP15 + 108 OP16 = 213
+records, 182 `ok` and 31 `no-mutants`**. Neither count is wrong; they are answers to different
+questions, and two things cause the 33-card gap:
+
+- **`--vendor-set` SKIPS a zero-mutant card rather than recording it.** `--set` records it as
+  `no-mutants`. That is the whole difference in the `ok` column, and it matters because **"no mutants
+  generated" and "all mutants killed" are the same green today and they are not the same fact.** A
+  zero-mutant card is *unperturbable*, not verified — the five operators found no filter, threshold,
+  zone or once-per-turn flag to touch. `runs/mutation_shard.py --aggregate` therefore prints the two
+  buckets separately and labels the second UNVERIFIED, so a run cannot be quoted as "every encoding
+  verified".
+- **`--vendor-set` attributes tests by imported symbol, from the grafted copy under `vendor/`.** So it
+  cannot see a test file that exists in `cards/tests/` but has not been grafted, and it mutates the
+  graft rather than the repo's pristine encoding. `--set` reads the encoding from `cards/` — the
+  documented source of truth (`docs/plans/encode-op15-op16.md`, Global Constraint #1) — and derives
+  the test path from the card filename.
+
+So `--set` is the correct path for the two sets this repo OWNS, and `--vendor-set` is the correct one
+for the 1,771 upstream encodings, where there is no second copy. Only `--vendor-set` has a batched
+implementation (`tools/mutation_sweep.py`); `--set` is one process per card, which is why
+`runs/mutation_shard.py` exists to shard it across APFS engine clones.
+
+**The 523 figure is also set-relative and moves when this repo encodes more.** Unparking the six
+`setBasePowerLiteral` clauses added 19 mutants — OP15-070 1→4, OP15-071 1→4, OP15-092 3→6,
+OP16-058 2→5, and OP16-015/OP16-106 appearing at 6 and 1 where they generated none — taking the
+`--set` total to **542/542, 0 survivors**. Quote 523 for the state this sweep measured and 542 only
+against a tree that has those six encoded.
+
 Both halves were measured with the same tool, the same operators and the same attribution, on the
 same day, against a suite that is green (3,665 files / 6,078 pass / 2 skipped).
 

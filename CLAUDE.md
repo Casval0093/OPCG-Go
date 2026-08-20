@@ -91,7 +91,10 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   Phase 1 + Phase 2 + `setBasePower`: **6078 → 6111, +33**, all of it OP15/OP16, which alone went
   **738 → 771** (measured, not inferred). Phase 1 added NO vitest tests — its counter-policy
   coverage lives in `tools/mutation_check_engine.py` — so the suite was 6078 both before and after
-  it, and 3666 files throughout.
+  it. **File counts are as unstable as skip counts and for the same reason** — measured on a CLEAN
+  tree with nothing copied into `tests/cards/`: **3665 files / 6078 pass / 2 skipped**, and with
+  `bench/throughput.test.ts` copied in, 3666 / 6079. So Phase 1's "3666 files / 6079 tests" is the
+  bench-inclusive pair. Quote the PASS count.
   **The recurring off-by-one is `bench/throughput.test.ts`.** It is not in the suite; copying it
   into `tests/cards/` as this file's own command does adds exactly one test. That is where the
   **6079** in Phase 1's note and in the old `scripts/bootstrap.sh` comment comes from: 6078 card
@@ -341,7 +344,15 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   `card.power ?? 0` plus attached DON!! straight off the printed card (`:169-171`), the play-value
   heuristic reads `card.power / 100` and `/ 50` (`:163-164`, `:329-330`), and the attack bonus gates
   on `attacker.power >= 5000` (`:342`) — all printed. So attacker choice, DON!! allocation and
-  attack scoring are blind to every power-changing effect. **Phase 1's `automation/counter-policy.ts`
+  attack scoring are blind to every power-changing effect. Counted rather than asserted, by the
+  branch fixing it: only `greedy` (1 read) and `valueRanked` (4) consult power at all, so
+  `firstLegal`/`random`/`passOnly` have zero between them — a repro puzzle fails for all five but
+  for two different reasons, and only two rungs are actually fixable this way.
+  **A fix is in flight on `claude/cranky-matsumoto-8d4137` and is NOT merged; do not read this note
+  as stale until it is.** That branch also reports the ladder unmoved by the change — full 10-pair
+  round robin, 8 of 10 pairs byte-identical, the two that moved inside ±7pt CIs — with Phase 2's
+  table validated as a control first.
+  **Phase 1's `automation/counter-policy.ts`
   is the exception and reads it properly**: `getCardPower(state, battle.attackerId)` and
   `getCardPower(state, battle.targetId) + battle.counterTotal` (`:415-416`), so the defender's
   counter decision DOES see a set base power. `battle.ts` resolves combat correctly either way, so
@@ -1004,8 +1015,18 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   |---|---|---|---|
   | synthetic-4card | 51.9 | 112.3 | **2.16x** |
   | ST01-real-50 | 96.9 | 140.8 | 1.45x |
+  **On the baselines, because two sessions measured this and got different BEFORE figures.** The
+  51.9/96.9 above are a fresh pre-Phase-1 run on this host with the same bench binary as the after
+  run — like-for-like, which is the only comparison this project treats as quotable. The 51.1/94.6
+  further down this file are an OLDER session's figures and are what the bot-policy branch reasoned
+  from; same direction, different host-run. The AFTER figures were independently reproduced at
+  112.3/140.8 by that branch, matching to the decimal, which is what makes both measurements
+  trustworthy and localises the disagreement to the baseline alone.
   This is the same effect Phase 2 recorded as "game length doubled" on the ladder deck, arriving at
-  a second instrument. **Consequence: the "deck-realism multiplier is ~1.79x per game, making
+  a second instrument. **Independently measured with a CONTROL by the bot-policy branch, which is
+  the better evidence**: it read 1.11-1.18x/0.88-0.94x patched and **1.12x/0.90x on an UNPATCHED
+  arm**, which attributes the shift to Phase 1 rather than inferring it from the mechanism as this
+  note originally did. **Consequence: the "deck-realism multiplier is ~1.79x per game, making
   Option C optimistic by ~3.4x" argument below no longer rests on a current number.** Re-derive it
   before using it to size anything, and note that per-command cost stayed flat (0.82-0.93x), so the
   original conclusion — the cost is state transitions, not effect resolution — still holds.
