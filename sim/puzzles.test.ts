@@ -43,8 +43,14 @@
 // leaders screened for INERTNESS instead, also asserted below.
 
 import { test } from "vite-plus/test";
-import { allCards, op16PortgasDAce001, op16PortgasDAce118, op01Sai012 } from "@tcg/op-cards";
-import { applyCommand, getLegalCommands } from "../../src/core.ts";
+import {
+  allCards,
+  op16PortgasDAce001,
+  op16PortgasDAce118,
+  op01Sai012,
+  op10Sanji005,
+} from "@tcg/op-cards";
+import { applyCommand, createMatch, getLegalCommands } from "../../src/core.ts";
 import {
   valueRankedStrategy,
   greedyStrategy,
@@ -54,10 +60,23 @@ import {
   commandFromDescriptor,
 } from "../../src/automation/bot-strategies.ts";
 import type { OnePieceBotStrategy } from "../../src/automation/bot-strategies.ts";
-import { resolveBotPromptCommand } from "../../src/automation/bot-harness.ts";
+import { resolveBotPromptCommand, runBotMatch } from "../../src/automation/bot-harness.ts";
+import {
+  COUNTER_POLICY_DEFAULTS,
+  counterPolicyConfig,
+  decideCounter,
+  hasEncodedAbility,
+  setCounterPolicyConfig,
+} from "../../src/automation/counter-policy.ts";
 import { OnePieceTestEngine } from "../../src/index.ts";
 import { getCardPower, getKeywords } from "../../src/shared.ts";
-import type { EngineCommand, MatchSeat, MatchState } from "../../src/types.ts";
+import type {
+  EngineCommand,
+  MatchConfig,
+  MatchSeat,
+  MatchState,
+  PromptState,
+} from "../../src/types.ts";
 
 const run = process.env.SIM_PUZZLES === "1" ? test : test.skip;
 
@@ -92,6 +111,17 @@ const V7000 = "EB01-018"; // Mountain God
 const V8000 = "OP06-005"; // Gasparde
 const V9000 = "OP09-067"; // Jinbe
 const BLOCKER = "OP05-013"; // 2000 body carrying the real [Blocker] keyword (Task 5)
+// A body whose PLAYED power is not its printed power, for the effective-power puzzle below.
+// `[Your Turn] This Character gains +3000 power` -- printed 3000, plays 6000 on your own turn, no
+// keywords, no [Activate: Main], nothing else on the board required to switch it on. Chosen BY
+// MEASUREMENT, not by reading encodings: a probe over every character in the catalog with printed
+// power <= 6000 asked the engine `getCardPower` on a bare board and reported the seven cards that
+// answer above their printed value; this is the one with the largest gap. `fixture integrity`
+// re-measures both numbers so the puzzle cannot quietly stop meaning what its prose says.
+const PUMPED_3000 = "OP10-005"; // Sanji
+// An Event whose printed [Trigger] is "Draw 1 card." -- used as a LIFE card to pin the
+// resolver's Trigger choice (Task 1.3). Chosen for being harmless; it is never resolved.
+const TRIGGER_LIFE_CARD = "EB02-030";
 
 type Klass = "lethal" | "futile" | "donAllocation" | "sequencing" | "koVsDamage";
 
@@ -371,6 +401,7 @@ function board(
     { leaderCardId: opts.northLeader ?? LEADER, deck: 20, ...north },
     { activeSeat: SEAT, firstPlayer: "north" },
   );
+  advancePastFirstTurn(engine);
   if (opts.restLeader) {
     // The acting leader is a legal attacker in its own right, so resting it is how a puzzle isolates
     // a choice among CHARACTERS. Found the hard way: a puzzle meant to force the 8000 body was also
@@ -380,6 +411,33 @@ function board(
     if (inst) inst.rested = true;
   }
   return engine;
+}
+
+/**
+ * PHASE 2 TASK 2.3 -- move a fixture off turn 1.
+ *
+ * A fixture materialises a mid-game board and leaves `turnNumber` at 1 whatever position it
+ * describes, so `test-fixtures.ts` sets `allowFirstTurnAttacks: true` to keep the first-turn attack
+ * ban from refusing its attacks (39 card tests in 31 files depend on that). These puzzles do not
+ * need the exemption: their positions are mid-game by construction, so they are placed on a turn
+ * that is genuinely past the acting seat's own first turn and stop depending on the flag at all.
+ *
+ * WHY 4. Turns alternate from the first player, so the first player owns the odd turns and the
+ * second player the even ones. Every fixture here seats the ACTING player as the SECOND player, so
+ * its own turns are the even ones and its FIRST is turn 2 -- turn 4 is its second turn. Setting it
+ * on the state rather than through `endTurn` is deliberate: a real `endTurn` would run a refresh, a
+ * DON!! phase and a draw, which would rewrite the exact hand and DON!! counts every puzzle depends
+ * on.
+ *
+ * Safe against the fixture traps this suite already documents: bodies use `playedOnTurn: 0`, so
+ * `playedOnTurn === turnNumber` summoning sickness stays false; the first-turn DON!! rule is
+ * `turnNumber === 1` only; and no fixture sets a turn-scoped modifier.
+ */
+function advancePastFirstTurn(engine: OnePieceTestEngine): void {
+  const state = engine.getState();
+  const acting = state.activeSeat;
+  const ownFirstTurn = acting === state.config.firstPlayer ? 1 : 2;
+  state.turnNumber = ownFirstTurn + 2;
 }
 
 /** The concrete commands a seat could actually submit, expanded from the legal descriptors.
@@ -500,6 +558,31 @@ const PUZZLES: Puzzle[] = [
         },
         { life: 0 },
         { restLeader: true },
+      ),
+    expect: "pass",
+  },
+  // The same "pick a body that reaches" decision as lethal-reaching-attacker, with ONE difference:
+  // which body reaches is decided by a live power-changing effect rather than by printed power. It
+  // is here because every other puzzle in this file can be solved by reading the printed numbers off
+  // the cards, so none of them can see whether the policy reads the power a card actually plays at.
+  // Inert leaders on both seats (not batch 1's OP01-001) so the ONLY non-printed power on the board
+  // is the one under test.
+  {
+    id: "lethal-effective-power-attacker",
+    klass: "lethal",
+    mode: "command",
+    why: "North is on 0 life behind a 6000 Leader. The printed-5000 body whiffs; the printed-3000 body plays at 6000 (`[Your Turn] This Character gains +3000 power`) and reaches, so it wins outright. Printed power ranks the two the WRONG way round, so a policy that reads `card.power` instead of `getCardPower` picks the body that cannot connect.",
+    build: () =>
+      board(
+        {
+          hand: 0,
+          character: [
+            { cardId: V5000, playedOnTurn: 0 },
+            { cardId: PUMPED_3000, playedOnTurn: 0 },
+          ],
+        },
+        { life: 0, hand: 0 },
+        { restLeader: true, southLeader: LEAD_INERT_5000, northLeader: LEAD_INERT_6000 },
       ),
     expect: "pass",
   },
@@ -926,6 +1009,159 @@ run("fixture integrity", () => {
     if (getKeywords(s, inst).size !== 0)
       throw new Error(`${id} is not vanilla: keywords ${[...getKeywords(s, inst)].join(",")}`);
   }
+
+  // 4. lethal-effective-power-attacker is the one puzzle whose answer is NOT readable off the
+  //    printed cards, so both halves of its premise are measured rather than trusted: the body must
+  //    print 3000 (or the printed ranking against V5000 stops being inverted, and the puzzle no
+  //    longer discriminates) AND it must play at 6000 in that puzzle's own fixture (or it stops
+  //    reaching the 6000 Leader and the position becomes unsolvable). It must also stay keyword-free
+  //    -- a [Blocker] or [Rush] would give the position a second reason to move.
+  {
+    const printed = (op10Sanji005 as { power?: number }).power ?? 0;
+    if (printed !== 3000)
+      throw new Error(`${PUMPED_3000} now prints ${printed}, not the 3000 the puzzle inverts`);
+    const s = PUZZLES.find((q) => q.id === "lethal-effective-power-attacker")!
+      .build()
+      .getState();
+    const insts = s.players[SEAT].characterArea.filter((x): x is string => Boolean(x));
+    const pumped = insts.find((i) => s.cards[i]!.cardId === PUMPED_3000);
+    if (!pumped) throw new Error(`${PUMPED_3000} is not on the board in its own puzzle`);
+    const plays = getCardPower(s, pumped);
+    if (plays !== 6000)
+      throw new Error(
+        `${PUMPED_3000} plays at ${plays}, not the 6000 that reaches ${LEAD_INERT_6000} — ` +
+          `the puzzle is no longer solvable`,
+      );
+    if (getKeywords(s, pumped).size !== 0)
+      throw new Error(
+        `${PUMPED_3000} is no longer keyword-free: ${[...getKeywords(s, pumped)].join(",")}`,
+      );
+    // And the decoy really is ranked above it on PRINTED power, which is the whole inversion.
+    const decoy = insts.find((i) => s.cards[i]!.cardId === V5000);
+    if (!decoy) throw new Error(`${V5000} is not on the board in its own puzzle`);
+    if (!(printed < 5000 && getCardPower(s, pumped) > getCardPower(s, decoy))) {
+      throw new Error(
+        `the inversion is gone: printed ${printed} vs 5000, played ` +
+          `${getCardPower(s, pumped)} vs ${getCardPower(s, decoy)}`,
+      );
+    }
+  }
+});
+
+/**
+ * `bot-strategies.ts` now reads BOARD power through `getCardPower` (the
+ * `bot-strategies: the policy compared PRINTED power` patch), but the two reads that
+ * score a card in HAND were deliberately left on printed power, and this is the measurement that
+ * justified it -- asserted rather than written in a comment, because a comment cannot notice when it
+ * stops being true. If either half of this goes red the decision has to be revisited: a hand card's
+ * power would then be something the `playCard` scoring cannot see.
+ */
+run("hand-card power is printed power, so the two hand reads stay printed", () => {
+  let checked = 0;
+  const disagree: string[] = [];
+  for (const card of allCards) {
+    if (card.cardType !== "character") continue;
+    const printed = (card as { power?: number }).power ?? 0;
+    let state: MatchState;
+    try {
+      state = OnePieceTestEngine.create(
+        // activeDon 5 on purpose: getCardPower credits attached DON!! only while its controller is
+        // the active seat, and a hand card must never pick any up.
+        { leaderCardId: LEAD_INERT_5000, deck: 20, hand: [card.id], life: 2, activeDon: 5 },
+        { leaderCardId: LEAD_INERT_5000B, deck: 20, hand: 0, life: 2 },
+        { activeSeat: SEAT, firstPlayer: "north" },
+      ).getState();
+    } catch {
+      continue; // a card the fixture builder will not seat; not this test's subject
+    }
+    const inst = state.players[SEAT].hand[0];
+    if (!inst) continue;
+    checked++;
+    const actual = getCardPower(state, inst);
+    if (actual !== printed) disagree.push(`${card.id} printed=${printed} inHand=${actual}`);
+  }
+
+  // Structural half: nothing in the PRINTED catalog aims a permanent power modifier at a hand zone
+  // in a way that could reach a CHARACTER's power.
+  //
+  // TWO SCOPING DECISIONS HERE, both load-bearing, both the difference between a guard and a
+  // false alarm.
+  //
+  // (1) `allCards` is the PRINTED catalog and that is deliberate, not incidental. It is
+  //     `Object.freeze([...])` built at module scope in `packages/cards/src/index.ts`, and
+  //     `registerCards` feeds the RUNTIME registry one-directionally -- so a card a *test file*
+  //     registers at module scope is invisible here. That matters concretely: a sibling branch adds
+  //     a synthetic hand-buffing EventCard as a test fixture (the only way to falsify a
+  //     `cardCategory: "character"` filter, since `basePower()` returns 0 for a non-character, so
+  //     no printed card can be a non-Character with power). Under `isolate: false` that fixture
+  //     persists across files in a worker and WOULD be seen if this enumerated the runtime
+  //     registry. The frozen-ness is asserted below so that repointing this at the runtime registry
+  //     fails here loudly instead of quietly reporting somebody's fixture as a real card.
+  // (2) A `self: true` modifier on a card that is not a character or leader is SKIPPED. Both reads
+  //     this test protects (`cardValue`, and `valueRanked`'s `playCard` branch) are gated on
+  //     `cardType === "character"` before they touch `.power`, and `basePower()` is 0 for anything
+  //     else -- so an Event that buffs only itself in hand cannot change either decision. Widening
+  //     this to "any hand-zone power modifier" would fail on a card that provably does not matter.
+  //     HONEST LIMITATION: the printed catalog contains ZERO hand-zone power modifiers today, so
+  //     this filter is currently unreachable and therefore UNTESTED -- it encodes the intended
+  //     verdict for the first real hit rather than something the suite exercises. The frozen-ness
+  //     check above IS exercised (inverting it turns this test red; verified).
+  //     WHAT WOULD ACTUALLY FLIP THIS, stated narrowly so nobody re-runs it and concludes nothing:
+  //     not "a card modifies power in hand" in the abstract, but specifically an encoding that
+  //     writes a POWER action (`modifyPower`/`setPower`, and on the in-flight `setBasePowerLiteral`
+  //     branch also `setBasePower`) carrying `zones: ["hand"]`. "Base power becomes N" is a field
+  //     effect and no printed card is shaped that way, so such an encoding would be an ENCODING
+  //     ERROR rather than a consequence of any primitive -- which is the right thing for this test
+  //     to catch. Cross-checked, not assumed: that branch measured this same assertion against its
+  //     own redefined `getCardPower` with all its patches applied and got 1968 characters / 0
+  //     disagreements, and reports every `setBasePower` target there scoped to leader/character
+  //     only. Treat that as their measurement, not one made here.
+  //     COROLLARY, for whoever points a mutation driver at this file: an unreachable filter is also
+  //     an UNKILLABLE mutant, so perturbing `zones` or the `self` flag here would report a survivor
+  //     that is not a vacuous assertion but dead-by-catalog code. No driver attributes this file
+  //     today -- it is not a card encoding, so neither `--set` nor `--vendor-set` reaches it -- but
+  //     if that changes, this filter is where the false survivor will appear. Triage it as
+  //     unreachable, not as a missing assertion.
+  if (!Object.isFrozen(allCards))
+    throw new Error(
+      "allCards is no longer frozen, so this scan may be reading runtime-registered TEST FIXTURES " +
+        "as printed cards — see scoping decision (1) above before trusting its verdict",
+    );
+  const handTargeted: string[] = [];
+  for (const card of allCards) {
+    const blocks = (card as { effects?: { permanentEffects?: unknown[] } }).effects
+      ?.permanentEffects;
+    if (!Array.isArray(blocks)) continue;
+    const ownerCarriesPower = card.cardType === "character" || card.cardType === "leader";
+    for (const block of blocks as Array<{ actions?: Array<Record<string, unknown>> }>) {
+      for (const action of block.actions ?? []) {
+        if (action.action !== "modifyPower" && action.action !== "setPower") continue;
+        const target = action.target as { zones?: string[]; self?: boolean } | undefined;
+        if (!target?.zones?.includes("hand")) continue;
+        if (target.self === true && !ownerCarriesPower) continue; // decision (2)
+        handTargeted.push(`${card.id} ${String(action.action)}`);
+      }
+    }
+  }
+
+  console.log(
+    `\n  hand-card power: ${checked} characters checked, ${disagree.length} disagreements; ` +
+      `permanent power modifiers aimed at a hand zone: ${handTargeted.length}`,
+  );
+  if (checked < 1900)
+    throw new Error(`only ${checked} characters were seated — the probe is broken`);
+  if (disagree.length)
+    throw new Error(
+      `getCardPower disagrees with printed power in HAND for ${disagree.length} card(s) — ` +
+        `bot-strategies.ts's hand reads must now go through getCardPower: ` +
+        disagree.slice(0, 5).join("; "),
+    );
+  if (handTargeted.length)
+    throw new Error(
+      `${handTargeted.length} permanent power modifier(s) now reach a character's power in hand — ` +
+        `re-open the decision in the "bot-strategies: the policy compared PRINTED power" patch: ` +
+        handTargeted.slice(0, 5).join("; "),
+    );
 });
 
 /**
@@ -990,67 +1226,710 @@ run("no ladder strategy can choose an attack target", () => {
 });
 
 /**
- * TASK 5 -- THE PROMPT RESOLVER, NOT THE POLICY. Reported apart and never folded into the ladder
- * totals, because `runBotMatch` resolves a pending prompt via `resolveBotPromptCommand(state,
- * prompt)`, which never receives the strategy at all (bot-harness.ts). Counter play and blocker use
- * are defender-side prompts, so they are not policy decisions in this engine and a puzzle about
- * them would measure the wrong thing.
+ * TASK 1.1 -- NEITHER PLAYER MAY ATTACK ON THEIR OWN FIRST TURN.
  *
- * Both prompts are built with `minSelections: 0` -- the counter step in battle.ts and the block step
- * in engine/queue.ts -- and the resolver's selectCards branch takes
- * `Math.min(maxSelections, minSelections)`, which is therefore ALWAYS 0. The bot can never counter
- * and can never block. That is asserted here rather than described, because it silently biases every
- * simulated matchup: combat resolves on printed power plus DON!! alone, with no defensive
- * interaction of any kind.
+ * The Official Rule Manual's Battle Flow footnote is "Neither player can attack on their first
+ * turn." `canAttackWith` gated only the FIRST player, and turn numbering is per PLAYER-turn, so the
+ * second player's own first turn is `turnNumber === 2` and it went through. The engine fix is
+ * `battle: neither player may attack on their own first turn` in tools/patch_engine.py.
+ *
+ * THIS PROBE WALKS A REAL MATCH, not a fixture, and that is the point. A fixture materialises a
+ * mid-game board with its turn counter stuck at 1, so `test-fixtures.ts` sets
+ * `allowFirstTurnAttacks: true` (alongside the three other opening rules it already suspends) --
+ * without which 39 card tests in 31 files fail with "The selected attacker cannot attack." So no
+ * fixture can exercise the ban, and only a match driven through joKenPo, mulligan and startGame
+ * can. The second assertion below pins the fixture flag itself, so deleting it fails loudly here
+ * instead of silently reverting those 39 tests.
  */
-run("the prompt resolver never counters and never blocks", () => {
-  // --- counter: a defender holding real counter cards still takes the damage.
-  for (const handSize of [1, 3]) {
-    const engine = OnePieceTestEngine.create(
-      {
-        leaderCardId: LEAD_INERT_5000,
-        deck: 20,
-        life: 3,
-        hand: Array.from({ length: handSize }, () => ({ cardId: V5000 })),
-      },
-      { leaderCardId: LEAD_INERT_5000B, deck: 20, life: 3, hand: 0 },
-      { activeSeat: OPP, firstPlayer: SEAT },
-    );
-    const s = engine.getState();
-    const lifeBefore = s.players[SEAT].life.length;
-    const r = applyCommand(s, {
-      type: "declareAttack",
-      seat: OPP,
-      attackerId: s.players[OPP].leaderInstanceId,
-      targetId: s.players[SEAT].leaderInstanceId,
-    } as EngineCommand);
-    if (!r.accepted) throw new Error(`fixture drift: the attack was rejected (${r.reason})`);
+const PROBE_DECK = [V3000, V4000, V5000, V6000];
 
-    const prompt = r.state.promptQueue.find((e) => e.status === "pending");
-    if (!prompt || prompt.choiceKind !== "selectCards") {
-      throw new Error(
-        `fixture drift: expected a pending selectCards counter prompt, got ${prompt?.choiceKind ?? "none"}`,
+function probeConfig(firstPlayer: MatchSeat): MatchConfig {
+  const deck = Array.from({ length: 50 }, (_, i) => PROBE_DECK[i % PROBE_DECK.length]!);
+  return {
+    firstPlayer,
+    seed: "first-turn-attack-probe",
+    shuffleDecks: true,
+    openingHandSize: 5,
+    skipFirstTurnDraw: true,
+    maxCharacterSlots: 5,
+    players: {
+      south: { leaderCardId: LEAD_INERT_5000, mainDeck: deck, playerName: "SouthProbe" },
+      north: { leaderCardId: LEAD_INERT_5000B, mainDeck: deck, playerName: "NorthProbe" },
+    },
+  };
+}
+
+interface ProbeRow {
+  turn: number;
+  seat: MatchSeat;
+  offered: boolean;
+}
+
+/**
+ * Drive a real match to `active`, then report for each of the first four player-turns whether the
+ * active seat is offered a declareAttack.
+ *
+ * `config.firstPlayer` is NOT what decides who leads -- the joKenPo winner's `chooseFirstPlayer`
+ * overwrites it (CLAUDE.md). So the setup driver deliberately picks the descriptor naming the seat
+ * this probe wants leading, which is how one probe can cover both seats in both roles, and the
+ * table reports the post-setup value rather than the requested one.
+ */
+function firstTurnAttackProbe(desiredFirst: MatchSeat): {
+  firstPlayer: MatchSeat;
+  rows: ProbeRow[];
+} {
+  let state = createMatch(probeConfig(desiredFirst));
+  for (let guard = 0; guard <= MAX_TURN_STEPS * 2; guard++) {
+    if (state.status !== "setup") break;
+    if (guard === MAX_TURN_STEPS * 2) throw new Error("setup did not finish");
+    const drained = drainPrompts(state);
+    state = drained.state;
+    if (state.status !== "setup") break;
+    const legal = [...getLegalCommands(state, "south"), ...getLegalCommands(state, "north")];
+    const actor = legal.find((d) => d.seat === "south" || d.seat === "north");
+    if (!actor) throw new Error("setup stalled: no seat has a legal command");
+    const seat = actor.seat as MatchSeat;
+    const mine = legal.filter((d) => d.seat === seat);
+    const chosenFirst = mine.find(
+      (d) => d.type === "chooseFirstPlayer" && d.targetIds?.[0] === desiredFirst,
+    );
+    const cmd = chosenFirst
+      ? commandFromDescriptor(state, seat, chosenFirst)
+      : passOnlyStrategy(state, seat, mine);
+    if (!cmd) throw new Error(`setup stalled: no command for ${seat}`);
+    const r = applyCommand(state, cmd);
+    if (!r.accepted) throw new Error(`setup stalled: ${cmd.type} rejected (${r.reason})`);
+    state = r.state;
+  }
+  if (state.status !== "active") throw new Error(`setup ended in status ${state.status}`);
+
+  const firstPlayer = state.config.firstPlayer;
+  const rows: ProbeRow[] = [];
+  for (let i = 0; i < 4; i++) {
+    const drained = drainPrompts(state);
+    state = drained.state;
+    const seat = state.activeSeat;
+    rows.push({
+      turn: state.turnNumber,
+      seat,
+      offered: getLegalCommands(state, seat).some((d) => d.type === "declareAttack"),
+    });
+    const r = applyCommand(state, { type: "endTurn", seat } as EngineCommand);
+    if (!r.accepted) throw new Error(`turn ${state.turnNumber}: endTurn rejected (${r.reason})`);
+    state = r.state;
+  }
+  return { firstPlayer, rows };
+}
+
+run(
+  "neither player may attack on their own first turn",
+  () => {
+    const failures: string[] = [];
+    console.log("\nFIRST-TURN ATTACK BAN  (real match, driven through setup)");
+    for (const desiredFirst of ["north", "south"] as MatchSeat[]) {
+      const { firstPlayer, rows } = firstTurnAttackProbe(desiredFirst);
+      console.log(`  firstPlayer=${firstPlayer}`);
+      for (const row of rows) {
+        const ownFirstTurn = row.turn === (row.seat === firstPlayer ? 1 : 2);
+        const ok = row.offered === !ownFirstTurn;
+        console.log(
+          `    turn ${row.turn}  ${row.seat.padEnd(5)}  declareAttack offered=${String(row.offered).padEnd(5)}` +
+            `  ${ownFirstTurn ? "(its own first turn)" : ""}  ${ok ? "" : "  <-- WRONG"}`,
+        );
+        if (!ok) {
+          failures.push(
+            `firstPlayer=${firstPlayer} turn ${row.turn} ${row.seat}: offered=${row.offered}, expected ${!ownFirstTurn}`,
+          );
+        }
+      }
+    }
+
+    // The fixture escape hatch, asserted rather than assumed: 39 card tests in 31 files depend on it,
+    // and it is the reason the probe above has to drive a real match.
+    const fixture = OnePieceTestEngine.create({}, {}).getState();
+    if (fixture.config.allowFirstTurnAttacks !== true) {
+      failures.push(
+        "test-fixtures.ts no longer sets allowFirstTurnAttacks -- 39 card tests in 31 files fail " +
+          "with 'The selected attacker cannot attack.' without it (tools/patch_engine.py)",
       );
     }
-    if (prompt.minSelections !== 0) {
-      throw new Error(
-        `the counter prompt's minSelections is ${prompt.minSelections}, not 0 — the never-counters result depended on it being 0`,
+
+    // And the arithmetic itself, seat by seat and turn by turn, with the fixture flag cleared. This
+    // is the same rule the real match above exercises, stated as a table so a formulation that
+    // happens to be right for one seat and wrong for the other cannot pass.
+    console.log("  fixture probe with allowFirstTurnAttacks cleared:");
+    for (const firstPlayer of ["north", "south"] as MatchSeat[]) {
+      for (const turn of [1, 2, 3, 4]) {
+        // Whose turn a given number is, if turns alternate from the first player.
+        const seat: MatchSeat =
+          turn % 2 === 1 ? firstPlayer : firstPlayer === "north" ? "south" : "north";
+        const engine = OnePieceTestEngine.create(
+          { leaderCardId: LEAD_INERT_5000, deck: 20, hand: 0 },
+          { leaderCardId: LEAD_INERT_5000B, deck: 20, hand: 0 },
+          { firstPlayer, activeSeat: seat },
+        );
+        const state = engine.getState();
+        state.config.allowFirstTurnAttacks = undefined;
+        state.turnNumber = turn;
+        const offered = getLegalCommands(state, seat).some((d) => d.type === "declareAttack");
+        const ownFirstTurn = turn === (seat === firstPlayer ? 1 : 2);
+        console.log(
+          `    first=${firstPlayer.padEnd(5)} turn ${turn}  ${seat.padEnd(5)}  offered=${String(offered).padEnd(5)}` +
+            `  ${ownFirstTurn ? "(its own first turn)" : ""}`,
+        );
+        if (offered !== !ownFirstTurn) {
+          failures.push(
+            `fixture probe first=${firstPlayer} turn ${turn} ${seat}: offered=${offered}, expected ${!ownFirstTurn}`,
+          );
+        }
+      }
+    }
+
+    if (failures.length) throw new Error(failures.join(" | "));
+  },
+  30_000,
+);
+
+// -------------------------------------------------------------------------------------------
+// TASK 1.2 -- counterPlay. THE PROMPT RESOLVER, NOT A LADDER POLICY, and reported apart for the
+// same reason the block below is: `runBotMatch` resolves a defender-side prompt through
+// `resolveBotPromptCommand(state, prompt)`, which never sees a strategy at all. Scoring these
+// against the ladder would be a category error, so they get their own table and their own totals.
+//
+// Before `counter-policy.ts` the bot never countered: the resolver's selectCards branch takes
+// `Math.min(maxSelections, minSelections)` and the counter prompt is built with
+// `minSelections: 0`. Damage is BINARY (`attackPower >= defensePower`, ties to the attacker), so a
+// counter either flips the battle or is entirely wasted -- there is no "counter harder" axis.
+//
+// WHAT IS ASSERTED HERE IS ONLY THE THRESHOLD-FREE PART: never spend a counter that cannot flip the
+// battle, always counter lethal, spend the fewest cards that do flip it, and tank while life is
+// comfortably above the opponent's attacker horizon. The R rule's middle -- exactly where tanking
+// turns into countering -- is OPINION, calibrated by `avgCost`, and Phase 3 measures it. Pinning it
+// with an assertion here would freeze a knob that is meant to move, so `avgCostSweep` instead
+// requires the answer to hold across the whole knob range.
+//
+// EVERY ANSWER IS ADJUDICATED BY THE ENGINE. The candidate selections below are applied through
+// `applyCommand` and the outcome is read out of the resulting state; "minimal spend" is the minimum
+// over the selections the ENGINE reports as surviving, never a hand-written notion of which card is
+// right.
+
+interface CounterPuzzle {
+  id: string;
+  why: string;
+  /** Who swings, and at what. The defender is always SEAT. */
+  attacker: "leader" | "character";
+  target: "leader" | "character";
+  /**
+   * A property of the POSITION, proved by enumeration before the policy is asked anything:
+   * "flippable" -- some selection saves the defender, so declining is a real decision;
+   * "unflippable" -- none can, so spending anything is provably waste.
+   */
+  requires: "flippable" | "unflippable";
+  answer: "spend-nothing" | "survive-minimal";
+  build: () => OnePieceTestEngine;
+  /** avgCost values the answer must hold for, so the assertion is not pinned to the knob's default. */
+  avgCostSweep?: number[];
+}
+
+interface CounterOutcome {
+  /** Instance ids that left the defender's hand. Tracked by id because taking damage ADDS the life
+   *  card to hand, so a size comparison would be wrong. */
+  spent: string[];
+  lifeLost: number;
+  lost: boolean;
+  bodyLost: boolean;
+  /** The attack accomplished nothing. */
+  flipped: boolean;
+}
+
+/** Declare the attack and stop at the counter prompt. */
+function openCounterPrompt(p: CounterPuzzle): {
+  state: MatchState;
+  prompt: PromptState;
+  handBefore: string[];
+  lifeBefore: number;
+  bodiesBefore: number;
+} {
+  const state = p.build().getState();
+  const handBefore = [...state.players[SEAT].hand];
+  const lifeBefore = state.players[SEAT].life.length;
+  const bodiesBefore = state.players[SEAT].characterArea.filter(Boolean).length;
+  const attackerId =
+    p.attacker === "leader"
+      ? state.players[OPP].leaderInstanceId
+      : state.players[OPP].characterArea.find(Boolean)!;
+  const targetId =
+    p.target === "leader"
+      ? state.players[SEAT].leaderInstanceId
+      : state.players[SEAT].characterArea.find(Boolean)!;
+  const r = applyCommand(state, {
+    type: "declareAttack",
+    seat: OPP,
+    attackerId,
+    targetId,
+  } as EngineCommand);
+  if (!r.accepted) throw new Error(`${p.id}: fixture drift -- attack rejected (${r.reason})`);
+  const prompt = r.state.promptQueue.find((entry) => entry.status === "pending");
+  if (!prompt || prompt.resolutionContext?.intent !== "battleCounter") {
+    throw new Error(
+      `${p.id}: fixture drift -- expected a pending battleCounter prompt, got ` +
+        `${prompt?.resolutionContext?.intent ?? "none"}`,
+    );
+  }
+  // The defect the policy exists for: minSelections 0 is what made the resolver's default branch
+  // select nothing. If upstream ever changes it, the policy is no longer the thing being measured.
+  if (prompt.minSelections !== 0) {
+    throw new Error(
+      `${p.id}: the counter prompt's minSelections is ${prompt.minSelections}, not 0`,
+    );
+  }
+  return { state: r.state, prompt, handBefore, lifeBefore, bodiesBefore };
+}
+
+function counterOutcome(
+  p: CounterPuzzle,
+  after: MatchState,
+  handBefore: string[],
+  lifeBefore: number,
+  bodiesBefore: number,
+): CounterOutcome {
+  const hand = after.players[SEAT].hand;
+  const spent = handBefore.filter((id) => !hand.includes(id));
+  const lifeLost = lifeBefore - after.players[SEAT].life.length;
+  const bodyLost = after.players[SEAT].characterArea.filter(Boolean).length < bodiesBefore;
+  const lost = after.winner === OPP;
+  return {
+    spent,
+    lifeLost,
+    lost,
+    bodyLost,
+    flipped: p.target === "leader" ? lifeLost === 0 && !lost : !bodyLost,
+  };
+}
+
+/** Resolve the counter prompt with an explicit selection. null = the engine rejected it, so it is
+ *  not a line the defender could have played. */
+function counterWith(p: CounterPuzzle, selectedIds: string[]): CounterOutcome | null {
+  const opened = openCounterPrompt(p);
+  const r = applyCommand(opened.state, {
+    type: "resolvePrompt",
+    seat: SEAT,
+    promptId: opened.prompt.id,
+    selectedIds,
+  } as EngineCommand);
+  if (!r.accepted) return null;
+  const after = drainPrompts(r.state).state;
+  return counterOutcome(p, after, opened.handBefore, opened.lifeBefore, opened.bodiesBefore);
+}
+
+/** Every selection the defender could submit, up to 3 cards. Hands in these positions are 1-3
+ *  cards, so this is the whole space, not a sample. */
+function counterSelections(prompt: PromptState): string[][] {
+  const ids = prompt.options.map((o) => o.id);
+  const out: string[][] = [[]];
+  for (let i = 0; i < ids.length; i++) {
+    out.push([ids[i]!]);
+    for (let j = i + 1; j < ids.length; j++) {
+      out.push([ids[i]!, ids[j]!]);
+      for (let k = j + 1; k < ids.length; k++) out.push([ids[i]!, ids[j]!, ids[k]!]);
+    }
+  }
+  return out;
+}
+
+function counterSatisfies(p: CounterPuzzle, out: CounterOutcome, minimalSpend: number): boolean {
+  switch (p.answer) {
+    case "spend-nothing":
+      return out.spent.length === 0;
+    case "survive-minimal":
+      return !out.lost && out.flipped && out.spent.length === minimalSpend;
+  }
+}
+
+const COUNTER_PUZZLES: CounterPuzzle[] = [
+  {
+    id: "counter-cannot-flip",
+    why: "A 9000 body swings at a 5000 Leader on 0 life: 4001 power is needed and the whole hand adds 2000. Damage is binary, so every non-empty selection trashes cards and loses anyway. The 0 life is what makes this a test of the never-waste rule rather than of the tank rule -- at 3 life the policy declines for the R reason and the position cannot see a broken sufficiency test at all (found by mutation, see docs/simulation.md).",
+    attacker: "character",
+    target: "leader",
+    requires: "unflippable",
+    answer: "spend-nothing",
+    build: () =>
+      counterBoard(
+        { life: 0, hand: [V5000, V5000] },
+        { character: [{ cardId: V9000, playedOnTurn: 0 }] },
+      ),
+  },
+  {
+    id: "counter-lethal-must-flip",
+    why: "South is on 0 life, so taking Leader damage ends the game (battle.ts declares the attacker the winner). 5000 into 5000 connects on the tie; 1000 of counter is enough to survive it.",
+    attacker: "leader",
+    target: "leader",
+    requires: "flippable",
+    answer: "survive-minimal",
+    build: () => counterBoard({ life: 0, hand: [V5000] }, {}),
+  },
+  {
+    id: "counter-lethal-cheapest",
+    why: "Same lethal, but two identical counters in hand. One flips the battle, so spending both is a card thrown away -- lethal forces the counter, which is what makes 'fewest cards' assertable without touching the R rule.",
+    attacker: "leader",
+    target: "leader",
+    requires: "flippable",
+    answer: "survive-minimal",
+    build: () => counterBoard({ life: 0, hand: [V5000, V5000] }, {}),
+  },
+  {
+    id: "counter-tank-early",
+    why: "South is on 4 life against an empty board and 2 DON!!, so the opponent's attacker horizon is 1-3 depending on avgCost and the hit costs one life card that goes straight to HAND, usable as a counter later. Countering here spends a card to save one it would have drawn.",
+    attacker: "leader",
+    target: "leader",
+    requires: "flippable",
+    answer: "spend-nothing",
+    // The whole plausible range of the knob. If tank-early only held at the default, this would be
+    // an assertion about avgCost rather than about the policy.
+    avgCostSweep: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+    build: () => counterBoard({ life: 4, hand: [V5000] }, { activeDon: 2 }),
+  },
+];
+
+/**
+ * A counter position: NORTH is to move and swings, SOUTH defends. Life is set explicitly to
+ * trigger-less vanilla bodies -- a life card with a [Trigger] routes to `resolution` and opens
+ * another prompt, which would fold a second resolver decision into a counter measurement.
+ */
+function counterBoard(south: object, north: object): OnePieceTestEngine {
+  const engine = OnePieceTestEngine.create(
+    { leaderCardId: LEAD_INERT_5000, deck: 20, life: [V5000, V5000, V5000, V5000], ...south },
+    { leaderCardId: LEAD_INERT_5000B, deck: 20, hand: 0, life: 4, ...north },
+    { activeSeat: OPP, firstPlayer: SEAT },
+  );
+  advancePastFirstTurn(engine);
+  return engine;
+}
+
+run(
+  "counterPlay (prompt resolver, not scored as policy)",
+  () => {
+    console.log(
+      `\nCOUNTER PLAY  ${COUNTER_PUZZLES.length} positions   ` +
+        `defaults: ${JSON.stringify(COUNTER_POLICY_DEFAULTS)}`,
+    );
+    const defects: string[] = [];
+    const failures: string[] = [];
+
+    for (const p of COUNTER_PUZZLES) {
+      const opened = openCounterPrompt(p);
+      const selections = counterSelections(opened.prompt);
+      const played = selections
+        .map((sel) => ({ sel, out: counterWith(p, sel) }))
+        .filter((entry): entry is { sel: string[]; out: CounterOutcome } => entry.out !== null);
+      const flipping = played.filter((entry) => entry.out.flipped);
+      const minimalSpend = flipping.length
+        ? Math.min(...flipping.map((entry) => entry.out.spent.length))
+        : 0;
+
+      // The position's own property, proved rather than asserted in prose.
+      if (p.requires === "flippable" && flipping.length === 0) {
+        defects.push(
+          `${p.id}: NOT FLIPPABLE -- no selection saves the defender, so nothing is asked`,
+        );
+      }
+      if (p.requires === "unflippable" && flipping.length > 0) {
+        defects.push(
+          `${p.id}: FLIPPABLE -- a counter does save the defender here, so 'never waste' is not what this position tests`,
+        );
+      }
+      const solvable = played.filter((entry) =>
+        counterSatisfies(p, entry.out, minimalSpend),
+      ).length;
+      if (solvable === 0) defects.push(`${p.id}: BROKEN -- no selection satisfies the answer`);
+      if (solvable === played.length)
+        defects.push(`${p.id}: VACUOUS -- every legal selection satisfies the answer`);
+
+      // What the SHIPPED resolver does, through the same call runBotMatch makes.
+      const sweep = p.avgCostSweep ?? [COUNTER_POLICY_DEFAULTS.avgCost];
+      const cells: string[] = [];
+      for (const avgCost of sweep) {
+        setCounterPolicyConfig({ avgCost });
+        try {
+          const fresh = openCounterPrompt(p);
+          const decision = decideCounter(fresh.state, fresh.prompt);
+          const cmd = resolveBotPromptCommand(fresh.state, fresh.prompt);
+          if (!cmd) throw new Error(`${p.id}: the resolver returned no command`);
+          const r = applyCommand(fresh.state, cmd);
+          if (!r.accepted) {
+            failures.push(`${p.id}: the resolver's own command was illegal (${r.reason})`);
+            continue;
+          }
+          const out = counterOutcome(
+            p,
+            drainPrompts(r.state).state,
+            fresh.handBefore,
+            fresh.lifeBefore,
+            fresh.bodiesBefore,
+          );
+          const ok = counterSatisfies(p, out, minimalSpend);
+          cells.push(`${avgCost}:${ok ? "pass" : "FAIL"}/${decision.reason}`);
+          if (!ok) {
+            failures.push(
+              `${p.id} (avgCost=${avgCost}): spent ${out.spent.length}, lifeLost ${out.lifeLost}, ` +
+                `lost=${out.lost}, reason=${decision.reason}, minimal spend is ${minimalSpend} -- ${p.why}`,
+            );
+          }
+        } finally {
+          setCounterPolicyConfig(null);
+        }
+      }
+      console.log(
+        `  ${p.id.padEnd(26)} ${p.answer.padEnd(16)} ${p.requires.padEnd(12)} ` +
+          `solvable ${solvable}/${played.length}  minimal=${minimalSpend}  ${cells.join("  ")}`,
       );
     }
-    const chosen = resolveBotPromptCommand(r.state, prompt) as { selectedIds?: string[] } | null;
-    if (chosen?.selectedIds?.length !== 0) {
-      throw new Error(
-        `the resolver now selects ${JSON.stringify(chosen?.selectedIds)} counters — every measurement taken before this change assumed zero`,
+
+    // THE SWEEP MECHANISM ITSELF. Phase 3 varies these knobs from outside the process, so the env
+    // path is load-bearing in a way a default is not: if OPCG_COUNTER_AVG_COST stops being read, a
+    // 15-bucket sweep silently becomes fifteen runs of the same policy and still prints a table.
+    const proc = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process;
+    const env = proc?.env;
+    if (!env) {
+      failures.push("no process.env in this runtime -- the Phase 3 sweep has no way in");
+    } else {
+      const restore = env.OPCG_COUNTER_AVG_COST;
+      try {
+        env.OPCG_COUNTER_AVG_COST = "9";
+        if (counterPolicyConfig().avgCost !== 9) {
+          failures.push(
+            `OPCG_COUNTER_AVG_COST=9 read back as ${counterPolicyConfig().avgCost} -- the env knob is not wired`,
+          );
+        }
+        // A typo must not silently become NaN and take the R rule with it.
+        env.OPCG_COUNTER_AVG_COST = "not-a-number";
+        if (counterPolicyConfig().avgCost !== COUNTER_POLICY_DEFAULTS.avgCost) {
+          failures.push(
+            `an unparseable OPCG_COUNTER_AVG_COST gave ${counterPolicyConfig().avgCost}, not the default`,
+          );
+        }
+        // The in-process override wins, which is what lets a puzzle pin a knob without exporting one.
+        env.OPCG_COUNTER_AVG_COST = "9";
+        setCounterPolicyConfig({ avgCost: 2 });
+        if (counterPolicyConfig().avgCost !== 2) {
+          failures.push("setCounterPolicyConfig no longer takes precedence over the environment");
+        }
+      } finally {
+        setCounterPolicyConfig(null);
+        if (restore === undefined) delete env.OPCG_COUNTER_AVG_COST;
+        else env.OPCG_COUNTER_AVG_COST = restore;
+      }
+    }
+
+    // END TO END, and labelled a WIRING CHECK rather than a measurement: a counter selection the
+    // engine rejects aborts the game with `illegal-command`, which is exactly how the orderCards and
+    // search-to-hand defects presented. Real 50-card decks driven through real setup. No win rate is
+    // read off this -- that is Phase 2, deliberately batched. The two `firstPlayer` values produce
+    // IDENTICAL games at a given seed, which is not a bug in the loop: `config.firstPlayer` is
+    // overwritten by the joKenPo winner's `chooseFirstPlayer` (CLAUDE.md), and that is exactly why
+    // the probe above picks that command deliberately instead of trusting the config.
+    for (const firstPlayer of ["north", "south"] as MatchSeat[]) {
+      for (const seed of ["counter-wiring-1", "counter-wiring-2"]) {
+        const result = runBotMatch(
+          { ...probeConfig(firstPlayer), seed },
+          { south: valueRankedStrategy, north: valueRankedStrategy },
+          { maxCommands: 400, seed },
+        );
+        console.log(
+          `  runBotMatch first=${firstPlayer} seed=${seed}: ${result.termination}` +
+            ` winner=${result.winner ?? "none"} cmds=${result.totalCommands} illegal=${result.illegalCommands}`,
+        );
+        if (result.illegalCommands !== 0 || result.termination === "illegal-command") {
+          failures.push(
+            `runBotMatch(first=${firstPlayer}, seed=${seed}) hit ${result.illegalCommands} illegal ` +
+              `command(s), termination=${result.termination} -- a counter selection the engine refuses`,
+          );
+        }
+      }
+    }
+
+    // The master switch has to reproduce the old behaviour exactly, or the Phase 2 re-measure has no
+    // control arm to compare against.
+    setCounterPolicyConfig({ enabled: false });
+    try {
+      for (const p of COUNTER_PUZZLES) {
+        const opened = openCounterPrompt(p);
+        const cmd = resolveBotPromptCommand(opened.state, opened.prompt) as {
+          selectedIds?: string[];
+        } | null;
+        if (cmd?.selectedIds?.length !== 0) {
+          failures.push(
+            `${p.id}: with enabled:false the resolver selected ${JSON.stringify(cmd?.selectedIds)}, ` +
+              `not [] -- the never-counter control arm is broken`,
+          );
+        }
+      }
+    } finally {
+      setCounterPolicyConfig(null);
+    }
+
+    if (defects.length) {
+      console.log("\nCOUNTER SUITE DEFECTS (bugs in the positions, not in the policy):");
+      for (const d of defects) console.log(`  ${d}`);
+    }
+    if (failures.length) {
+      console.log("\nCOUNTER POLICY FAILURES:");
+      for (const f of failures) console.log(`  ${f}`);
+    }
+    const all = [...defects, ...failures];
+    if (all.length) throw new Error(all.join(" | "));
+  },
+  30_000,
+);
+
+/**
+ * The "has-effect" observable, asserted over the REAL catalog rather than over two hand-picked ids.
+ *
+ * Codex flagged on PR #24 that `hasEffect` read only `card.effects.effects`, so a card whose ability
+ * lives in a sibling collection scored as vanilla and could be trashed as counter fodder ahead of a
+ * genuinely blank body. Measured: 164 of the 1368 counter-bearing characters, 12.0%, including every
+ * keywords-only [Blocker] -- close to the most valuable card in hand to KEEP.
+ *
+ * WHY THIS TEST IS SHAPED THIS WAY. Codex named two collections of the four that matter, and a test
+ * pinning only its two examples would have passed while leaving ~29 `replacementEffects` cards
+ * wrong. So the cards are DISCOVERED from `allCards` by their actual shape, one per collection, and
+ * the suite fails if the catalog stops offering an example -- which is itself worth knowing. It
+ * asserts the CLASSIFICATION and never a play-value number, because the weights are swept in Phase 3
+ * and an assertion on them would freeze a knob that is meant to move.
+ */
+run("hasEncodedAbility counts every ability-bearing collection, and only those", () => {
+  const failures: string[] = [];
+  const shapeOf = (card: (typeof allCards)[number]): string[] => {
+    const e = card.effects;
+    if (!e) return [];
+    return (
+      [
+        ["keywords", e.keywords?.length ?? 0],
+        ["effects", e.effects?.length ?? 0],
+        ["permanentEffects", e.permanentEffects?.length ?? 0],
+        ["replacementEffects", e.replacementEffects?.length ?? 0],
+        ["deckBuildingRules", e.deckBuildingRules?.length ?? 0],
+      ] as Array<[string, number]>
+    )
+      .filter(([, n]) => n > 0)
+      .map(([k]) => k);
+  };
+
+  // 1. One real card per ability collection, in ISOLATION -- the only populated collection is the
+  //    one under test, so a predicate that misses it cannot be rescued by a sibling.
+  for (const collection of [
+    "keywords",
+    "effects",
+    "permanentEffects",
+    "replacementEffects",
+  ] as const) {
+    const example = allCards.find((card) => {
+      const shape = shapeOf(card);
+      return shape.length === 1 && shape[0] === collection;
+    });
+    if (!example) {
+      failures.push(
+        `no catalog card populates ONLY ${collection} — the isolation case for it is untested`,
+      );
+      continue;
+    }
+    if (!hasEncodedAbility(example)) {
+      failures.push(
+        `${example.id} has an ability only in ${collection} and hasEncodedAbility called it vanilla`,
       );
     }
-    const after = drainPrompts(r.state).state;
-    if (after.players[SEAT].life.length !== lifeBefore - 1) {
-      throw new Error(
-        `expected the uncountered attack to cost exactly 1 life, saw ${lifeBefore} -> ${after.players[SEAT].life.length}`,
+    console.log(`  ${collection.padEnd(19)} isolated example ${example.id.padEnd(10)} -> true`);
+  }
+
+  // 2. deckBuildingRules is deliberately NOT an ability: it constrains construction and does nothing
+  //    once the card is in hand. Asserted rather than merely commented, or the exclusion is opinion.
+  const rulesOnly = allCards.find((card) => {
+    const shape = shapeOf(card);
+    return shape.length === 1 && shape[0] === "deckBuildingRules";
+  });
+  if (rulesOnly) {
+    if (hasEncodedAbility(rulesOnly)) {
+      failures.push(
+        `${rulesOnly.id} carries only a deckBuildingRule and was counted as an ability — a ` +
+          `construction constraint is worth nothing in hand`,
       );
+    }
+    console.log(`  deckBuildingRules   isolated example ${rulesOnly.id.padEnd(10)} -> false`);
+  } else {
+    console.log("  deckBuildingRules   no isolated example in the catalog; exclusion untested");
+  }
+
+  // 3. A genuinely blank card must still be false, or the predicate is just `true`.
+  const vanilla = allCards.find((card) => !card.effects && card.cardType === "character");
+  if (!vanilla) {
+    failures.push("no vanilla character in the catalog — the negative case is untested");
+  } else if (hasEncodedAbility(vanilla)) {
+    failures.push(`${vanilla.id} has no effects object at all and was called ability-bearing`);
+  }
+
+  // 4. The two cards on the review thread, pinned by id because they are the reported cases.
+  for (const id of ["OP16-027", "OP16-044"]) {
+    const card = allCards.find((entry) => entry.id === id);
+    if (!card) {
+      failures.push(`${id} is not in the catalog — the reported case cannot be checked`);
+      continue;
+    }
+    if (!hasEncodedAbility(card)) {
+      failures.push(`${id} (${shapeOf(card).join("+")}) still reads as vanilla`);
     }
   }
 
+  // 5. The feature must still SPLIT the population. A flag that is true for every counter card
+  //    carries no information, and Phase 3 would learn a coefficient for a constant.
+  const counterBearing = allCards.filter(
+    (card) => card.cardType === "character" && (card.counter ?? 0) > 0,
+  );
+  const bearing = counterBearing.filter((card) => hasEncodedAbility(card)).length;
+  const blank = counterBearing.length - bearing;
+  // The blast radius of the defect, recomputed from the live catalog every run rather than quoted
+  // from a one-off measurement: cards the OLD predicate (triggered blocks only) called vanilla and
+  // the corrected one does not. A number in a doc goes stale; this one cannot.
+  const wasMisclassified = counterBearing.filter(
+    (card) => hasEncodedAbility(card) && (card.effects?.effects?.length ?? 0) === 0,
+  );
+  console.log(
+    `  counter-bearing characters ${counterBearing.length}: ability ${bearing}, vanilla ${blank}` +
+      `  |  the old effects-only predicate misclassified ${wasMisclassified.length}` +
+      ` (${((100 * wasMisclassified.length) / counterBearing.length).toFixed(1)}%)`,
+  );
+  if (bearing === 0 || blank === 0) {
+    failures.push(
+      `hasEncodedAbility is CONSTANT over the ${counterBearing.length} counter-bearing characters ` +
+        `(ability ${bearing}, vanilla ${blank}) — it carries no information as a feature`,
+    );
+  }
+
+  if (failures.length) throw new Error(failures.join(" | "));
+});
+
+/**
+ * TASK 1.3 -- THE TWO OPEN POLICY SURFACES, PINNED RATHER THAN FIXED.
+ *
+ * Both live in `resolveBotPromptCommand`, not in any strategy, so neither is a policy decision in
+ * this engine and neither is scored against the ladder. They are deliberately NOT fixed -- see
+ * docs/simulation.md, "Open policy surfaces":
+ *
+ *   BLOCKING has no waste-free rule. Countering is binary and either flips the battle or does
+ *   nothing, so "never spend a counter that does not flip it" is a rule with no free parameter.
+ *   Blocking trades a permanent body for roughly two cards of hand and redirects the attack; there
+ *   is no threshold at which it is provably right, so a heuristic here would be an opinion shipped
+ *   as a fix.
+ *
+ *   DECLINING A [TRIGGER] is a genuine value call. The Official Rule Manual makes it a choice: the
+ *   life card either resolves its [Trigger] or goes to hand unrevealed. The resolver's confirm
+ *   branch takes `activate` unconditionally, so the bot never banks a Trigger card. Whether that is
+ *   right depends on the card, which is exactly why it is a surface and not a bug.
+ *
+ * The counter step USED to be pinned here too, as "never counters". It is now a real policy, and
+ * its assertions live in the counterPlay block above.
+ */
+run("the prompt resolver never blocks, and always activates a [Trigger]", () => {
   // --- blocker: an ACTIVE character with the real [Blocker] keyword is offered and declined.
   const engine = OnePieceTestEngine.create(
     {
@@ -1092,6 +1971,57 @@ run("the prompt resolver never counters and never blocks", () => {
   if (after.players[SEAT].life.length !== lifeBefore - 1 || after.cards[blockerId]?.rested) {
     throw new Error(
       `expected the block to be declined and 1 life lost, saw life ${lifeBefore} -> ${after.players[SEAT].life.length}, blocker rested=${after.cards[blockerId]?.rested}`,
+    );
+  }
+
+  // --- trigger: the life card on top carries a real printed [Trigger], both options are offered,
+  //     and the resolver takes `activate` every time. The command is NOT applied: what is pinned is
+  //     the CHOICE, not what EB02-030's "Draw 1 card." then does.
+  const triggerEngine = OnePieceTestEngine.create(
+    {
+      leaderCardId: LEAD_INERT_5000,
+      deck: 20,
+      hand: 0,
+      life: [TRIGGER_LIFE_CARD, V5000, V5000, V5000],
+    },
+    { leaderCardId: LEAD_INERT_5000B, deck: 20, hand: 0, life: 4 },
+    { activeSeat: OPP, firstPlayer: SEAT },
+  );
+  const t = triggerEngine.getState();
+  const tr = applyCommand(t, {
+    type: "declareAttack",
+    seat: OPP,
+    attackerId: t.players[OPP].leaderInstanceId,
+    targetId: t.players[SEAT].leaderInstanceId,
+  } as EngineCommand);
+  if (!tr.accepted) throw new Error(`fixture drift: the attack was rejected (${tr.reason})`);
+  const triggerPrompt = tr.state.promptQueue.find((e) => e.status === "pending");
+  if (triggerPrompt?.resolutionContext?.intent !== "lifeTrigger") {
+    throw new Error(
+      `fixture drift: expected a pending lifeTrigger prompt, got ` +
+        `${triggerPrompt?.resolutionContext?.intent ?? "none"} — the defender's hand is empty, so no ` +
+        `counter prompt should exist and the top life card must carry a [Trigger]`,
+    );
+  }
+  if (triggerPrompt.sourceCardId !== TRIGGER_LIFE_CARD) {
+    throw new Error(
+      `fixture drift: the trigger prompt is for ${triggerPrompt.sourceCardId}, not ${TRIGGER_LIFE_CARD}`,
+    );
+  }
+  const offered = triggerPrompt.options
+    .map((o) => o.id)
+    .sort()
+    .join(",");
+  if (offered !== "activate,skip") {
+    throw new Error(`the [Trigger] prompt no longer offers a real choice: options ${offered}`);
+  }
+  const triggerChoice = resolveBotPromptCommand(tr.state, triggerPrompt) as {
+    optionId?: string;
+  } | null;
+  if (triggerChoice?.optionId !== "activate") {
+    throw new Error(
+      `the resolver chose ${triggerChoice?.optionId} for a [Trigger] — declining is now reachable, ` +
+        `so docs/simulation.md's "always activates a [Trigger]" is stale`,
     );
   }
 });
