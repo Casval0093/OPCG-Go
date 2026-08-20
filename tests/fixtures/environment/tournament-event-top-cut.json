@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "kind": "tournament_event",
+  "environment": {
+    "edition": "SC",
+    "metagameRegion": "CN",
+    "language": "zh-Hans",
+    "formatId": "standard-block2-op16",
+    "timeZone": "Asia/Shanghai"
+  },
+  "asOf": "2026-08-20",
+  "source": {
+    "provider": "jihuanshe",
+    "surface": "tournament",
+    "sourceRef": {
+      "providerEventId": "fixture-top-cut",
+      "sanitizedRoute": "app:tournament-detail"
+    },
+    "capturedAt": "2026-08-20T12:02:00Z",
+    "captureHash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  },
+  "coverage": {
+    "status": "complete",
+    "warnings": [],
+    "missingFields": []
+  },
+  "data": {
+    "eventKey": "fixture-top-cut",
+    "identity": { "title": "合成淘汰赛", "providerEventId": "fixture-top-cut" },
+    "time": {
+      "precision": "day",
+      "localDate": "2026-08-19",
+      "timeZone": "Asia/Shanghai"
+    },
+    "status": "completed",
+    "participantCount": { "value": 8, "label": "8人" },
+    "evidenceBlocks": {
+      "results": { "status": "complete" },
+      "field": {
+        "sampleFrame": "top-cut",
+        "denominator": { "value": 8, "label": "8人" },
+        "rows": [
+          { "archetypeId": "leader:OP16-001", "players": 1, "rawArchetypeLabel": "合成红艾斯" },
+          { "archetypeId": "leader:OP16-080", "players": 1, "rawArchetypeLabel": "合成黑黄蒂奇" }
+        ],
+        "unresolvedParticipants": 6,
+        "coverage": { "status": "partial", "warnings": ["top_cut"], "missingFields": [] }
+      }
+    },
+    "eventEvidenceHash": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+  }
+}

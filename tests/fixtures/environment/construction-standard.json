@@ -1,0 +1,13 @@
+{
+  "edition": "SC",
+  "metagameRegion": "CN",
+  "language": "zh-Hans",
+  "formatId": "standard-block2-op16",
+  "timeZone": "Asia/Shanghai",
+  "effectiveFrom": "2026-04-01",
+  "effectiveUntil": null,
+  "mainDeckSize": 50,
+  "leaderCount": 1,
+  "defaultMaxCopies": 4,
+  "allowedLeaderColors": ["Red", "Blue", "Green", "Purple", "Black", "Yellow"]
+}

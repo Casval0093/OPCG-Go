@@ -1,0 +1,13 @@
+{
+  "edition": "SC",
+  "metagameRegion": "CN",
+  "language": "zh-Hans",
+  "formatId": "standard-block2-op16",
+  "timeZone": "Asia/Shanghai",
+  "effectiveFrom": "2026-04-01",
+  "effectiveUntil": null,
+  "entries": [
+    { "gameplayId": "OP06-086", "status": "banned", "maxCopies": 0, "effectiveFrom": "2026-04-01", "effectiveUntil": null, "authorityRef": "sc-banlist-2026-04-01" },
+    { "gameplayId": "OP16-777", "status": "restricted", "maxCopies": 1, "effectiveFrom": "2026-04-01", "effectiveUntil": null, "authorityRef": "sc-banlist-2026-04-01" }
+  ]
+}

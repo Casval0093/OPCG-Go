@@ -42,10 +42,16 @@ run(
         life: card.life ?? null,
         traits: (card.traits ?? []) as string[],
         attribute: card.attribute ?? null,
+        printingId: card.id as string,
+        gameplayId: card.canonicalId as string,
+        effectText: card.effect ?? null,
+        triggerText: card.trigger ?? null,
         hasEffectText: Boolean(card.effect),
+        hasPrintedTrigger: Boolean(card.trigger),
         // Executable encoding present, as opposed to printed text. Alternate arts inherit this by
         // spread from their base printing, so it follows the spread rather than the file.
         hasEffects: Boolean(card.effects),
+        hasStructuredEffects: Boolean(card.effects),
       };
     });
 

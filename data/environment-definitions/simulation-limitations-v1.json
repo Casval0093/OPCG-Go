@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "definitionId": "simulation-limitations-v1",
+  "reviewedAt": "2026-08-20T00:00:00Z",
+  "review": {
+    "status": "reviewed",
+    "authority": "OPCG-Go simulation capability review"
+  },
+  "limitations": [
+    {
+      "code": "second_player_first_turn_attack",
+      "evidenceLocation": "CLAUDE.md:second-player-first-turn-attack",
+      "affectedCapability": "first_turn_legality",
+      "status": "open",
+      "blocksOfficialStrength": true
+    },
+    {
+      "code": "counter_and_block_policy_missing",
+      "evidenceLocation": "CLAUDE.md:counter-and-block-policy",
+      "affectedCapability": "defensive_policy",
+      "status": "open",
+      "blocksOfficialStrength": true
+    },
+    {
+      "code": "attack_target_policy_missing",
+      "evidenceLocation": "CLAUDE.md:attack-target-policy",
+      "affectedCapability": "attack_target_policy",
+      "status": "open",
+      "blocksOfficialStrength": true
+    }
+  ]
+}

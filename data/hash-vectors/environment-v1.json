@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "vectors": [
+    {
+      "name": "nfc-key-order-number-normalization",
+      "input": { "n": -0.0, "b": 1.0, "a": "é" },
+      "canonical": "{\"a\":\"é\",\"b\":1,\"n\":0}",
+      "sha256": "sha256:04b14788ee65877178c1b47da25f6a080f4d3460fce9051dbacfe223a44cf7aa"
+    },
+    {
+      "name": "null-is-present",
+      "input": { "a": null },
+      "canonical": "{\"a\":null}",
+      "sha256": "sha256:d091f9c83c091f79652fe8786375b3fe4ce0861a56f5bfbafedbe431877ff0e8"
+    },
+    {
+      "name": "absent-is-not-null",
+      "input": {},
+      "canonical": "{}",
+      "sha256": "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    {
+      "name": "exponent-boundaries",
+      "input": { "small": 0.000001, "large": 1e30 },
+      "canonical": "{\"large\":1e+30,\"small\":0.000001}",
+      "sha256": "sha256:d9434398ef9d12d23301153f20e7d3269cef7b31835173764f5a4aeee74c0f8f"
+    }
+  ]
+}

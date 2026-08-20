@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 2,
+  "source": "JiHuanShe Android visible UI",
+  "status": "ok",
+  "surface": "market",
+  "capturedAt": "2026-08-20T12:00:00Z",
+  "sourceRef": {
+    "providerEventId": "market-query-fixture-001",
+    "sanitizedRoute": "app:market"
+  },
+  "data": {
+    "identity": { "game": "航海王简中" },
+    "query": {
+      "searchLabel": "OP16-001",
+      "filterLabels": ["简中", "在售"],
+      "sortLabel": "价格升序"
+    },
+    "rows": [
+      {
+        "providerRowId": "m1",
+        "rawCardLabel": "OP16-001 艾斯",
+        "printingId": "OP16-001",
+        "languageLabel": "简体中文",
+        "conditionLabel": "全新",
+        "gradeLabel": "未评级",
+        "observedPriceLabel": "¥123.45",
+        "previousPriceLabel": "¥120.00"
+      },
+      {
+        "providerRowId": "m2",
+        "rawCardLabel": "OP16-001 平行",
+        "printingId": "OP16-001-P",
+        "languageLabel": "简体中文",
+        "conditionLabel": "全新",
+        "gradeLabel": "未评级",
+        "observedPriceLabel": "¥999",
+        "previousPriceLabel": "¥980"
+      },
+      {
+        "providerRowId": "m3",
+        "rawCardLabel": "未知卡牌",
+        "printingId": "UNKNOWN-001",
+        "languageLabel": "简体中文",
+        "conditionLabel": "轻微瑕疵",
+        "gradeLabel": "未评级",
+        "observedPriceLabel": "¥10.00"
+      }
+    ],
+    "visibleRowCount": 3,
+    "paginationComplete": false
+  },
+  "lifecycle": { "launchMode": "headless", "startedByInvocation": true }
+}

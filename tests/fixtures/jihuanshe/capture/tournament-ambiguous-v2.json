@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 2,
+  "source": "JiHuanShe Android visible UI",
+  "status": "ok",
+  "surface": "tournament",
+  "capturedAt": "2026-08-20T12:00:00Z",
+  "sourceRef": { "sanitizedRoute": "app:tournament-detail" },
+  "data": {
+    "identity": {
+      "title": "无法区分的赛事",
+      "game": "航海王简中",
+      "status": "已结束",
+      "startLabel": "2026-08-18",
+      "participantCountLabel": "4人",
+      "formatLabel": "标准赛"
+    },
+    "results": { "activeTab": "赛果", "rows": [] },
+    "decks": { "activeTab": "卡组", "distributionRows": [], "entrantRows": [], "sampleFrameLabel": "未知" }
+  },
+  "lifecycle": { "launchMode": "headless", "startedByInvocation": true }
+}

@@ -746,6 +746,9 @@ runs/                           mutation sweep results, one jsonl per set
 docs/mutation-sweep.md          the sweep's findings
 docs/mutation-operators.md      what the operators cannot see, and what to add next
 tools/verify_limitless.py       fetch/parse Limitless card pages; the adjudicator, automated
+tools/jihuanshe_capture.mjs     no-window AVD lifecycle + semantic SC market/tournament capture
+tools/jihuanshe_reader.mjs      owner-authenticated Android UI/WebView capture for SC data
+docs/jihuanshe-reader.md        JiHuanShe capture surfaces, commands, and trust boundary
 tools/correct_cards.py          apply data/card-corrections.json to the disposable vendor/ tree
 data/card-corrections.json      48 verified card-data corrections, with from/to/why per field
 tools/import_cards.py           card data for sets the engine lacks, via npm (in-policy)
@@ -775,6 +778,8 @@ python3 tools/correct_cards.py --check            # are the 48 corrections still
 python3 tools/mutation_check.py --vendor-set OP06 # mutation-check one upstream set, serially
 python3 tools/verify_limitless.py OP06-054        # what does the adjudicator actually print
 python3 -m unittest discover -s tools -p 'test_*.py'   # tools/ regression tests (56)
+node --test tools/jihuanshe_capture.test.mjs      # headless lifecycle/navigation safety tests
+node --test tools/jihuanshe_reader.test.mjs       # JiHuanShe parser/security tests
 node --test arena/log.test.ts                     # decision-log suite (14); needs NO engine clone
 python3 tools/mutation_check_arena.py             # prove those 14 can fail (13 mutants)
 ./scripts/arena.sh --replay arena/logs/<f>.jsonl --contested   # read a played game back
@@ -933,21 +938,20 @@ The `tools/` tests are stdlib `unittest`, matching the tools' own stdlib-only co
    constraints remain pilotability and the 30-minute clock, not money.
 3. Is SC OP17 the same list as JP/EN OP17, or does it carry SC-exclusive content? (The 08-17
    parity confirmation was scoped to banlist and rotation only — this is still open.)
-4. **SC-native field data — source named 2026-08-19, acquisition NOT built.** Ping: the iOS app
-   **集换社 (JiHuanShe)** carries both a **share pie chart** and **tournament top-cut decklists**
-   for SC. That is exactly the two things missing — `docs/research-findings.md` shares are a
-   Limitless EN proxy and the matchup matrix is an EN ladder. **This is the input that finally lets
-   the "corrected by SC-native sources" half of the ground-truth decision be finished.**
-   **The data is app-only — Ping confirmed 2026-08-19. There is no scraper to build; stop looking.**
-   `https://www.jihuanshe.com` does return 200 and serves no robots.txt, so the *domain* is
-   reachable, but the pie chart and top-cut decklists are reachable only inside the iOS app. Do not
-   re-litigate this as an acquisition problem — it is not one, it is a **manual transcription**
-   problem. **The realistic route is Ping reading the figures off and pasting them**, which is
-   entirely adequate: a hand-entered SC share table beats a 213k-game EN proxy for this purpose,
-   because the defect in the EN numbers is *population*, not sample size. What to ask him for when
-   the time comes: the share pie chart (leader → % of field) and the top-cut decklists, plus the
-   event size and date so the sample can be weighted. Until then every share-weighted number in
-   `docs/research-findings.md` stays an EN proxy and must be labelled as one.
+4. **SC-native field data — Android acquisition built 2026-08-20.** JiHuanShe carries SC tournament
+   standings, deck distribution/submitted decks, market indices, current prices, and price-history
+   charts. These were verified live in the owner-authenticated Android 3.42.5 app. The app renders
+   tournament data in a debuggable WebView, market rows in the Flutter accessibility tree, and
+   history in an AAChartKit WebView. `tools/jihuanshe_capture.mjs` now starts the persistent
+   `JiHuanShe_SC` AVD with `-no-window`, navigates by exact visible semantics, and exports market or
+   tournament data in one command; `tools/jihuanshe_reader.mjs` remains the lower-level page reader.
+   Neither inspects or replays credentials. The offline-to-headless test retained the login and
+   captured both surfaces. See `docs/jihuanshe-reader.md`.
+   This replaces the prior claim that manual iOS transcription was the only realistic route.
+   Acquisition capability does **not** make a capture representative: retain event date, event size,
+   capture time and raw labels, and do not substitute top-cut frequency for field share. Until a
+   captured SC share dataset is normalized and checked in, every share-weighted number in
+   `docs/research-findings.md` remains an EN proxy and must be labelled as one.
 
 **Answered 2026-08-17: SC matches other regions on banlist and rotation.** Both were open since
 day one. Note precisely what this does and does not buy: an identical *legal pool*, not an

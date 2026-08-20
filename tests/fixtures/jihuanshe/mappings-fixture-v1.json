@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "mappingVersion": "jihuanshe-mapping-fixture-v1",
+  "entries": {
+    "合成红艾斯": {
+      "archetypeId": "leader:OP16-001",
+      "leaderGameplayId": "OP16-001"
+    },
+    "合成黑黄蒂奇": {
+      "archetypeId": "leader:OP16-080",
+      "leaderGameplayId": "OP16-080"
+    },
+    "OP16-001 艾斯": {
+      "gameplayId": "OP16-001",
+      "printingId": "OP16-001"
+    },
+    "OP16-001 平行": {
+      "gameplayId": "OP16-001",
+      "printingId": "OP16-001-P"
+    }
+  }
+}

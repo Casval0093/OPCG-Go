@@ -1,0 +1,29 @@
+{
+  "edition": "SC",
+  "metagameRegion": "CN",
+  "language": "zh-Hans",
+  "formatId": "standard-block2-op16",
+  "timeZone": "Asia/Shanghai",
+  "effectiveFrom": "2026-04-01",
+  "effectiveUntil": null,
+  "cards": [
+    { "gameplayId": "EB01-005", "rulesIdentityHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "releasedAt": "2026-04-01", "legalFrom": "2026-04-01", "legalUntil": null, "releaseEvidenceRef": "sc-op16-release" },
+    { "gameplayId": "OP05-019", "rulesIdentityHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "releasedAt": "2026-04-01", "legalFrom": "2026-04-01", "legalUntil": null, "releaseEvidenceRef": "sc-op16-release" },
+    { "gameplayId": "OP12-002", "rulesIdentityHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "releasedAt": "2026-04-01", "legalFrom": "2026-04-01", "legalUntil": null, "releaseEvidenceRef": "sc-op16-release" },
+    { "gameplayId": "OP16-001", "rulesIdentityHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "releasedAt": "2026-04-01", "legalFrom": "2026-04-01", "legalUntil": null, "releaseEvidenceRef": "sc-op16-release", "isLeader": true, "colors": ["Red"] },
+    { "gameplayId": "OP16-002", "rulesIdentityHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "releasedAt": "2026-04-01", "legalFrom": "2026-04-01", "legalUntil": null, "releaseEvidenceRef": "sc-op16-release" },
+    { "gameplayId": "OP16-003", "rulesIdentityHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "releasedAt": "2026-04-01", "legalFrom": "2026-04-01", "legalUntil": null, "releaseEvidenceRef": "sc-op16-release" },
+    { "gameplayId": "OP16-008", "rulesIdentityHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "releasedAt": "2026-04-01", "legalFrom": "2026-04-01", "legalUntil": null, "releaseEvidenceRef": "sc-op16-release" },
+    { "gameplayId": "OP16-009", "rulesIdentityHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "releasedAt": "2026-04-01", "legalFrom": "2026-04-01", "legalUntil": null, "releaseEvidenceRef": "sc-op16-release" },
+    { "gameplayId": "OP16-010", "rulesIdentityHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "releasedAt": "2026-04-01", "legalFrom": "2026-04-01", "legalUntil": null, "releaseEvidenceRef": "sc-op16-release" },
+    { "gameplayId": "OP16-011", "rulesIdentityHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "releasedAt": "2026-04-01", "legalFrom": "2026-04-01", "legalUntil": null, "releaseEvidenceRef": "sc-op16-release" },
+    { "gameplayId": "OP16-014", "rulesIdentityHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "releasedAt": "2026-04-01", "legalFrom": "2026-04-01", "legalUntil": null, "releaseEvidenceRef": "sc-op16-release" },
+    { "gameplayId": "OP16-016", "rulesIdentityHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "releasedAt": "2026-04-01", "legalFrom": "2026-04-01", "legalUntil": null, "releaseEvidenceRef": "sc-op16-release" },
+    { "gameplayId": "OP16-017", "rulesIdentityHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "releasedAt": "2026-04-01", "legalFrom": "2026-04-01", "legalUntil": null, "releaseEvidenceRef": "sc-op16-release" },
+    { "gameplayId": "OP16-020", "rulesIdentityHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "releasedAt": "2026-04-01", "legalFrom": "2026-04-01", "legalUntil": null, "releaseEvidenceRef": "sc-op16-release" },
+    { "gameplayId": "OP16-021", "rulesIdentityHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "releasedAt": "2026-04-01", "legalFrom": "2026-04-01", "legalUntil": null, "releaseEvidenceRef": "sc-op16-release" },
+    { "gameplayId": "OP16-118", "rulesIdentityHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "releasedAt": "2026-04-01", "legalFrom": "2026-04-01", "legalUntil": null, "releaseEvidenceRef": "sc-op16-release" },
+    { "gameplayId": "OP16-777", "rulesIdentityHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "releasedAt": "2026-04-01", "legalFrom": "2026-04-01", "legalUntil": null, "releaseEvidenceRef": "sc-op16-release" },
+    { "gameplayId": "OP06-086", "rulesIdentityHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "releasedAt": "2026-04-01", "legalFrom": "2026-04-01", "legalUntil": null, "releaseEvidenceRef": "sc-op16-release" }
+  ]
+}

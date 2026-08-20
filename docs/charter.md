@@ -173,7 +173,11 @@ which is the gap that still matters for share-weighting.
 2. Acquisition budget ceiling (RMB)
 3. Is SC OP17 the same list as JP/EN OP17, or does it carry SC-exclusive content? *(the 08-17
    confirmation was scoped to banlist and rotation, so this is still open)*
-4. SC-native field data — anything on what people actually play locally
+4. SC-native field data — no-window Android acquisition is available through
+   `tools/jihuanshe_capture.mjs` (`collect market` / `collect tournaments`), with
+   `tools/jihuanshe_reader.mjs` as the lower-level page reader; a dated,
+   event-sized SC share capture still needs to be normalized before it can replace
+   the EN proxy
 
 ~~Does SC Standard run the same Block 2+ rotation?~~ — **yes**, 2026-08-17.
 ~~Is the SC banlist identical?~~ — **yes**, 2026-08-17.
