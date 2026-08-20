@@ -75,7 +75,7 @@ All measured this session; full detail in `CLAUDE.md` and `docs/simulation.md`.
 ## Phase 0 — make the primary deck affordable to simulate
 
 ### Task 0.1 — fix `OP16-017`'s exponential ~~power~~ COST evaluation
-Patch 8 (see the amendment to constraint 2). **DONE 2026-08-19.**
+the `permanent: getPermanentSetCost evaluates conditions it then discards` patch (see the amendment to constraint 2). **DONE 2026-08-19.**
 
 **The plan's stated mechanism was WRONG, and the profiling instruction is what caught it.** This
 section assumed power recursion, from the card's `modifyPower … self: true`. Instrumented call
