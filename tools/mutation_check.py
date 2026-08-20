@@ -17,6 +17,14 @@ require them to go red. A mutant that SURVIVES is a test that cannot fail.
     python3 tools/mutation_check.py --set OP16                 # every encoded OP16 card
     python3 tools/mutation_check.py --card OP16-029            # one card
     python3 tools/mutation_check.py --set OP16 --engine PATH   # against a private engine clone
+    python3 tools/mutation_check.py --vendor-set OP06          # an UPSTREAM set, in vendor/
+
+`--set` is for a set whose encoding this repo owns (OP15/OP16): the repo copy is pristine and
+mutants are written into the engine's copy. `--vendor-set` is for the 1769 pre-OP15 encodings the
+vendored engine owns, where there is no second copy — the original is held in memory and written
+back in a `finally`, so an interrupted run does not leave a mutant behind. Their tests are found by
+reading every `.test.ts` for the card id rather than by deriving a filename, because upstream files
+the same card under three different naming conventions.
 
 Exit 1 if any mutant survives. Wire it into a batch's own verification so the batch proves its
 tests rather than asserting they are fine.
@@ -30,11 +38,15 @@ to catch, and the point here is signal about ruling conformance, not a coverage 
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import re
-import shutil
+import signal
 import subprocess
 import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import card_deps  # noqa: E402
 
 ENGINE_DEFAULT = "vendor/tcg-engines/submodules/one-piece/packages/engine"
 # The cards package is deliberately NOT a constant: it is resolved as a sibling of whichever engine
@@ -161,9 +173,9 @@ def _mutants(src: str) -> list[Mutant]:
             )
         )
 
-    # 5. Drop the once-per-turn guard.
-    m = re.search(r"oncePerTurn: true", scan)
-    if m:
+    # 5. Drop the once-per-turn guard. `finditer`, not `search`: a card can carry more than one
+    #    such guard (OP12-081 has two) and mutating only the first silently under-reports the gap.
+    for m in re.finditer(r"oncePerTurn: true", scan):
         out.append(
             Mutant(
                 f"drop oncePerTurn @{_at(src, m.start())}",
@@ -173,115 +185,252 @@ def _mutants(src: str) -> list[Mutant]:
 
     return out
 
+class Task:
+    """One card to mutation-check.
 
-def _card_files(repo: str, sets: list[str], only: str | None) -> list[tuple[str, str, str]]:
-    """(card_id, source path, test path) for every card that has a hand-authored encoding."""
-    found = []
-    for set_id in sets:
-        for kind in TYPES:
-            d = os.path.join(repo, "cards", set_id, kind)
-            if not os.path.isdir(d):
+    `read_path` holds the pristine encoding; `write_path` is where mutants are written for the
+    engine to compile. For OP15/OP16 those differ — the repo owns the encoding and `vendor/` is a
+    disposable copy — and for an upstream set they are the same file, which is why the original is
+    always kept in memory and written back rather than re-copied from a source that may not exist.
+    """
+
+    def __init__(self, card_id: str, read_path: str, write_path: str, tests: list[str],
+                 inert: list[str] | None = None):
+        self.card_id = card_id
+        self.read_path = read_path
+        self.write_path = write_path
+        self.tests = tests
+        self.inert = inert or []
+
+
+_encoded_defs = card_deps.encoded_defs
+
+
+CARD_ID_RE = card_deps.CARD_ID_RE
+
+
+def _test_index(engine: str, cards_root: str) -> tuple[dict[str, list[str]], dict[str, list[str]]]:
+    """(real, inert) attribution — see tools/card_deps.py for why it is by imported symbol."""
+    a = card_deps.Attribution(engine, cards_root)
+    return a.attr, a.inert_attr
+
+
+def _tasks(repo: str, engine: str, cards_root: str, repo_sets: list[str],
+           vendor_sets: list[str], only: str | None) -> list[Task]:
+    tasks: list[Task] = []
+    index, inert = _test_index(engine, cards_root) if vendor_sets else ({}, {})
+
+    for set_id in repo_sets:
+        for card_id, path, fn in _encoded_defs(os.path.join(repo, "cards"), set_id):
+            if only and card_id != only:
                 continue
-            for fn in sorted(os.listdir(d)):
-                if not fn.endswith(".ts") or fn.endswith(".i18n.ts") or fn == "index.ts":
-                    continue
-                path = os.path.join(d, fn)
-                with open(path, encoding="utf-8") as fh:
-                    src = fh.read()
-                if "effects: {" not in src:
-                    continue  # a generated shell, nothing to mutate yet
-                m = re.search(r'id:\s*"([A-Z0-9-]+)"', src)
-                card_id = m.group(1) if m else fn
-                if only and card_id != only:
-                    continue
-                test = os.path.join(repo, "cards", "tests", set_id, fn.replace(".ts", ".test.ts"))
-                found.append((card_id, path, test))
-    return found
+            rel = os.path.relpath(path, os.path.join(repo, "cards"))
+            test = os.path.join(repo, "cards", "tests", set_id, fn.replace(".ts", ".test.ts"))
+            tests = []
+            if os.path.exists(test):
+                tests = [os.path.join("tests", "cards", set_id, fn.replace(".ts", ".test.ts"))]
+            tasks.append(Task(card_id, path, os.path.join(cards_root, rel), tests))
+
+    for set_id in vendor_sets:
+        for card_id, path, _fn in _encoded_defs(cards_root, set_id):
+            if only and card_id != only:
+                continue
+            tasks.append(Task(card_id, path, path, index.get(card_id, []), inert.get(card_id, [])))
+    return tasks
 
 
-def _run_tests(engine: str, rel_test: str) -> bool:
-    """True if the test file PASSES."""
+NO_FILES = re.compile(r"No test files found")
+FILE_COUNT = re.compile(r"Test Files.*?\((\d+)\)")
+
+
+def _run_tests(engine: str, rel_tests: list[str]) -> tuple[bool, int]:
+    """(tests passed, number of test FILES vitest actually selected).
+
+    The file count is the load-bearing half. `vp test run` treats each argument as a substring
+    filter over discovered paths; a filter that matches nothing exits non-zero with
+    "No test files found", which a returncode-only check reads as a red test — i.e. as a killed
+    mutant. A run that selected 0 files proves nothing and must never be scored.
+    """
     proc = subprocess.run(
-        ["./node_modules/.bin/vp", "test", "run", rel_test],
+        # --maxWorkers=1 is a throughput setting, not a correctness one. vitest defaults its pool
+        # to one worker per core, so eight concurrent sweeps fork ~80 workers onto 10 cores and
+        # thrash: measured 8-way, one file each, 24s constrained against a load average north of 20
+        # unconstrained. Aggregate throughput is ~0.33 runs/s either way, but constrained leaves the
+        # machine usable.
+        ["./node_modules/.bin/vp", "test", "run", "--maxWorkers=1", *rel_tests],
         cwd=engine,
         capture_output=True,
         text=True,
     )
-    return proc.returncode == 0
+    out = proc.stdout + proc.stderr
+    if NO_FILES.search(out):
+        return (proc.returncode == 0, 0)
+    m = FILE_COUNT.search(out)
+    n = int(m.group(1)) if m else (len(rel_tests) if proc.returncode == 0 else 0)
+    return (proc.returncode == 0, n)
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--set", dest="sets", action="append", default=None, help="OP15 / OP16")
+    ap.add_argument("--set", dest="sets", action="append", default=None,
+                    help="a set the REPO owns the encoding for: OP15 / OP16")
+    ap.add_argument("--vendor-set", dest="vendor_sets", action="append", default=None,
+                    help="a set the vendored engine owns: OP01..OP14EB04, EB01-03, PRB01/02, ST01")
     ap.add_argument("--card", default=None, help="a single card id, e.g. OP16-029")
     ap.add_argument("--engine", default=ENGINE_DEFAULT, help="engine root (use a clone when parallel)")
     ap.add_argument("--repo", default=".", help="repo root")
+    ap.add_argument("--jsonl", default=None, help="append one JSON record per card, for aggregation")
+    ap.add_argument("--resume", action="store_true",
+                    help="skip cards already recorded in --jsonl")
+    ap.add_argument("--max-cards", type=int, default=None,
+                    help="stop cleanly after N cards, so a sweep runs in bounded, resumable batches")
     args = ap.parse_args()
 
     repo = os.path.abspath(args.repo)
     engine = os.path.join(repo, args.engine) if not os.path.isabs(args.engine) else args.engine
+    engine = os.path.abspath(engine)
     if not os.path.isdir(engine):
         print(f"engine not found: {engine} — run ./scripts/bootstrap.sh", file=sys.stderr)
         return 1
-
-    sets = args.sets or ["OP15", "OP16"]
-    cards = _card_files(repo, sets, args.card)
-    if not cards:
-        print("no hand-authored encodings found — nothing to check")
-        return 0
 
     # Mutants must be written into the cards package of the SELECTED engine. Deriving this from
     # `repo` instead broke the documented parallel-clone workflow outright: with `--engine` pointing
     # at a private clone, mutations landed in the repo's vendor tree while the tests ran against the
     # clone's untouched encodings, so every mutant was reported as a survivor. `packages/cards` is a
     # sibling of `packages/engine`, so resolve it from there.
-    vendor_cards = os.path.join(os.path.dirname(os.path.abspath(engine)), "cards", "src", "cards")
-    if not os.path.isdir(vendor_cards):
-        print(f"cards package not found next to the engine: {vendor_cards}", file=sys.stderr)
+    cards_root = os.path.join(os.path.dirname(engine), "cards", "src", "cards")
+    if not os.path.isdir(cards_root):
+        print(f"cards package not found next to the engine: {cards_root}", file=sys.stderr)
         return 1
+
+    repo_sets = args.sets or ([] if args.vendor_sets else ["OP15", "OP16"])
+    vendor_sets = args.vendor_sets or []
+    tasks = _tasks(repo, engine, cards_root, repo_sets, vendor_sets, args.card)
+    if not tasks:
+        print("no hand-authored encodings found — nothing to check")
+        return 0
+
+    done: set[str] = set()
+    if args.resume and args.jsonl and os.path.exists(args.jsonl):
+        with open(args.jsonl, encoding="utf-8") as fh:
+            for line in fh:
+                try:
+                    done.add(json.loads(line)["card"])
+                except Exception:
+                    pass
+        tasks = [t for t in tasks if t.card_id not in done]
+        print(f"resuming: {len(done)} card(s) already recorded, {len(tasks)} to go")
+
+    if args.max_cards is not None:
+        tasks = tasks[: args.max_cards]
+
+    sink = open(args.jsonl, "a", encoding="utf-8") if args.jsonl else None
+
+    # A mutant lives on disk only between the write and the next write-back. For an upstream set
+    # that file is the ONLY copy of the encoding, so a plain SIGTERM — which is what pausing a
+    # batch sends — would terminate without running the `finally` and leave the tree mutated. The
+    # handler below re-raises as an exception so the `finally` runs, and `pending` covers the
+    # window before the try block is entered.
+    pending: dict[str, tuple[str, str]] = {}
+
+    class Paused(Exception):
+        pass
+
+    def _pause(signum, _frame):  # noqa: ANN001
+        raise Paused(f"signal {signum}")
+
+    def _restore_pending() -> None:
+        for path, original in pending.items():
+            with open(path, "w", encoding="utf-8") as fh:
+                fh.write(original)
+
+    signal.signal(signal.SIGTERM, _pause)
+    signal.signal(signal.SIGINT, _pause)
     survivors: list[tuple[str, str]] = []
     total = 0
+    unverifiable = 0
 
-    for card_id, src_path, test_path in cards:
-        if not os.path.exists(test_path):
-            print(f"{card_id}: NO TEST FILE at {os.path.relpath(test_path, repo)} — cannot verify")
-            survivors.append((card_id, "no test file"))
-            continue
+    def record(card_id: str, status: str, killed: int, n: int, labels: list[str]) -> None:
+        if sink:
+            sink.write(json.dumps({"card": card_id, "status": status, "killed": killed,
+                                   "mutants": n, "survivors": labels}) + "\n")
+            sink.flush()
 
-        rel = os.path.relpath(src_path, os.path.join(repo, "cards"))
-        vendor_path = os.path.join(vendor_cards, rel)
-        rel_test = os.path.join("tests", "cards", os.path.relpath(test_path, os.path.join(repo, "cards", "tests")))
-
-        with open(src_path, encoding="utf-8") as fh:
+    for t in tasks:
+        with open(t.read_path, encoding="utf-8") as fh:
             original = fh.read()
         muts = _mutants(original)
 
+        if not t.tests:
+            why = (f"only inert test(s): {', '.join(t.inert)}" if t.inert else "no test file")
+            print(f"{t.card_id}: {'NO EFFECTIVE TEST' if t.inert else 'NO TEST FILE'} — cannot verify")
+            survivors.append((t.card_id, why))
+            record(t.card_id, "no-effective-test" if t.inert else "no-test", 0, len(muts), [why])
+            continue
+        if not muts:
+            # The operators found no decision surface: no filter, threshold, zone or once-per-turn
+            # flag to perturb. Not a pass and not a failure — report it separately so a run over
+            # a whole set cannot be quoted as "every encoding verified".
+            print(f"-- {t.card_id}: 0 mutants (no decision surface this tool can perturb)")
+            unverifiable += 1
+            record(t.card_id, "no-mutants", 0, 0, [])
+            continue
+
         # A baseline run guards against reporting "all mutants killed" when the suite was already
-        # red for an unrelated reason.
-        shutil.copyfile(src_path, vendor_path)
-        if not _run_tests(engine, rel_test):
-            print(f"{card_id}: BASELINE FAILS — fix the test before mutation-checking")
-            survivors.append((card_id, "baseline red"))
+        # red for an unrelated reason — or when the filter selected nothing at all.
+        with open(t.write_path, "w", encoding="utf-8") as fh:
+            fh.write(original)
+        ok, nfiles = _run_tests(engine, t.tests)
+        if nfiles == 0:
+            print(f"{t.card_id}: FILTER MATCHED NO FILES ({t.tests}) — cannot verify")
+            survivors.append((t.card_id, "filter matched no files"))
+            record(t.card_id, "no-files", 0, len(muts), ["filter matched no files"])
+            continue
+        if not ok:
+            print(f"{t.card_id}: BASELINE FAILS — fix the test before mutation-checking")
+            survivors.append((t.card_id, "baseline red"))
+            record(t.card_id, "baseline-red", 0, len(muts), ["baseline red"])
             continue
 
         killed = 0
+        mine: list[str] = []
+        pending[t.write_path] = original
         try:
             for mut in muts:
                 total += 1
-                with open(vendor_path, "w", encoding="utf-8") as fh:
+                with open(t.write_path, "w", encoding="utf-8") as fh:
                     fh.write(mut.source)
-                if _run_tests(engine, rel_test):
-                    survivors.append((card_id, mut.label))
+                ok, nfiles = _run_tests(engine, t.tests)
+                if nfiles == 0:
+                    survivors.append((t.card_id, f"{mut.label} [no files]"))
+                    mine.append(f"{mut.label} [no files]")
+                elif ok:
+                    survivors.append((t.card_id, mut.label))
+                    mine.append(mut.label)
                 else:
                     killed += 1
+        except Paused:
+            _restore_pending()
+            print(f"\npaused during {t.card_id}; encoding restored. Re-run with --resume.", flush=True)
+            if sink:
+                sink.close()
+            return 130
         finally:
-            # Always put the real encoding back, in the repo copy's image.
-            shutil.copyfile(src_path, vendor_path)
+            # Always put the real encoding back. For an upstream set this file is the only copy.
+            with open(t.write_path, "w", encoding="utf-8") as fh:
+                fh.write(original)
+            pending.pop(t.write_path, None)
 
         mark = "ok " if killed == len(muts) else "!! "
-        print(f"{mark}{card_id}: {killed}/{len(muts)} mutants killed")
+        print(f"{mark}{t.card_id}: {killed}/{len(muts)} mutants killed", flush=True)
+        record(t.card_id, "ok" if killed == len(muts) else "survivors", killed, len(muts), mine)
 
-    print(f"\n{total - len(survivors)}/{total} mutants killed across {len(cards)} card(s)")
+    if sink:
+        sink.close()
+    print(f"\n{total - len([s for s in survivors if not s[1].startswith(('no test', 'baseline', 'filter'))])}"
+          f"/{total} mutants killed across {len(tasks)} card(s)")
+    if unverifiable:
+        print(f"{unverifiable} card(s) produced 0 mutants — NOT verified, just unperturbable")
     if survivors:
         print("\nSURVIVORS — these tests cannot fail on the thing they claim to cover:")
         for card_id, label in survivors:

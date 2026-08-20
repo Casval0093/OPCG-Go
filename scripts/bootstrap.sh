@@ -13,8 +13,13 @@ PY="$ROOT/.venv/bin/python"
 [ -x "$PY" ] || PY="$(command -v python3)"
 [ -n "$PY" ] || { echo "no python3 found; install Python 3 and re-run" >&2; exit 1; }
 
-"$PY" "$ROOT/tools/graft_cards.py"    # copy cards/OP15|OP16 into the vendored engine
-"$PY" "$ROOT/tools/patch_engine.py"   # local engine fixes; vendor/ is gitignored so they re-apply
-"$PY" "$ROOT/tools/correct_cards.py"  # verified card-data corrections, same reason: vendor/ is disposable
+# Run from $ROOT, not from the engine directory. patch_engine.py and correct_cards.py default to
+# a REPO-RELATIVE engine path, so invoking them from inside the engine makes them miss it: they
+# print "engine not found ... run ./scripts/bootstrap.sh" and exit, which is what silently skipped
+# both steps and left the tree un-patched and un-corrected while bootstrap still reported success.
+(cd "$ROOT" \
+  && "$PY" tools/graft_cards.py \
+  && "$PY" tools/patch_engine.py \
+  && "$PY" tools/correct_cards.py)
 cd packages/engine && ./node_modules/.bin/vp test run   # expect 6079 pass in ~90s
 echo "Bootstrap OK."

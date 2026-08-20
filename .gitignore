@@ -17,3 +17,8 @@ arena/results/
 # Decision logs are working output: one file per run, ~400 KB per ST01 game. A game worth KEEPING
 # (a human game, a council game with real dissent) gets copied to arena/corpus/, which is tracked.
 arena/logs/
+
+# Mutation sweep: the per-worker engine clones and the workers' console logs. The sweep's actual
+# results live in runs/*.jsonl, which IS tracked.
+.clones/
+runs/*.out

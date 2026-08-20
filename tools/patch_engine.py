@@ -244,6 +244,26 @@ BORSALINO_FIX = """  // OPCG-Go patch: printed "5 or less", encoded `lte 4`, and
 # one wrong trait and both assertions passed. `OP11-092` Helmeppo is genuinely Navy/SWORD (checked on
 # Limitless, 7000 power) and still beats the 3000-power Doma that both tests attack.
 
+# `OP07-030` Pappag's negative case asserted a condition that is unconditionally true, so the test
+# could not fail for any reason. `decisions[].title` is `prompt.label` (src/projection.ts:590) and
+# the blocker prompt's label is built as `${playerName} may block` (src/engine/queue.ts:55) — the
+# substring "Blocker" never appears in any prompt label, so
+# `decisions.some((d) => d.title.includes("Blocker"))` is always false and `.toBe(false)` always
+# passes. Found by the 2026-08-19 mutation sweep: deleting Pappag's `name: "Camie"` filter changed
+# nothing detectable. The replacement is the idiom the Borsalino patch above already uses.
+
+PAPPAG_ANCHOR = """    expect(
+      withoutCamie
+        .getView("south")
+        .decisions.some((decision) => decision.title.includes("Blocker")),
+    ).toBe(false);"""
+
+PAPPAG_FIX = """    // OPCG-Go patch: this asserted `decisions.some(d => d.title.includes("Blocker"))` is false.
+    // No prompt label ever contains "Blocker" — the blocker prompt is labelled "<player> may block"
+    // — so the assertion was true by construction and the test could not fail. Assert the prompt is
+    // absent instead, which is what the case claims to check.
+    expect(() => withoutCamie.pendingDecision("battleBlocker", "south")).toThrow();"""
+
 HIBARI_ANCHOR = """import { eb01Doma005, eb03Hibari008, op11Franky012 } from "@tcg/op-cards";"""
 
 HIBARI_FIX = """// OPCG-Go patch: this test used OP11-012 Franky as its SWORD body, but OP11-012 is a Straw Hat Crew
@@ -297,6 +317,13 @@ PATCHES = [
         "anchor": BORSALINO_ANCHOR,
         "already": 'test("does not gain Blocker with six cards in hand"',
         "apply": lambda s: s.replace(BORSALINO_ANCHOR, BORSALINO_FIX, 1),
+    },
+    {
+        "name": "tests: OP07-030 Pappag asserted a condition that is always true",
+        "relpath": "tests/cards/characters/op07-030-pappag.test.ts",
+        "anchor": PAPPAG_ANCHOR,
+        "already": 'expect(() => withoutCamie.pendingDecision("battleBlocker", "south")).toThrow();',
+        "apply": lambda s: s.replace(PAPPAG_ANCHOR, PAPPAG_FIX, 1),
     },
     {
         "name": "tests: EB03-008 Hibari used a non-SWORD card as its SWORD body",

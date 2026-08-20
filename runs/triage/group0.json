@@ -1,0 +1,635 @@
+[
+ {
+  "card": "OP05-001",
+  "set": "OP05",
+  "encoding": "vendor/tcg-engines/submodules/one-piece/packages/cards/src/cards/OP05/leaders/001-sabo.ts",
+  "mutants": 4,
+  "survivors": [
+   "delete filter:power @L63",
+   "comparison gte->lte @L63",
+   "value 5000->4000 @L63",
+   "drop oncePerTurn @L75"
+  ],
+  "tests": [
+   "tests/cards/leaders/op05-001-sabo.test.ts"
+  ],
+  "inert_tests": [
+   "src/cards/OP05/leaders/001-sabo.test.ts"
+  ],
+  "standard_legal": true
+ },
+ {
+  "card": "OP05-041",
+  "set": "OP05",
+  "encoding": "vendor/tcg-engines/submodules/one-piece/packages/cards/src/cards/OP05/leaders/041-sakazuki.ts",
+  "mutants": 1,
+  "survivors": [
+   "drop oncePerTurn @L62"
+  ],
+  "tests": [
+   "tests/cards/characters/op05-043-ulti.test.ts",
+   "tests/cards/leaders/op05-041-sakazuki.test.ts"
+  ],
+  "inert_tests": [
+   "src/cards/OP05/leaders/041-sakazuki.test.ts"
+  ],
+  "standard_legal": true
+ },
+ {
+  "card": "OP05-062",
+  "set": "OP05",
+  "encoding": "vendor/tcg-engines/submodules/one-piece/packages/cards/src/cards/OP05/characters/062-o-nami.ts",
+  "mutants": 1,
+  "survivors": [
+   "comparison eq->gte @L37"
+  ],
+  "tests": [
+   "tests/cards/characters/op05-062-o-nami.test.ts"
+  ],
+  "inert_tests": [],
+  "standard_legal": true
+ },
+ {
+  "card": "OP05-082",
+  "set": "OP05",
+  "encoding": "vendor/tcg-engines/submodules/one-piece/packages/cards/src/cards/OP05/characters/082-shirahoshi.ts",
+  "mutants": 1,
+  "survivors": [
+   "comparison gte->lte @L52"
+  ],
+  "tests": [
+   "tests/cards/characters/op05-082-shirahoshi.test.ts"
+  ],
+  "inert_tests": [],
+  "standard_legal": true
+ },
+ {
+  "card": "OP05-109",
+  "set": "OP05",
+  "encoding": "vendor/tcg-engines/submodules/one-piece/packages/cards/src/cards/OP05/characters/109-pagaya.ts",
+  "mutants": 1,
+  "survivors": [
+   "drop oncePerTurn @L46"
+  ],
+  "tests": [
+   "tests/cards/characters/op05-106-shura.test.ts",
+   "tests/cards/characters/op05-109-pagaya.test.ts",
+   "tests/cards/events/op08-115-the-earth-will-not-lose.test.ts",
+   "tests/cards/stages/op05-117-upper-yard.test.ts"
+  ],
+  "inert_tests": [
+   "src/cards/OP05/characters/109-pagaya.test.ts"
+  ],
+  "standard_legal": true
+ },
+ {
+  "card": "OP06-002",
+  "set": "OP06",
+  "encoding": "vendor/tcg-engines/submodules/one-piece/packages/cards/src/cards/OP06/characters/002-inazuma.ts",
+  "mutants": 2,
+  "survivors": [
+   "comparison gte->lte @L38",
+   "value 7000->6000 @L39"
+  ],
+  "tests": [
+   "tests/cards/characters/op06-002-inazuma.test.ts"
+  ],
+  "inert_tests": [],
+  "standard_legal": true
+ },
+ {
+  "card": "OP06-009",
+  "set": "OP06",
+  "encoding": "vendor/tcg-engines/submodules/one-piece/packages/cards/src/cards/OP06/characters/009-shuraiya.ts",
+  "mutants": 1,
+  "survivors": [
+   "drop oncePerTurn @L71"
+  ],
+  "tests": [
+   "tests/cards/characters/op06-009-shuraiya.test.ts",
+   "tests/cards/characters/op06-013-monkey-d-luffy.test.ts",
+   "tests/cards/review-on-block-regressions.test.ts"
+  ],
+  "inert_tests": [],
+  "standard_legal": true
+ },
+ {
+  "card": "OP06-022",
+  "set": "OP06",
+  "encoding": "vendor/tcg-engines/submodules/one-piece/packages/cards/src/cards/OP06/leaders/022-yamato.ts",
+  "mutants": 2,
+  "survivors": [
+   "comparison lte->gte @L53",
+   "drop oncePerTurn @L74"
+  ],
+  "tests": [
+   "src/cards/OP13/characters/118-monkey-d-luffy.test.ts",
+   "tests/cards/leaders/op06-022-yamato.test.ts"
+  ],
+  "inert_tests": [
+   "src/cards/OP06/leaders/022-yamato.test.ts"
+  ],
+  "standard_legal": true
+ },
+ {
+  "card": "OP06-024",
+  "set": "OP06",
+  "encoding": "vendor/tcg-engines/submodules/one-piece/packages/cards/src/cards/OP06/characters/024-ikaros-much.ts",
+  "mutants": 4,
+  "survivors": [
+   "delete filter:cost @L53",
+   "delete filter:trait @L58",
+   "delete filter:cardCategory @L63",
+   "comparison lte->gte @L55"
+  ],
+  "tests": [
+   "tests/cards/characters/op06-024-ikaros-much.test.ts",
+   "tests/cards/characters/op06-025-camie.test.ts",
+   "tests/cards/characters/op06-026-koushirou.test.ts"
+  ],
+  "inert_tests": [],
+  "standard_legal": true
+ },
+ {
+  "card": "OP06-060",
+  "set": "OP06",
+  "encoding": "vendor/tcg-engines/submodules/one-piece/packages/cards/src/cards/OP06/characters/060-vinsmoke-ichiji.ts",
+  "mutants": 3,
+  "survivors": [
+   "delete filter:cost @L55",
+   "delete filter:name @L60",
+   "comparison eq->gte @L57"
+  ],
+  "tests": [
+   "tests/cards/characters/op06-060-vinsmoke-ichiji.test.ts",
+   "tests/cards/characters/op06-062-vinsmoke-judge.test.ts",
+   "tests/cards/events/eb02-039-germa-66.test.ts",
+   "tests/cards/events/eb03-038-thanks-for-the-treat.test.ts",
+   "tests/cards/events/op06-078-germa-66.test.ts"
+  ],
+  "inert_tests": [],
+  "standard_legal": true
+ },
+ {
+  "card": "OP06-109",
+  "set": "OP06",
+  "encoding": "vendor/tcg-engines/submodules/one-piece/packages/cards/src/cards/OP06/characters/109-denjiro.ts",
+  "mutants": 2,
+  "survivors": [
+   "comparison lte->gte @L38",
+   "comparison lte->gte @L59"
+  ],
+  "tests": [
+   "tests/cards/characters/op06-109-denjiro.test.ts"
+  ],
+  "inert_tests": [
+   "src/cards/OP06/characters/109-denjiro.test.ts"
+  ],
+  "standard_legal": true
+ },
+ {
+  "card": "OP06-110",
+  "set": "OP06",
+  "encoding": "vendor/tcg-engines/submodules/one-piece/packages/cards/src/cards/OP06/characters/110-nekomamushi.ts",
+  "mutants": 1,
+  "survivors": [
+   "comparison lte->gte @L38"
+  ],
+  "tests": [
+   "tests/cards/characters/op06-110-nekomamushi.test.ts",
+   "tests/cards/leaders/op02-026-sanji.test.ts"
+  ],
+  "inert_tests": [
+   "src/cards/OP06/characters/110-nekomamushi.test.ts"
+  ],
+  "standard_legal": true
+ },
+ {
+  "card": "OP07-001",
+  "set": "OP07",
+  "encoding": "vendor/tcg-engines/submodules/one-piece/packages/cards/src/cards/OP07/leaders/001-monkey-d-dragon.ts",
+  "mutants": 1,
+  "survivors": [
+   "drop oncePerTurn @L64"
+  ],
+  "tests": [
+   "src/cards/OP09/characters/108-bartholomew-kuma.test.ts",
+   "src/cards/OP09/characters/112-belo-betty.test.ts",
+   "tests/cards/leaders/op07-001-monkey-d-dragon.test.ts"
+  ],
+  "inert_tests": [
+   "src/cards/OP07/leaders/001-monkey-d-dragon.test.ts"
+  ],
+  "standard_legal": true
+ },
+ {
+  "card": "OP07-019",
+  "set": "OP07",
+  "encoding": "vendor/tcg-engines/submodules/one-piece/packages/cards/src/cards/OP07/leaders/019-jewelry-bonney.ts",
+  "mutants": 1,
+  "survivors": [
+   "drop oncePerTurn @L68"
+  ],
+  "tests": [
+   "src/cards/OP10/characters/104-caribou.test.ts",
+   "src/cards/OP10/characters/106-killer.test.ts",
+   "src/cards/OP12/characters/113-roronoa-zoro.test.ts",
+   "tests/cards/characters/eb03-017-jewelry-bonney.test.ts",
+   "tests/cards/characters/op07-029-basil-hawkins.test.ts",
+   "tests/cards/leaders/op07-019-jewelry-bonney.test.ts"
+  ],
+  "inert_tests": [
+   "src/cards/OP07/leaders/019-jewelry-bonney.test.ts"
+  ],
+  "standard_legal": true
+ },
+ {
+  "card": "OP07-030",
+  "set": "OP07",
+  "encoding": "vendor/tcg-engines/submodules/one-piece/packages/cards/src/cards/OP07/characters/030-pappag.ts",
+  "mutants": 1,
+  "survivors": [
+   "delete filter:name @L38"
+  ],
+  "tests": [
+   "tests/cards/characters/op07-030-pappag.test.ts"
+  ],
+  "inert_tests": [
+   "src/cards/OP07/characters/030-pappag.test.ts"
+  ],
+  "standard_legal": true
+ },
+ {
+  "card": "OP07-045",
+  "set": "OP07",
+  "encoding": "vendor/tcg-engines/submodules/one-piece/packages/cards/src/cards/OP07/characters/045-jinbe.ts",
+  "mutants": 5,
+  "survivors": [
+   "delete filter:excludeName @L61",
+   "delete filter:cost @L65",
+   "delete filter:trait @L70",
+   "delete filter:cardCategory @L75",
+   "comparison lte->gte @L67"
+  ],
+  "tests": [
+   "tests/cards/characters/op07-045-jinbe.test.ts"
+  ],
+  "inert_tests": [
+   "src/cards/OP07/characters/045-jinbe.test.ts"
+  ],
+  "standard_legal": true
+ },
+ {
+  "card": "OP07-047",
+  "set": "OP07",
+  "encoding": "vendor/tcg-engines/submodules/one-piece/packages/cards/src/cards/OP07/characters/047-trafalgar-law.ts",
+  "mutants": 1,
+  "survivors": [
+   "comparison gte->lte @L69"
+  ],
+  "tests": [
+   "tests/cards/characters/op07-047-trafalgar-law.test.ts"
+  ],
+  "inert_tests": [
+   "src/cards/OP07/characters/047-trafalgar-law.test.ts"
+  ],
+  "standard_legal": true
+ },
+ {
+  "card": "OP07-048",
+  "set": "OP07",
+  "encoding": "vendor/tcg-engines/submodules/one-piece/packages/cards/src/cards/OP07/characters/048-donquixote-doflamingo.ts",
+  "mutants": 9,
+  "survivors": [
+   "delete filter:cost @L45",
+   "delete filter:trait @L50",
+   "delete filter:cardCategory @L55",
+   "delete filter:cost @L72",
+   "delete filter:trait @L77",
+   "delete filter:cardCategory @L82",
+   "comparison lte->gte @L47",
+   "comparison lte->gte @L74",
+   "drop oncePerTurn @L95"
+  ],
+  "tests": [
+   "tests/cards/characters/op07-048-donquixote-doflamingo.test.ts"
+  ],
+  "inert_tests": [
+   "src/cards/OP07/characters/048-donquixote-doflamingo.test.ts"
+  ],
+  "standard_legal": true
+ },
+ {
+  "card": "OP07-059",
+  "set": "OP07",
+  "encoding": "vendor/tcg-engines/submodules/one-piece/packages/cards/src/cards/OP07/leaders/059-foxy.ts",
+  "mutants": 6,
+  "survivors": [
+   "delete filter:state @L65",
+   "delete filter:trait @L78",
+   "delete filter:state @L96",
+   "delete filter:trait @L109",
+   "comparison gte->lte @L75",
+   "comparison gte->lte @L106"
+  ],
+  "tests": [
+   "tests/cards/characters/eb04-036-foxy.test.ts",
+   "tests/cards/characters/eb04-037-porche.test.ts",
+   "tests/cards/characters/op07-060-itomimizu.test.ts",
+   "tests/cards/characters/op07-063-capote.test.ts",
+   "tests/cards/characters/op07-065-gina.test.ts",
+   "tests/cards/characters/op07-071-foxy.test.ts",
+   "tests/cards/characters/op07-074-monda.test.ts",
+   "tests/cards/leaders/op07-059-foxy.test.ts"
+  ],
+  "inert_tests": [
+   "src/cards/OP07/leaders/059-foxy.test.ts"
+  ],
+  "standard_legal": true
+ },
+ {
+  "card": "OP07-076",
+  "set": "OP07",
+  "encoding": "vendor/tcg-engines/submodules/one-piece/packages/cards/src/cards/OP07/events/076-slow-slow-beam-sword.ts",
+  "mutants": 1,
+  "survivors": [
+   "value 2000->1000 @L48"
+  ],
+  "tests": [
+   "tests/cards/events/op07-076-slow-slow-beam-sword.test.ts"
+  ],
+  "inert_tests": [
+   "src/cards/OP07/events/076-slow-slow-beam-sword.test.ts"
+  ],
+  "standard_legal": true
+ },
+ {
+  "card": "OP07-078",
+  "set": "OP07",
+  "encoding": "vendor/tcg-engines/submodules/one-piece/packages/cards/src/cards/OP07/events/078-megaton-nine-tails-rush.ts",
+  "mutants": 1,
+  "survivors": [
+   "delete filter:name @L48"
+  ],
+  "tests": [
+   "tests/cards/events/op07-078-megaton-nine-tails-rush.test.ts"
+  ],
+  "inert_tests": [
+   "src/cards/OP07/events/078-megaton-nine-tails-rush.test.ts"
+  ],
+  "standard_legal": true
+ },
+ {
+  "card": "OP07-094",
+  "set": "OP07",
+  "encoding": "vendor/tcg-engines/submodules/one-piece/packages/cards/src/cards/OP07/events/094-shave.ts",
+  "mutants": 3,
+  "survivors": [
+   "delete filter:trait @L55",
+   "comparison gte->lte @L66",
+   "value 2000->1000 @L42"
+  ],
+  "tests": [
+   "tests/cards/characters/op04-084-stussy.test.ts",
+   "tests/cards/events/op07-094-shave.test.ts"
+  ],
+  "inert_tests": [
+   "src/cards/OP07/events/094-shave.test.ts"
+  ],
+  "standard_legal": true
+ },
+ {
+  "card": "OP07-096",
+  "set": "OP07",
+  "encoding": "vendor/tcg-engines/submodules/one-piece/packages/cards/src/cards/OP07/events/096-tempest-kick.ts",
+  "mutants": 3,
+  "survivors": [
+   "delete filter:cost @L72",
+   "comparison gte->lte @L53",
+   "comparison lte->gte @L74"
+  ],
+  "tests": [
+   "tests/cards/events/op07-096-tempest-kick.test.ts"
+  ],
+  "inert_tests": [
+   "src/cards/OP07/events/096-tempest-kick.test.ts"
+  ],
+  "standard_legal": true
+ },
+ {
+  "card": "OP08-002",
+  "set": "OP08",
+  "encoding": "vendor/tcg-engines/submodules/one-piece/packages/cards/src/cards/OP08/leaders/002-marco.ts",
+  "mutants": 1,
+  "survivors": [
+   "drop oncePerTurn @L85"
+  ],
+  "tests": [
+   "tests/cards/characters/op08-040-atmos.test.ts",
+   "tests/cards/characters/op08-043-edward-newgate.test.ts",
+   "tests/cards/leaders/op08-002-marco.test.ts"
+  ],
+  "inert_tests": [
+   "src/cards/OP08/leaders/002-marco.test.ts"
+  ],
+  "standard_legal": true
+ },
+ {
+  "card": "OP08-017",
+  "set": "OP08",
+  "encoding": "vendor/tcg-engines/submodules/one-piece/packages/cards/src/cards/OP08/events/017-i-d-never-shoot-you.ts",
+  "mutants": 2,
+  "survivors": [
+   "value 4000->3000 @L42",
+   "value 1000->0 @L73"
+  ],
+  "tests": [
+   "tests/cards/events/op08-017-i-d-never-shoot-you.test.ts"
+  ],
+  "inert_tests": [
+   "src/cards/OP08/events/017-i-d-never-shoot-you.test.ts"
+  ],
+  "standard_legal": true
+ },
+ {
+  "card": "OP08-037",
+  "set": "OP08",
+  "encoding": "vendor/tcg-engines/submodules/one-piece/packages/cards/src/cards/OP08/events/037-garchu.ts",
+  "mutants": 2,
+  "survivors": [
+   "delete filter:trait @L36",
+   "delete filter:cardCategory @L41"
+  ],
+  "tests": [
+   "tests/cards/events/op08-037-garchu.test.ts"
+  ],
+  "inert_tests": [
+   "src/cards/OP08/events/037-garchu.test.ts"
+  ],
+  "standard_legal": true
+ },
+ {
+  "card": "OP08-043",
+  "set": "OP08",
+  "encoding": "vendor/tcg-engines/submodules/one-piece/packages/cards/src/cards/OP08/characters/043-edward-newgate.ts",
+  "mutants": 1,
+  "survivors": [
+   "comparison lte->gte @L61"
+  ],
+  "tests": [
+   "tests/cards/characters/op08-043-edward-newgate.test.ts"
+  ],
+  "inert_tests": [
+   "src/cards/OP08/characters/043-edward-newgate.test.ts"
+  ],
+  "standard_legal": true
+ },
+ {
+  "card": "OP08-057",
+  "set": "OP08",
+  "encoding": "vendor/tcg-engines/submodules/one-piece/packages/cards/src/cards/OP08/leaders/057-king.ts",
+  "mutants": 2,
+  "survivors": [
+   "comparison lte->gte @L66",
+   "drop oncePerTurn @L89"
+  ],
+  "tests": [
+   "tests/cards/characters/op08-059-alber.test.ts",
+   "tests/cards/leaders/op08-057-king.test.ts"
+  ],
+  "inert_tests": [
+   "src/cards/OP08/leaders/057-king.test.ts"
+  ],
+  "standard_legal": true
+ },
+ {
+  "card": "OP08-059",
+  "set": "OP08",
+  "encoding": "vendor/tcg-engines/submodules/one-piece/packages/cards/src/cards/OP08/characters/059-alber.ts",
+  "mutants": 4,
+  "survivors": [
+   "delete filter:cost @L51",
+   "delete filter:name @L56",
+   "comparison lte->gte @L53",
+   "comparison eq->gte @L73"
+  ],
+  "tests": [
+   "tests/cards/characters/op08-059-alber.test.ts"
+  ],
+  "inert_tests": [
+   "src/cards/OP08/characters/059-alber.test.ts"
+  ],
+  "standard_legal": true
+ },
+ {
+  "card": "OP08-070",
+  "set": "OP08",
+  "encoding": "vendor/tcg-engines/submodules/one-piece/packages/cards/src/cards/OP08/characters/070-baron-tamago.ts",
+  "mutants": 3,
+  "survivors": [
+   "delete filter:cost @L53",
+   "delete filter:name @L58",
+   "comparison lte->gte @L55"
+  ],
+  "tests": [
+   "tests/cards/characters/op08-070-baron-tamago.test.ts",
+   "tests/cards/characters/op08-071-count-niwatori.test.ts"
+  ],
+  "inert_tests": [
+   "src/cards/OP08/characters/070-baron-tamago.test.ts"
+  ],
+  "standard_legal": true
+ },
+ {
+  "card": "OP08-075",
+  "set": "OP08",
+  "encoding": "vendor/tcg-engines/submodules/one-piece/packages/cards/src/cards/OP08/events/075-candy-maiden.ts",
+  "mutants": 2,
+  "survivors": [
+   "delete filter:cost @L48",
+   "comparison lte->gte @L50"
+  ],
+  "tests": [
+   "tests/cards/events/op08-075-candy-maiden.test.ts",
+   "tests/cards/leaders/op09-061-monkey-d-luffy.test.ts"
+  ],
+  "inert_tests": [
+   "src/cards/OP08/events/075-candy-maiden.test.ts"
+  ],
+  "standard_legal": true
+ },
+ {
+  "card": "OP08-094",
+  "set": "OP08",
+  "encoding": "vendor/tcg-engines/submodules/one-piece/packages/cards/src/cards/OP08/events/094-imperial-flame.ts",
+  "mutants": 4,
+  "survivors": [
+   "delete filter:cost @L43",
+   "delete filter:cost @L68",
+   "comparison lte->gte @L45",
+   "comparison lte->gte @L70"
+  ],
+  "tests": [
+   "tests/cards/events/op08-094-imperial-flame.test.ts"
+  ],
+  "inert_tests": [
+   "src/cards/OP08/events/094-imperial-flame.test.ts"
+  ],
+  "standard_legal": true
+ },
+ {
+  "card": "OP08-100",
+  "set": "OP08",
+  "encoding": "vendor/tcg-engines/submodules/one-piece/packages/cards/src/cards/OP08/characters/100-south-bird.ts",
+  "mutants": 1,
+  "survivors": [
+   "delete filter:name @L47"
+  ],
+  "tests": [
+   "tests/cards/characters/op08-100-south-bird.test.ts"
+  ],
+  "inert_tests": [
+   "src/cards/OP08/characters/100-south-bird.test.ts"
+  ],
+  "standard_legal": true
+ },
+ {
+  "card": "OP08-109",
+  "set": "OP08",
+  "encoding": "vendor/tcg-engines/submodules/one-piece/packages/cards/src/cards/OP08/characters/109-mont-blanc-noland.ts",
+  "mutants": 1,
+  "survivors": [
+   "delete filter:name @L49"
+  ],
+  "tests": [
+   "tests/cards/OP15/101-kalgara.test.ts",
+   "tests/cards/characters/op08-109-mont-blanc-noland.test.ts",
+   "tests/cards/events/op12-116-we-ll-ring-the-bell.test.ts"
+  ],
+  "inert_tests": [
+   "src/cards/OP08/characters/109-mont-blanc-noland.test.ts"
+  ],
+  "standard_legal": true
+ },
+ {
+  "card": "OP08-110",
+  "set": "OP08",
+  "encoding": "vendor/tcg-engines/submodules/one-piece/packages/cards/src/cards/OP08/characters/110-wyper.ts",
+  "mutants": 2,
+  "survivors": [
+   "delete filter:name @L62",
+   "delete filter:name @L81"
+  ],
+  "tests": [
+   "tests/cards/OP15/112-raki.test.ts",
+   "tests/cards/characters/op08-110-wyper.test.ts",
+   "tests/cards/events/op08-116-burn-bazooka.test.ts",
+   "tests/cards/events/op08-117-burn-blade.test.ts",
+   "tests/cards/leaders/op08-098-kalgara.test.ts"
+  ],
+  "inert_tests": [
+   "src/cards/OP08/characters/110-wyper.test.ts"
+  ],
+  "standard_legal": true
+ }
+]

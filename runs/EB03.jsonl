@@ -1,0 +1,52 @@
+{"card": "EB03-001", "status": "survivors", "killed": 1, "mutants": 5, "survivors": ["delete filter:hasEffectType @L77", "delete filter:baseCost @L96", "comparison gte->lte @L96", "drop oncePerTurn @L103"]}
+{"card": "ST18-002", "status": "survivors", "killed": 0, "mutants": 1, "survivors": ["comparison gte->lte @L39"]}
+{"card": "EB03-003", "status": "survivors", "killed": 3, "mutants": 5, "survivors": ["delete filter:cardCategory @L84", "value 6000->5000 @L82"]}
+{"card": "EB03-005", "status": "survivors", "killed": 4, "mutants": 5, "survivors": ["delete filter:cardCategory @L62"]}
+{"card": "EB03-007", "status": "survivors", "killed": 3, "mutants": 5, "survivors": ["delete filter:cardCategory @L55", "value 6000->5000 @L53"]}
+{"card": "EB03-008", "status": "survivors", "killed": 2, "mutants": 3, "survivors": ["delete filter:trait @L83"]}
+{"card": "EB03-009", "status": "ok", "killed": 2, "mutants": 2, "survivors": []}
+{"card": "EB03-010", "status": "survivors", "killed": 5, "mutants": 6, "survivors": ["delete filter:cardCategory @L52"]}
+{"card": "EB03-012", "status": "ok", "killed": 5, "mutants": 5, "survivors": []}
+{"card": "EB03-013", "status": "survivors", "killed": 4, "mutants": 5, "survivors": ["delete filter:name @L88"]}
+{"card": "EB03-014", "status": "survivors", "killed": 0, "mutants": 1, "survivors": ["delete filter:attribute @L49"]}
+{"card": "EB03-015", "status": "ok", "killed": 5, "mutants": 5, "survivors": []}
+{"card": "EB03-016", "status": "survivors", "killed": 0, "mutants": 1, "survivors": ["delete filter:trait @L64"]}
+{"card": "EB03-017", "status": "survivors", "killed": 1, "mutants": 2, "survivors": ["delete filter:cost @L62"]}
+{"card": "EB03-021", "status": "survivors", "killed": 3, "mutants": 5, "survivors": ["delete filter:baseCost @L70", "value 4000->3000 @L54"]}
+{"card": "EB03-025", "status": "survivors", "killed": 2, "mutants": 3, "survivors": ["comparison eq->gte @L68"]}
+{"card": "EB03-026", "status": "ok", "killed": 2, "mutants": 2, "survivors": []}
+{"card": "EB03-028", "status": "ok", "killed": 1, "mutants": 1, "survivors": []}
+{"card": "EB03-031", "status": "survivors", "killed": 2, "mutants": 3, "survivors": ["delete filter:cardCategory @L85"]}
+{"card": "EB03-032", "status": "ok", "killed": 2, "mutants": 2, "survivors": []}
+{"card": "EB03-033", "status": "ok", "killed": 1, "mutants": 1, "survivors": []}
+{"card": "EB03-036", "status": "ok", "killed": 2, "mutants": 2, "survivors": []}
+{"card": "EB03-037", "status": "ok", "killed": 3, "mutants": 3, "survivors": []}
+{"card": "EB03-039", "status": "survivors", "killed": 3, "mutants": 5, "survivors": ["delete filter:cardCategory @L70", "value 6000->5000 @L68"]}
+{"card": "EB03-041", "status": "ok", "killed": 5, "mutants": 5, "survivors": []}
+{"card": "EB03-042", "status": "survivors", "killed": 5, "mutants": 8, "survivors": ["delete filter:cost @L88", "delete filter:cost @L104", "comparison lte->gte @L90"]}
+{"card": "EB03-043", "status": "ok", "killed": 3, "mutants": 3, "survivors": []}
+{"card": "EB03-045", "status": "survivors", "killed": 3, "mutants": 5, "survivors": ["delete filter:cardCategory @L99", "comparison gte->lte @L109"]}
+{"card": "EB03-048", "status": "survivors", "killed": 2, "mutants": 6, "survivors": ["delete filter:cardCategory @L53", "delete filter:cost @L72", "delete filter:cardCategory @L82", "comparison eq->gte @L74"]}
+{"card": "EB03-050", "status": "survivors", "killed": 0, "mutants": 1, "survivors": ["delete filter:trait @L45"]}
+{"card": "EB03-051", "status": "ok", "killed": 2, "mutants": 2, "survivors": []}
+{"card": "EB03-052", "status": "ok", "killed": 2, "mutants": 2, "survivors": []}
+{"card": "EB03-056", "status": "ok", "killed": 2, "mutants": 2, "survivors": []}
+{"card": "EB03-057", "status": "survivors", "killed": 0, "mutants": 1, "survivors": ["delete filter:trait @L59"]}
+{"card": "EB03-058", "status": "ok", "killed": 1, "mutants": 1, "survivors": []}
+{"card": "EB03-061", "status": "survivors", "killed": 3, "mutants": 4, "survivors": ["delete filter:trait @L105"]}
+{"card": "EB03-062", "status": "survivors", "killed": 2, "mutants": 3, "survivors": ["delete filter:name @L88"]}
+{"card": "EB03-038", "status": "ok", "killed": 3, "mutants": 3, "survivors": []}
+{"card": "EB03-049", "status": "survivors", "killed": 2, "mutants": 9, "survivors": ["delete filter:cost @L49", "delete filter:trait @L54", "delete filter:cardCategory @L59", "delete filter:cost @L80", "delete filter:trait @L85", "delete filter:cardCategory @L90", "comparison lte->gte @L82"]}
+{"card": "EB03-060", "status": "ok", "killed": 4, "mutants": 4, "survivors": []}
+{"card": "EB03-004", "status": "survivors", "killed": 3, "mutants": 4, "survivors": ["value 6000->5000 @L54"]}
+{"card": "EB03-006", "status": "ok", "killed": 1, "mutants": 1, "survivors": []}
+{"card": "EB03-022", "status": "ok", "killed": 2, "mutants": 2, "survivors": []}
+{"card": "EB03-027", "status": "survivors", "killed": 2, "mutants": 3, "survivors": ["comparison eq->gte @L46"]}
+{"card": "EB03-044", "status": "survivors", "killed": 0, "mutants": 2, "survivors": ["delete filter:name @L47", "delete filter:name @L66"]}
+{"card": "EB03-046", "status": "ok", "killed": 4, "mutants": 4, "survivors": []}
+{"card": "EB03-053", "status": "survivors", "killed": 2, "mutants": 5, "survivors": ["delete filter:cardCategory @L120", "comparison gte->lte @L89", "value 6000->5000 @L118"]}
+{"card": "EB03-059", "status": "survivors", "killed": 4, "mutants": 6, "survivors": ["delete filter:cardCategory @L65", "comparison gte->lte @L48"]}
+{"card": "EB03-011", "status": "survivors", "killed": 0, "mutants": 1, "survivors": ["value 4000->3000 @L49"]}
+{"card": "EB03-020", "status": "survivors", "killed": 3, "mutants": 4, "survivors": ["delete filter:trait @L66"]}
+{"card": "EB03-024", "status": "survivors", "killed": 4, "mutants": 7, "survivors": ["delete filter:cost @L75", "delete filter:cardCategory @L87", "delete filter:cardCategory @L97"]}
+{"card": "EB03-029", "status": "survivors", "killed": 4, "mutants": 8, "survivors": ["delete filter:cost @L49", "delete filter:anyOf @L54", "delete filter:cardCategory @L69", "comparison lte->gte @L51"]}
