@@ -34,7 +34,7 @@ wrong *in the same direction* reads as correct to both. It is a real but bounded
 card**. Official SC ruling #747 quotes the card in full and its second ability is
 *"[Your Turn] If you have 10 or more cards in your trash, all of your {Five Elders} type
 Characters' base power becomes 7000"* — which needed a literal base-power setter. **That primitive
-exists as of 2026-08-20 (`setBasePower`, patches 10-16 of `tools/patch_engine.py`), so this card is
+exists as of 2026-08-20 (the `setBasePower` patches in `tools/patch_engine.py`), so this card is
 unblocked; it is still unfixed.**
 The engine's own printed `effect` string agrees with the fabricated encoding, which is exactly why
 no check has ever caught it. Already recorded in `docs/encoding-audit.md`; listed here because it

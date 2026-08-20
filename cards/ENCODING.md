@@ -1325,16 +1325,20 @@ site so nothing will flag it — but do not claim it is exercised. Where the tar
 the primitive demonstrably does reach a Leader: `OP16-106`, `OP16-015` and `OP15-092` bullet 2 all
 assert a Leader's power directly.
 
-**Engine delivery.** The primitive is patches 10–16 in `tools/patch_engine.py`, across
-`packages/types/src/effect/action.ts` (the action type and its union membership),
+**Engine delivery.** The primitive is the nine `setBasePower` patches in `tools/patch_engine.py`
+(positions 15–23 after Phase 1 took 10–14 — cite them by NAME, the list has been inserted into
+twice), across `packages/types/src/effect/action.ts` (the action type and its union membership),
 `engine/src/types.ts` (the modifier type), `engine/src/shared.ts`
 (`getSetBasePowerModifier`, `getEffectiveBasePower`, `getCardPower`),
 `engine/src/effects/permanent.ts` (`getPermanentSetBasePower`) and
-`engine/src/effects/actions.ts` (the resolver case). One of those is the first patch to reach
-outside `packages/engine`; `packages/types` is consumed from source, so there is no build step.
-The duration→expiry mapping is copied from `setPower`, not from `setBasePowerFrom`, because
-`setBasePowerFrom` leaves `untilEndOfOpponentNextEndPhase` unmapped and it would never expire —
-and that is exactly the duration `OP17-005` prints.
+`engine/src/effects/actions.ts` (the resolver case, plus the three older setters). One of those is
+the first patch to reach outside `packages/engine`; `packages/types` is consumed from source, so
+there is no build step.
+The duration→expiry mapping is copied from **`modifyPower`**, the only complete one in the file —
+**not** from `setPower`, which omits `untilEndOfYourNextTurn`, nor from `setBasePowerFrom`, which
+also leaves `untilEndOfOpponentNextEndPhase` unmapped. An unmapped duration falls through to
+`expiresAtTurn: null` and then never expires, and `untilEndOfOpponentNextEndPhase` is exactly the
+duration `OP17-005` prints.
 
 **Testing it.** Five assertions carry the semantics. The first three are per-card; the last two are
 the ones a green suite will NOT ask you for, and both were missing on the first pass:

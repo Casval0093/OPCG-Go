@@ -21,11 +21,12 @@ PY="$ROOT/.venv/bin/python"
   && "$PY" tools/graft_cards.py \
   && "$PY" tools/patch_engine.py \
   && "$PY" tools/correct_cards.py)
-# Expect 6106 pass / 0 fail / 10 skipped in ~90s (2026-08-20, after setBasePower added 28 tests
-# across the 6 unparked OP15/OP16 cards). The 4 skipped FILES are this repo's env-gated harnesses
-# (puzzles, matchup.sim, catalog.dump, prompt-diag), not failures.
-# This line used to say 6079, which was one too many: a tree with bench/throughput.test.ts copied
-# into tests/cards/ reports one extra test, and bootstrap does not copy it. Measured directly here
-# instead: OP15+OP16 went 738 -> 766 tests and the total went 6078 -> 6106, which reconciles.
+# Expect 6110 pass / 0 fail / 10 skipped in ~90s (2026-08-20: Phase 1 + Phase 2 + setBasePower,
+# the last of which added 32 tests across the 6 unparked OP15/OP16 cards). The 4 skipped FILES are
+# this repo's env-gated harnesses (puzzles, matchup.sim, catalog.dump, prompt-diag), not failures.
+# This line used to say 6079, which was one too many, and the reason recurs: bench/throughput.test.ts
+# is NOT part of the suite, and a tree with it copied into tests/cards/ reports exactly one extra
+# test. Bootstrap does not copy it. Measured here instead of inferred: OP15+OP16 went 738 -> 770 and
+# the total 6078 -> 6110, which reconciles exactly.
 cd packages/engine && ./node_modules/.bin/vp test run
 echo "Bootstrap OK."

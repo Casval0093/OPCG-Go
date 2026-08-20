@@ -326,7 +326,7 @@ cards" to "Look at 5 cards from the top" is churn that changes nothing and burie
 *"[Your Turn] If you have 10 or more cards in your trash, set the base power of all of your
 {Five Elders} type Characters to 7000"*; the engine encodes a completely different `[On Play]` deck
 search. That is not a text fix — it needs a literal base-power setter.
-**That primitive now EXISTS — `setBasePower`, built 2026-08-20 (patches 10-16 of
+**That primitive now EXISTS — `setBasePower`, built 2026-08-20 (the `setBasePower` patches in
 `tools/patch_engine.py`), so this card is UNBLOCKED and still unfixed.** It is a bigger job than
 the 48 corrections were, because both halves are wrong: the printed `effect` string has to be
 corrected via `data/card-corrections.json` *and* the fabricated `[On Play]` encoding replaced, in

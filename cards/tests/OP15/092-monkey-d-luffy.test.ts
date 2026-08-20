@@ -98,7 +98,11 @@ describe("OP15-092 Monkey.D.Luffy", () => {
     // The other half of bullet 2's `gte` coverage: under `lte 20` the Leader falls back to 5000
     // here. And the Character reads 10000 on the OPPONENT's turn too, which is what shows the
     // turn gate belongs to bullet 2 alone rather than to the whole card.
-    expect(onOpponentTurnWithTrash(30)).toEqual({ leader: 7000, character: 10000, bystander: 5000 });
+    expect(onOpponentTurnWithTrash(30)).toEqual({
+      leader: 7000,
+      character: 10000,
+      bystander: 5000,
+    });
   });
 
   test("on YOUR own turn the Leader clause is off however full the trash is", () => {
