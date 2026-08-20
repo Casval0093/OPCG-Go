@@ -12,7 +12,13 @@
   #app { display: grid; grid-template-columns: minmax(0,1fr) 340px; height: 100vh; }
   #table { overflow: auto; padding: 12px 14px; }
   #side { border-left: 1px solid var(--line); background: var(--panel);
-          display: grid; grid-template-rows: auto auto minmax(0,1fr) minmax(0,200px); overflow: hidden; }
+          display: flex; flex-direction: column; overflow: hidden; }
+  /* Only the move list grows; everything else takes its natural height. This used to be a 4-row grid
+     over 5 children, which laid out correctly only because #prompt is display:none (and so not a grid
+     item) most of the time — a sixth child would have stolen the flexible row from #moves. */
+  #side > * { flex: 0 0 auto; }
+  #side > #moves { flex: 1 1 auto; min-height: 0; }
+  #side > #log { flex: 0 0 200px; }
 
   .zone { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin-bottom: 10px; }
   .zone > h2 { margin: 0 0 7px; font-size: 11px; letter-spacing: .09em; text-transform: uppercase;
@@ -44,6 +50,12 @@
                font-size: 11px; display: flex; gap: 8px; align-items: center; }
   #filterbar button { background: #2a2f3b; color: var(--text); border: 1px solid var(--line);
                       border-radius: 5px; padding: 2px 8px; cursor: pointer; font-size: 11px; }
+  #whybar { padding: 6px 12px 8px; border-bottom: 1px solid var(--line); }
+  #whybar label { display: block; color: var(--dim); font-size: 11px; margin-bottom: 3px; }
+  #why { width: 100%; box-sizing: border-box; background: #1a1e26; color: var(--text);
+         border: 1px solid var(--line); border-radius: 5px; padding: 5px 7px; font: inherit;
+         font-size: 12px; }
+  #why:focus { outline: none; border-color: var(--accent); }
   #moves { overflow: auto; padding: 6px; }
   .move { display: block; width: 100%; text-align: left; background: #232833; color: var(--text);
           border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; margin-bottom: 5px;
@@ -90,6 +102,11 @@
     <div id="banner">Connecting…</div>
     <div id="prompt"></div>
     <div id="filterbar"><span id="filterLabel">All legal moves</span><button id="clearFilter">clear</button></div>
+    <div id="whybar">
+      <label for="why">why this move? (optional — recorded in the decision log)</label>
+      <input id="why" type="text" maxlength="600" autocomplete="off"
+             placeholder="e.g. holding the counter for their Leader swing" />
+    </div>
     <div id="moves"></div>
     <div id="log"></div>
   </div>
@@ -236,10 +253,16 @@
       }
       button.onclick = () => {
         button.disabled = true;
+        // The note is optional and is cleared after every submission, so a reason never silently
+        // carries over to the next decision and mislabels it. ~60 decisions a game: a mandatory box
+        // here would get abandoned, and an abandoned box that still submits is worse than none.
+        const why = $("why");
+        const reason = why.value.trim();
+        why.value = "";
         fetch("/api/choose", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ index: choice.index }),
+          body: JSON.stringify({ index: choice.index, reason }),
         });
       };
       box.appendChild(button);

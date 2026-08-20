@@ -386,6 +386,258 @@ Written only after checking `battle.ts`, not from memory of the paper rules:
   is not a real class; the real error is spending an attack on a body you cannot beat while a
   productive attack exists. A puzzle class was dropped on this basis before being written.
 
+## Policy quality, step 2, batch 2: the classes that separate the policies
+
+Batch 1 established a floor and admitted it was too easy: `valueRanked` and `greedy` both scored 6/6,
+so nothing in it explained the 76% ladder gap. Batch 2 adds three classes aimed at where a greedy
+one-command-at-a-time heuristic should break down — DON!! allocation, command order within a turn,
+and choosing between a K.O. and leader damage. 14 positions total.
+
+| puzzle | class | valueRanked | greedy | firstLegal | random | passOnly | correct/legal |
+|---|---|---|---|---|---|---|---|
+| lethal-bare | lethal | pass | pass | pass | FAIL | FAIL | 2/3 |
+| lethal-decoy-body | lethal | pass | pass | pass | FAIL | FAIL | 2/5 |
+| lethal-reaching-attacker | lethal | pass | pass | pass | FAIL | FAIL | 2/4 |
+| lethal-leader-rested | lethal | pass | pass | **FAIL** | FAIL | FAIL | 1/3 |
+| futile-unbeatable-body | futile | pass | pass | pass | FAIL | FAIL | 2/5 |
+| futile-pick-any-productive | futile | pass | pass | pass | FAIL | FAIL | 4/7 |
+| don-attach-before-attack | donAllocation | **FAIL** | pass | FAIL | FAIL | FAIL | 1/8 |
+| don-pick-the-body-that-reaches | donAllocation | pass | pass | FAIL | FAIL | FAIL | 4/38 |
+| don-concentrate-to-reach | donAllocation | pass | pass | FAIL | FAIL | FAIL | 10/209 |
+| seq-attach-then-swing-for-lethal | sequencing | **FAIL** | pass | FAIL | FAIL | FAIL | 1/8 |
+| seq-spread-not-concentrate | sequencing | **FAIL** | **FAIL** | FAIL | FAIL | FAIL | 6/209 |
+| ko-or-die-single-threat | koVsDamage† | FAIL | FAIL | FAIL | FAIL | FAIL | 4/12 |
+| ko-or-die-pick-the-attacker | koVsDamage† | FAIL | FAIL | FAIL | FAIL | FAIL | 21/67 |
+| ko-or-die-thin-the-swarm | koVsDamage† | FAIL | FAIL | FAIL | FAIL | FAIL | 12/23 |
+
+† architecture probe, excluded from the policy totals — see below.
+
+**Policy totals (11 scored positions):** `greedy` **10/11**, `valueRanked` **8/11**, `firstLegal`
+5/11, `random` 0/11, `passOnly` 0/11.
+**`valueRanked` by class:** lethal 4/4, futile 2/2, donAllocation 2/3, **sequencing 0/2**.
+
+### Batch 2 separates the two top policies — and the default one loses
+
+This is the finding, and it is not the one the batch was designed to get. The plan asked for puzzles
+`greedy` fails. What the run shows is the opposite: **`greedy` beats `valueRanked` 10/11 to 8/11**,
+and every point of the gap is command ORDER.
+
+The mechanism is in the scoring tables in `bot-strategies.ts`, and it is exact:
+
+- `valueRanked` scores `declareAttack` at `600 + 300 (target is a leader) + 150 (best attacker)`, plus
+  **`+100` when the attacker's PRINTED power is ≥ 5000** — total **1150**. It scores `attachDon` on
+  that same body at `400 + 150 + 100 + 400` = **1050**.
+- `greedy`'s two scores are `500 + 200 + 100` = **800** and `300 + 100 + 100 + 300` = **800** — a tie,
+  broken by the stable sort in favour of whichever descriptor `legal.ts` emitted first, and
+  `legal.ts` emits every `attachDon` (line 152) before every `declareAttack` (line 171).
+
+So for any attacker printed 5000 or more, **`valueRanked` swings before it buffs**, and the DON!! is
+then attached to a body that has already rested and attacked. `greedy` ties and buffs first. Both
+`donAllocation` and `sequencing` failures are that one behaviour: in
+`seq-attach-then-swing-for-lethal` it costs `valueRanked` the *game* — the buffed swing is lethal and
+it plays the two commands in the losing order.
+
+**This does not contradict the ladder, and must not be read as overturning it.** Step 1 measured
+whole games and `valueRanked` beat `greedy` 76.0% [69.6, 81.4]. Both results stand. What batch 2
+establishes is narrower and still useful: **the ladder gap does not come from DON!! sequencing**, and
+in that specific dimension the policy every simulation actually uses is the worse of the two. Where
+the 76% does come from remains unmeasured.
+
+`seq-spread-not-concentrate` is a **shared** blind spot: both policies hard-code "concentrate DON!! on
+the best attacker", and the position rewards spreading one DON!! onto each of two bodies so both
+reach a 6000 Leader. Both fail. Its mirror, `don-concentrate-to-reach`, rewards stacking, and both
+pass — the pair exists so neither can be solved by one fixed habit.
+
+### Three engine facts the batch turned up, all found by measurement
+
+**1. No policy can choose an attack target — every attack hits the defending leader.** Written up in
+full in its own section below. It is why `koVsDamage` is an architecture probe rather than a policy
+class: all five policies fail all three positions for one structural reason, so scoring them as
+policy quality would be a category error. They are kept because they demonstrate the *consequence* —
+a game lost that the position could have won — and because `expect: "fail"` flips the day target
+choice becomes reachable.
+
+**2. The prompt resolver never counters and never blocks.** `resolveBotPromptCommand`'s `selectCards`
+branch takes `Math.min(prompt.maxSelections, prompt.minSelections)` — which is always
+`minSelections` — and both defensive prompts are built with `minSelections: 0`: the counter step in
+`battle.ts:146` and the block step in `engine/queue.ts:52`. So the count is always 0 and the
+selection is always empty. Measured, not just read: a defender holding one and then three real
+counter cards took the damage both times, and an **active** character with the genuine `blocker`
+keyword was offered in the prompt and declined. Asserted now in `the prompt resolver never counters
+and never blocks`.
+**This is Task 5's answer and it is worse than "the resolver plays counters badly": it never plays
+them at all.** Combined with fact 1, simulated combat has *no defensive interaction whatsoever* —
+every battle resolves on printed power plus attached DON!!. Every number in this file was measured
+under those conditions. Per the architecture note already recorded, counter and blocker use are not
+policy decisions in this engine (the strategy never sees a prompt), so this is not a mark against
+any rung of the ladder — it is a property of the simulator that biases every matchup it produces.
+
+**3. `OP01-001` Roronoa Zoro — the leader both seats use in all six batch-1 puzzles — is not a
+vanilla leader,** and a printed power is not evidence of the power a card plays at. Zoro is
+`[DON!! x1] [Your Turn] All of your Characters gain +1000 power`, encoded as a `permanentEffect` keyed
+on `donAttached >= 1`, so a single DON!! on the *leader* silently buffs every character. It surfaced
+as a 5000 body attacking at 6000 after DON!! went to the leader, which made no sense until the card
+was read. The six batch-1 puzzles are unaffected **only** because they hold 0 active DON!! so the
+condition cannot fire — `fixture integrity` now asserts exactly that, so adding DON!! to one of them
+fails loudly instead of quietly rewriting its arithmetic. Separately, `OP13-003` Gol.D.Roger prints
+7000 and **plays at 9000**; a puzzle built on the printed value was silently unwinnable.
+**There is no vanilla leader in the game — all 135 have effect text** — so batch 2 screens leaders
+for *inertness* instead (`OP16-060`, `OP05-022`, `OP11-040`) and asserts it.
+
+### What is different about how batch 2 is measured
+
+- **Turn mode.** A DON!!-then-swing decision cannot be scored from one command, so batch-2 puzzles run
+  the strategy's **whole turn** and judge the resulting position. Batch 1 stays on single-command
+  scoring so its published numbers remain comparable; the two modes are never averaged.
+- **Guards are exhaustive over the line space, not over single commands.** SOLVABLE and
+  DISCRIMINATING are computed by enumerating every legal line the position allows (up to depth 6,
+  209 lines for the two-body two-DON!! positions) and playing each one out in the engine. That is
+  what the `correct/legal` column counts, and it is why the suite needs a 60s timeout.
+- **An opponent-reply puzzle also asserts THREATENED**: passing the turn must actually lose. Without
+  it a position where South survives regardless would score every policy "pass" and look clean.
+  Doing nothing is played out and checked, per puzzle.
+- **`random`'s two columns are not comparable.** Batch 1's published table was measured by calling the
+  strategy with no decision context, which makes `randomStrategy` fall back to `() => 0` and always
+  take the first descriptor. Turn mode gives it a seeded LCG instead. Feeding real randomness to the
+  batch-1 puzzles moved `random` from 0/6 to 4/6 — a change in the measuring instrument, not in the
+  policy — so command mode keeps the original context-free call and the original numbers.
+- **Every new guard was mutation-checked**, since tests that cannot fail are this project's most
+  frequent defect. Five mutants, all confirmed to turn the suite red: flipping an `expect`; giving
+  South 9 life so the K.O. position is no longer threatened; swapping the non-inert `OP01-001` in as a
+  batch-2 leader; and asserting the counter and blocker resolvers select 1 instead of 0.
+
+### Audited against the Official Rule Manual — 2026-08-19
+
+Everything the batch-2 puzzles and the counter-policy design rest on was checked against the manual
+rather than against memory of the paper rules. Confirmed correct in the engine:
+
+- **Attack targets** — "you can either target your opponent's Leader or a **rested** Character".
+  Matches `legalAttackTargets`.
+- **Damage gate** — "the attacking card will win if its power is **greater than or equal to** the
+  power of the card being attacked". Matches `attackPower >= defensePower`; ties go to the attacker,
+  and damage is binary with no partial mitigation.
+- **Counter Step** — the defender "may perform the following actions in any order and as many times
+  as they like". Matches the prompt's `maxSelections = hand size`.
+- **Main Phase ordering** — "you may perform actions A to D in any order and as many times as you
+  wish". This is what makes the `sequencing` puzzle class legitimate rather than an artefact.
+- **DON!! giving** — no limit on the number of times; power is gained "during your turn" only, which
+  is exactly `shared.ts:462`'s `state.activeSeat === instance.controller` guard.
+- **First player** — places 1 DON!! on their first turn and does not draw. Both already fixed
+  (patches 4/5) and now confirmed against the manual.
+- **DON!! on a Character leaving the field** returns to the cost area **rested**. Matches
+  `koBattleCharacter`.
+- **Deck-out** — reducing a deck to 0 loses the game, including the replacement-effect case where a
+  Leader wins instead. Implemented as `processEmptyDeckDefeat` (`state.ts:61`). No gap.
+- **`[Blocker]` / `[Rush]` / `[Banish]` / `[Double Attack]`** glossary definitions all match the
+  engine's keyword handling, including `[Banish]` trashing the life card without its `[Trigger]`.
+
+Two things the audit found:
+
+**1. The second player may illegally attack on their own first turn.** The manual's Battle Flow
+footnote is *"Neither player can attack on their first turn."* The engine's only gate is
+`state.turnNumber === 1 && state.activeSeat === state.config.firstPlayer`, and turn numbering is per
+player-turn, so the second player's first turn (`turnNumber === 2`) passes it. Measured:
+
+| turnNumber | seat | that seat's own turn | `declareAttack` offered |
+|---|---|---|---|
+| 1 | north (first player) | #1 | `false` — correct |
+| 2 | south (second player) | **#1** | **`true` — wrong** |
+| 3 | north (first player) | #2 | `true` — correct |
+| 4 | south (second player) | #2 | `true` — correct |
+
+**Every play/draw figure in this file understates first-player advantage as a result**, because the
+second player gets one extra attack — the Leader only, since anything played that turn is
+summoning-sick. That applies to the 8.5 pts on a real Block 2+ deck, the 26.7 on a vanilla pile and
+the 54.5 on ST01. The magnitude is unmeasured; do not guess it. Not yet patched — it belongs with the
+counter-policy patch, which already forces a ladder re-run.
+
+Note the coupling: fixing this **breaks the batch-2 puzzle fixtures**, which sit at `turnNumber: 1`
+acting as south with `firstPlayer: "north"`. The durable fix is to advance a fixture past turn 1
+rather than rely on the seat trick. The SOLVABLE guards will fail loudly, not mis-score.
+
+**2. The resolver always activates a `[Trigger]`, which is a real choice it is not making.** The
+manual: when your Leader takes damage you check the top life card privately and "may reveal the card
+and activate its `[Trigger]` effect **instead of** adding it to your hand", or decline and add it to
+hand unrevealed. The engine builds that as `choiceKind: "confirm"` (`battle.ts:197`) with
+`activate`/`skip`, and `resolveBotPromptCommand`'s confirm branch takes `activate` unconditionally.
+So the bot never banks a Trigger life card. This is the third resolver-owned decision that looks like
+policy and is not, after counter play and blocker use.
+
+It also **qualifies the premise behind "tank early, counter late"**: taking damage only funds a later
+counter when the life card has no `[Trigger]`, because a Trigger card goes to resolution instead of
+hand. The measured probe used a vanilla body, so it showed the full effect; expected hand gain per
+damage taken is below 1 in a real deck.
+
+### What batch 2 still does not establish
+
+The suite now has a floor across five classes and one confirmed defect in the default policy. It
+still says nothing about a ceiling. `greedy` at 10/11 is not evidence that `greedy` plays well — it is
+evidence that it plays these eleven positions well, and the positions were built to probe known
+heuristic weaknesses rather than sampled from real games. Steps 3–5 of the plan in CLAUDE.md are what
+would close that.
+
+### The bot cannot choose an attack target at all — verified 2026-08-19, do not re-derive
+
+**Every attack any ladder policy declares hits the defending leader.** Not by preference — the choice
+is not reachable through the code path all five strategies use.
+
+Three source facts compose into it:
+
+- `src/engine/legal.ts:181` emits **one `declareAttack` descriptor per ATTACKER**, with every legal
+  target bundled into one `targetIds` array — not one descriptor per (attacker, target) pair.
+- `src/automation/bot-strategies.ts:81` — `commandFromDescriptor` turns that descriptor into a
+  command with `targetId: descriptor.targetIds[0]!`, **unconditionally**. Every one of the five
+  strategies routes its final command through this helper, `randomStrategy` included.
+- `src/battle.ts:737` — `legalAttackTargets` pushes the defending **leader first**
+  (`const targets = hasRushCharacterOnly ? [] : [defender.leaderInstanceId]`), appending characters
+  after it.
+
+So the target is always `legalAttackTargets(...)[0]`, which is the leader whenever the leader is a
+legal target. The sole exception is a `rushCharacter`-only attacker on the turn it was played, where
+the leader is excluded and `targets[0]` is a rested character.
+
+Confirmed empirically before this was written up, not inferred from reading alone: on a board where
+north's leader **and** a rested 4000 character were both legal targets — the descriptor carrying
+`targetIds: [leader, character]` — 200 samples per strategy with varied `random` produced **only**
+leader attacks from `valueRanked`, `greedy`, `firstLegal` and `random`. None ever emitted a character
+target. (`passOnly` never attacks.)
+
+**This is NOT an engine rules bug and does not belong with the `orderCards` and search-to-hand
+defects.** Those produced *illegal* commands and aborted games. This produces legal, blind play: a
+limitation of the descriptor→command helper plus the five sample strategies. A strategy may construct
+a `declareAttack` command directly and pick its own target; nothing forbids it. Recorded locally only,
+per the standing rule on third-party repos.
+
+**What it costs the measurements.** Battle-based removal never happens in any simulated game — boards
+shrink only through card effects, never through combat. Every number in this file was measured in that
+world. It does not invalidate them as *relative* comparisons between policies that share the
+blindness, but the simulated game is systematically racier than the real one.
+
+**It bites the tech-slot objective specifically**, which is the whole reason the simulator exists. A
+card whose job is interacting with bodies — the plan's own example, `OP17-016` Rakuyo as anti-aggro
+tech — would be evaluated in a world where attacking a body is impossible. This is the failure mode
+CLAUDE.md already warns about ("a policy that cannot use a conditional card will report that every
+tech card is bad"), now with a concrete mechanism attached. **`random` is not a control for it:** it
+shares the same helper, so "even random does not do it" carries no information.
+
+**One existing claim above is weakened by this, and the weakening is real.**
+`futile-pick-any-productive` and `futile-unbeatable-body` were passed by policies that attacked the
+leader. The `futile` class accepts *any* material gain, and a leader attack always gains material when
+the leader is reachable — so those passes **did not** demonstrate target discrimination, and are fully
+consistent with a policy that has no target choice whatsoever. The four `lethal` puzzles are
+unaffected: their answer is "win", and a leader attack is what wins.
+
+**Consequence for any future puzzle batch.** A `koVsDamage` class — "attacking the leader and K.O.ing
+a body are both material but only one is right" — is **not buildable as a policy measurement**. Every
+such puzzle is failed by all five policies for one architectural reason, so it would measure the
+descriptor API, not policy quality. Build it only as an explicitly labelled API-limitation probe with
+all five marked `expect: "fail"`, or give the strategies target choice first.
+
+Attack target selection therefore joins counter play and blocker use (owned by
+`resolveBotPromptCommand`, which never receives the strategy) on the list of things that **look** like
+policy decisions and are not. What remains genuinely policy-attributable: which attacker to attack
+with, DON!! attachment, and the order of commands within a turn.
+
 ## What is not done
 
 - **No *meta* matchup yet — but the blocker is gone.** This used to read "every deck in the current

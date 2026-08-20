@@ -115,11 +115,19 @@ export function councilAgent(config: CouncilConfig): Agent {
     if (stats.failures.length < 20) stats.failures.push(why);
     const answer = await fallback.decide(context);
     const normalized = typeof answer === "number" ? { index: answer } : answer;
-    return { ...normalized, reason: `[degraded: ${why}] ${normalized.reason ?? ""}`.trim() };
+    // `author: "heuristic"` is the load-bearing part: the log must not attribute a degraded decision
+    // to the model. The `[degraded:]` prefix on the reason is for a human reading a transcript; this
+    // is for anything counting.
+    return {
+      ...normalized,
+      author: "heuristic",
+      reason: `[degraded: ${why}] ${normalized.reason ?? ""}`.trim(),
+    };
   };
 
   return {
     name: config.name,
+    author: "model",
 
     async decide(context: AgentContext): Promise<AgentAnswer> {
       const { decision } = context;
@@ -129,7 +137,10 @@ export function councilAgent(config: CouncilConfig): Agent {
       if (PROCEDURAL_KINDS.has(kind)) {
         stats.procedural++;
         const answer = await fallback.decide(context);
-        return typeof answer === "number" ? { index: answer } : answer;
+        const normalized = typeof answer === "number" ? { index: answer } : answer;
+        // Gated to the heuristic by design, so it is attributed to the heuristic. A corpus that
+        // counted the 猜拳 throw as a model decision would overstate the council's contribution.
+        return { ...normalized, author: "heuristic" };
       }
 
       if (stats.callsThisGame + config.proposers.length > budget) {
