@@ -41,7 +41,13 @@ class PatchEngineTest(unittest.TestCase):
             return fh.read()
 
     def snapshot(self) -> dict[str, str]:
-        return {p["relpath"]: self.read(p["relpath"]) for p in patch_engine.PATCHES}
+        # A CREATE patch's file does not exist until it is applied, so absence is a state to record
+        # rather than an error -- test_check_does_not_write compares snapshots across a --check run.
+        out: dict[str, str] = {}
+        for p in patch_engine.PATCHES:
+            path = os.path.join(self.engine, p["relpath"])
+            out[p["relpath"]] = self.read(p["relpath"]) if os.path.exists(path) else "<absent>"
+        return out
 
     def write(self, relpath: str, text: str) -> None:
         path = os.path.join(self.engine, relpath)
@@ -50,9 +56,19 @@ class PatchEngineTest(unittest.TestCase):
             fh.write(text)
 
     def seed_stock(self) -> None:
-        """An engine with every anchor present and no patch applied."""
+        """An engine with every anchor present and no patch applied.
+
+        A CREATE patch is seeded by NOT writing its file: absent is its unpatched state, and
+        writing a stub there would make the tool refuse to overwrite it (which is the point of
+        test_create_refuses_to_overwrite_a_foreign_file).
+        """
         for patch in patch_engine.PATCHES:
+            if "create" in patch:
+                continue
             self.write(patch["relpath"], f"before\n{patch['anchor']}\nafter\n")
+
+    def create_patches(self) -> list[dict]:
+        return [p for p in patch_engine.PATCHES if "create" in p]
 
     # --- the gate -------------------------------------------------------------------------
 
@@ -117,6 +133,45 @@ class PatchEngineTest(unittest.TestCase):
             # `already` is how every later run recognises the patch; if apply() does not produce
             # it, the tool re-patches forever and idempotence is a lie.
             self.assertIn(patch["already"], source, patch["name"])
+
+    # --- CREATE patches: a file upstream does not have, so there is no anchor to verify ----------
+
+    def test_create_patch_is_pending_then_written(self) -> None:
+        self.seed_stock()
+        creates = self.create_patches()
+        self.assertTrue(creates, "no CREATE patch in PATCHES — this suite would assert nothing")
+        code, text = run("--check", "--engine", self.engine)
+        for patch in creates:
+            self.assertIn(patch["name"], text)
+            self.assertFalse(os.path.exists(os.path.join(self.engine, patch["relpath"])))
+        self.assertEqual(code, 1)
+
+        self.assertEqual(run("--engine", self.engine)[0], 0)
+        for patch in creates:
+            source = self.read(patch["relpath"])
+            self.assertEqual(source, patch["create"])
+            self.assertIn(patch["already"], source)
+        self.assertEqual(run("--check", "--engine", self.engine)[0], 0)
+
+    def test_create_patch_apply_is_idempotent(self) -> None:
+        self.seed_stock()
+        run("--engine", self.engine)
+        before = self.snapshot()
+        code, text = run("--engine", self.engine)
+        self.assertEqual(code, 0)
+        self.assertIn("already applied", text)
+        self.assertEqual(self.snapshot(), before)
+
+    def test_create_refuses_to_overwrite_a_foreign_file(self) -> None:
+        self.seed_stock()
+        for patch in self.create_patches():
+            self.write(patch["relpath"], "someone else's file\n")
+        code, text = run("--engine", self.engine)
+        self.assertIn("FAILED", text)
+        self.assertEqual(code, 1)
+        # And it really did not write: the foreign content survives.
+        for patch in self.create_patches():
+            self.assertEqual(self.read(patch["relpath"]), "someone else's file\n")
 
 
 if __name__ == "__main__":

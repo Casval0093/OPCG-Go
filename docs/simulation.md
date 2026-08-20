@@ -457,14 +457,19 @@ policy quality would be a category error. They are kept because they demonstrate
 a game lost that the position could have won — and because `expect: "fail"` flips the day target
 choice becomes reachable.
 
-**2. The prompt resolver never counters and never blocks.** `resolveBotPromptCommand`'s `selectCards`
+**2. The prompt resolver never counters and never blocks.** *(Historical, as measured on 2026-08-19.
+The counter half was fixed by Phase 1 Task 1.2 on 2026-08-20 — see "Task 1.2 — the counter policy".
+The block half is still true and now deliberate. The test named at the end of this paragraph has been
+renamed accordingly. Everything above and below this paragraph in the batch-2 section was measured
+under the never-counter resolver.)* `resolveBotPromptCommand`'s `selectCards`
 branch takes `Math.min(prompt.maxSelections, prompt.minSelections)` — which is always
 `minSelections` — and both defensive prompts are built with `minSelections: 0`: the counter step in
 `battle.ts:146` and the block step in `engine/queue.ts:52`. So the count is always 0 and the
 selection is always empty. Measured, not just read: a defender holding one and then three real
 counter cards took the damage both times, and an **active** character with the genuine `blocker`
-keyword was offered in the prompt and declined. Asserted now in `the prompt resolver never counters
-and never blocks`.
+keyword was offered in the prompt and declined. Asserted then in `the prompt resolver never counters
+and never blocks`, now split between `counterPlay` and `the prompt resolver never blocks, and always
+activates a [Trigger]`.
 **This is Task 5's answer and it is worse than "the resolver plays counters badly": it never plays
 them at all.** Combined with fact 1, simulated combat has *no defensive interaction whatsoever* —
 every battle resolves on printed power plus attached DON!!. Every number in this file was measured
@@ -533,10 +538,12 @@ rather than against memory of the paper rules. Confirmed correct in the engine:
 
 Two things the audit found:
 
-**1. The second player may illegally attack on their own first turn.** The manual's Battle Flow
-footnote is *"Neither player can attack on their first turn."* The engine's only gate is
+**1. The second player may illegally attack on their own first turn — FIXED 2026-08-20, Phase 1
+Task 1.1 below.** The manual's Battle Flow footnote is *"Neither player can attack on their first
+turn."* The engine's only gate was
 `state.turnNumber === 1 && state.activeSeat === state.config.firstPlayer`, and turn numbering is per
-player-turn, so the second player's first turn (`turnNumber === 2`) passes it. Measured:
+player-turn, so the second player's first turn (`turnNumber === 2`) passed it. Measured before the
+fix:
 
 | turnNumber | seat | that seat's own turn | `declareAttack` offered |
 |---|---|---|---|
@@ -546,16 +553,19 @@ player-turn, so the second player's first turn (`turnNumber === 2`) passes it. M
 | 4 | south (second player) | #2 | `true` — correct |
 
 **Every play/draw figure in this file understates first-player advantage as a result**, because the
-second player gets one extra attack — the Leader only, since anything played that turn is
+second player got one extra attack — the Leader only, since anything played that turn is
 summoning-sick. That applies to the 8.5 pts on a real Block 2+ deck, the 26.7 on a vanilla pile and
-the 54.5 on ST01. The magnitude is unmeasured; do not guess it. Not yet patched — it belongs with the
-counter-policy patch, which already forces a ladder re-run.
+the 54.5 on ST01. **The fix does not retroactively change those numbers**; Phase 2 re-measures them
+and the magnitude stays unmeasured until it does.
 
-Note the coupling: fixing this **breaks the batch-2 puzzle fixtures**, which sit at `turnNumber: 1`
-acting as south with `firstPlayer: "north"`. The durable fix is to advance a fixture past turn 1
-rather than rely on the seat trick. The SOLVABLE guards will fail loudly, not mis-score.
+The coupling this section predicted — that fixing it "breaks the batch-2 puzzle fixtures" — **did not
+happen, and 39 other tests broke instead.** See "The plan predicted the puzzle fixtures would break"
+below; the prediction assumed a formulation of the rule that no reachable game state distinguishes
+from the one shipped.
 
-**2. The resolver always activates a `[Trigger]`, which is a real choice it is not making.** The
+**2. The resolver always activates a `[Trigger]`, which is a real choice it is not making — STILL
+TRUE, and deliberately so as of Phase 1 Task 1.3, where it is documented as an open policy surface
+and pinned by a test rather than quietly fixed.** The
 manual: when your Leader takes damage you check the top life card privately and "may reveal the card
 and activate its `[Trigger]` effect **instead of** adding it to your hand", or decline and add it to
 hand unrevealed. The engine builds that as `choiceKind: "confirm"` (`battle.ts:197`) with
@@ -758,8 +768,374 @@ threshold is a **knob**, in the same category as `SIM_TURN_BUDGET`, and is not a
 (1,558 ms). Red-green verified: reverting patch 8 alone fails at 4 copies in ~1.6 s, restoring it
 passes. Checking ascending is what keeps a broken engine from grinding 154 s through 5 copies.
 
+## Phase 1 — rules fidelity, and a counter step that is actually a decision
+
+Plan: `docs/plans/engine-fidelity-and-derived-counter-policy.md`. Two engine-fidelity fixes and one
+new policy. **Phase 2 re-measures the ladder and the play/draw split once, after both** — every rules
+fix invalidates them, so they are batched deliberately and NOTHING on this page's earlier play/draw
+or ladder numbers has been re-run yet.
+
+Engine suite across the whole phase: **3666 files / 6079 tests / 0 failures**, identical to the
+pre-Phase-1 baseline measured on the same host the same day.
+
+### Task 1.1 — neither player may attack on their own first turn
+
+The manual's Battle Flow footnote is *"Neither player can attack on their first turn."*
+`canAttackWith` gated only the first player, and turn numbering is per PLAYER-turn, so the second
+player's own first turn is `turnNumber === 2` and sailed through. Fixed by
+`battle: neither player may attack on their own first turn` in `tools/patch_engine.py`.
+
+Measured by driving a **real match** through 猜拳, mulligan and startGame, then walking four turns.
+`config.firstPlayer` is discarded by the engine, so the probe picks the winner's `chooseFirstPlayer`
+command deliberately to get each seat into each role:
+
+| first player | turn | active seat | that seat's own turn | `declareAttack` offered |
+|---|---|---|---|---|
+| north | 1 | north | #1 | `false` |
+| north | 2 | south | **#1** | `false` — was `true` |
+| north | 3 | north | #2 | `true` |
+| north | 4 | south | #2 | `true` |
+| south | 1 | south | #1 | `false` |
+| south | 2 | north | **#1** | `false` — was `true` |
+| south | 3 | south | #2 | `true` |
+| south | 4 | north | #2 | `true` |
+
+Asserted per row by `neither player may attack on their own first turn` in `sim/puzzles.test.ts`,
+which prints this table and a second one built from fixtures with the escape hatch below cleared.
+
+**Consequence for every play/draw number above: unchanged so far, and still understating first-player
+advantage until Phase 2 re-runs them.** The direction was already recorded; the magnitude is Phase
+2's, and guessing it here would be inventing a number.
+
+### The plan predicted the puzzle fixtures would break. They did not, and 39 other tests did
+
+The plan (and CLAUDE.md) said fixing this would break the batch-2 puzzle fixtures, which sit at
+`turnNumber: 1` acting as south with `firstPlayer: "north"`, and that the SOLVABLE guards would catch
+it. **That is wrong, and the result wins.** Under the rule as expressed — *this seat's own first turn*
+is turn 1 for the first player and turn 2 for the second — south seated as the SECOND player at turn
+1 is not on its own first turn at all, so its attacks stay legal. The batch-1 and batch-2 tables below
+are byte-identical after the fix.
+
+What broke instead was **39 tests in 31 files**, every one `declareAttack failed: The selected
+attacker cannot attack.` — 5 in upstream's `src/cards`, 21 in upstream's `tests/cards`, and 5 in our
+own grafted OP15/OP16 tests. The shape is always the same: a fixture starts at `turnNumber: 1`,
+plays one `endTurn`, and attacks with the other seat on turn 2 — which in a real game is that seat's
+own first turn.
+
+The cause is that **a fixture's turn counter is not the game's turn counter.**
+`createTestMatchState({ skipSetup: true })`, the default, materialises an arbitrary mid-game board —
+bodies with `playedOnTurn: 0`, DON!! already active, stocked hands — and leaves `turnNumber` at 1
+because there is nothing to count. `buildConfig` already suspends three other opening-turn rules for
+exactly that reason (`shuffleDecks: false`, `openingHandSize: 0`, `skipFirstTurnDraw: true`), so the
+fix is a fourth: an opt-in `allowFirstTurnAttacks`, set by the fixture builder and by nothing else.
+Real matches — `sim/matchup.sim.test.ts`, `arena/`, `starter-decks.ts`, `bot-harness.test.ts` — build
+their configs directly and are banned as the rules require.
+
+Two alternatives were measured and rejected:
+
+- **Express the ban as `turnNumber <= 2 && activeSeat === seat`**, which refuses those fixtures
+  outright. **1020 of the 1248 test files that declare an attack use the seat trick** (622
+  north-first/south-active, 398 south-first/north-active), so this rewrites most of the suite to
+  enforce a rule that is already right in every reachable state.
+- **Start fixtures at `turnNumber: 3`.** One line, but it silently un-sickens the 15 fixtures that
+  use `playedOnTurn: 1` to mean "played this turn" and breaks the two cases asserting `turnNumber`
+  2/3. A wrong fixture that still passes is this project's most frequent defect; see `OP06-054`.
+
+**What the escape hatch costs, stated rather than buried:** no fixture exercises the ban, so no card
+test can catch a regression in it. That is why its verification is a real match, and why the same
+test also asserts the flag is present — deleting it has to fail loudly instead of silently reverting
+39 tests.
+
+### Task 1.2 — the counter policy
+
+Before this, the bot never countered: the resolver's `selectCards` branch takes
+`Math.min(maxSelections, minSelections)` and the counter prompt is built with `minSelections: 0`.
+The policy is `src/automation/counter-policy.ts`, created by
+`counter-policy: the defender's counter step, with every knob in a config object`, and called from
+one branch added to `resolveBotPromptCommand`.
+
+The rules, in the order they are evaluated:
+
+| # | step | rule | why |
+|---|---|---|---|
+| 1 | `already-holds` | spend nothing if `defensePower` already exceeds `attackPower` | ties go to the attacker, so `needed <= 0` means the defence holds; spending is the purest waste |
+| 2 | choose | cheapest sufficient set: fewest cards, then lowest total play value, then least counter overshoot | exhaustive over subsets up to `maxCardsPerCounter`, so exact within that bound rather than greedy |
+| 3 | `cannot-flip` | if no affordable set lifts `defensePower` **above** `attackPower`, spend nothing | damage is binary; a set that falls short buys literally nothing |
+| 4 | character target | spend only if that set is at most `maxCardsForCharacter` cards | the R rule below is about life; a saved body is purely offensive while no policy can choose an attack target |
+| 5 | override | lethal — 0 life cards and the Leader is the target | `continueLeaderDamage` declares the attacker the winner |
+| 6 | override | `[Double Attack]`, `[Banish]` | `[Banish]` trashes the life card instead of putting it in hand, which is what makes tanking cheap |
+| 7 | floor | counter if `remainingAttacksThisTurn >= life` | this turn alone can reach zero life |
+| 8 | horizon | counter if `life <= R`, else TANK, where `R = (opponent characters + 1) + floor(opponent DON!! in play / avgCost)` | first term refreshes and attacks next turn; second is growth that cannot attack the turn it arrives |
+
+Steps 5–8 apply only when the Leader is the target; step 4 is the whole rule for a character target.
+`decideCounter` returns the step's name as its `reason`, which is what the tables below count.
+
+"Tank early, counter late" is dominant rather than a compromise because leader damage puts the life
+card **in hand**, usable as a counter later the same turn — but only for a life card without a
+`[Trigger]`, which routes to resolution instead, and the resolver always activates it (Task 1.3).
+
+**Counter EVENTS are off by default, and the reason is a different defect, not card evaluation.** An
+Event's `[Counter]` power grant is applied by a SECOND prompt (`selectTargets`), which this same
+resolver answers with `Math.min(max, min)` = the empty selection. Spending one today trashes the card
+and grants nothing. `useEventCounters` exists and is `false`; flip it only together with a targeting
+policy. Character counters are exact integers, so the arithmetic above is exact.
+
+Where an Event's grant IS read (only when that knob is on), the reader takes the **first** positive
+`modifyPower` in the block and ignores conditional clauses — a deliberate UNDER-count. Under-counting
+can only decline a counter that would have sufficed; over-counting would spend a card that does not
+flip the battle, which is the one thing this policy must never do.
+
+### The has-effect observable was reading one of four collections — Codex, PR #24
+
+`playValueOf` computed `hasEffect` as `(card.effects?.effects?.length ?? 0) > 0`, which is only the
+TRIGGERED blocks. `CardEffects` (`types/src/effect/effect.ts:57`) declares five properties, and an
+encoding may live entirely in any one of them:
+
+| collection | runtime consumer | ability? |
+|---|---|---|
+| `keywords` | `getKeywords`, `shared.ts:432` | yes — `[Blocker]`, `[Rush]`, `[Double Attack]` |
+| `effects` | `effectBlocksFor`, `shared.ts:95` | yes — triggered/activated |
+| `permanentEffects` | 14 sites in `effects/permanent.ts` | yes — continuous |
+| `replacementEffects` | `effects/replacements.ts:176`, `state.ts:67` | yes — "instead of X, do Y" |
+| `deckBuildingRules` | **none anywhere under `engine/src`** | **no** — construction-time only |
+
+So a card whose whole ability was a keyword or a permanent effect was valued as a vanilla and could
+be trashed as counter fodder ahead of a genuinely blank body. **Measured against the engine's live
+runtime catalog: 180 of 1523 counter-bearing character printings, 11.8%** — the suite recomputes and
+prints that number every run rather than quoting this paragraph. By distinct definition rather than
+printing the same figure is 164 of 1368 (12.0%); the units differ and are worth naming, because the
+runtime catalog counts `_pN` variant printings separately.
+
+The sharpest case is a keywords-only **`[Blocker]`** — close to the most valuable card in hand to
+KEEP — scoring identically to a blank body.
+
+**It reaches the decks the project actually simulates**, which is what makes it more than a
+theoretical mis-ranking:
+
+| deck | reclassified by the fix |
+|---|---|
+| `ace-op16` | `OP16-017` ×4 (keywords + permanentEffects, counter 1000) |
+| `mihawk-green-proxy` | `OP10-032` ×4 (**replacementEffects**, counter 2000), `OP14-026` ×4 (permanentEffects, counter 2000) |
+
+Now `hasEncodedAbility(card)`, an exported predicate over the four ability-bearing collections.
+`deckBuildingRules` is **deliberately excluded** and that exclusion is asserted, not commented: it
+constrains deck construction and does nothing once the card is in hand, and `grep -rn
+deckBuildingRules engine/src/` finds no consumer at all. `OP16-042`'s own source says so — *"nothing
+in packages/engine reads it"*.
+
+**Three things about how this was handled, since the review itself was incomplete in one direction
+and the fix had to be wider than what was reported.** Codex named two of the four collections and
+missed `replacementEffects`, which is 29 of the 180 — including `OP10-032`, a 4-of in
+`mihawk-green-proxy`. A fix limited to the two reported collections would have left those wrong and
+passed any test pinned to the two named example cards. So the guard discovers one real card per
+collection *by shape* from `allCards` and fails if the catalog stops offering an example, and the
+mutation harness carries one mutant per clause — the `replacementEffects` mutant is what makes a
+two-property fix fail.
+
+**A limitation to carry into Phase 3, stated now rather than discovered then:** the flag is BINARY,
+so `OP14-026`'s *"[Opponent's Turn] if rested, +2000 power"* scores the same +2 as a `[Blocker]`. It
+is the right value for "does this card do anything", and the wrong value for "how much". If the
+learned coefficient on this feature comes out unstable, that is the likely reason, and the answer is
+to split the feature rather than to re-weight it. The flag still splits the population (84% ability /
+16% vanilla catalog-wide), so it is not degenerate — but inside `mihawk-green-proxy` all 50 cards are
+ability-bearing, so it carries no information in that matchup at all.
+
+### The counterPlay positions, and what they deliberately do not assert
+
+`./scripts/simulate.sh --puzzles`. Reported apart from the ladder totals, like the blocker and
+`[Trigger]` checks and for the same reason: `runBotMatch` resolves a defender-side prompt through
+`resolveBotPromptCommand`, which never sees a strategy, so scoring it as policy quality is a category
+error.
+
+Every answer is adjudicated by the engine. Each position's candidate selections are applied through
+`applyCommand` and the outcome read out of the resulting state; "minimal spend" is the minimum over
+the selections the ENGINE reports as surviving, never a hand-written notion of which card is right.
+Each position also proves its own premise before the policy is asked anything — `flippable` (some
+selection saves the defender, so declining is a real decision) or `unflippable` (none can, so
+spending is provably waste).
+
+| position | answer | premise | solvable/legal | minimal spend | result |
+|---|---|---|---|---|---|
+| counter-cannot-flip | spend nothing | unflippable | 1/4 | 0 | pass (`cannot-flip`) |
+| counter-lethal-must-flip | survive, fewest cards | flippable | 1/2 | 1 | pass (`lethal`) |
+| counter-lethal-cheapest | survive, fewest cards | flippable | 2/4 | 1 | pass (`lethal`) |
+| counter-tank-early | spend nothing | flippable | 1/2 | 1 | pass (`tank`) at every `avgCost` 1–10 |
+
+**The R rule's middle is not asserted, on purpose.** Exactly where tanking turns into countering is
+opinion calibrated by `avgCost`, and Phase 3 measures it; pinning it here would freeze a knob that is
+meant to move. `counter-tank-early` therefore has to hold across the whole plausible knob range
+rather than at the default, which is a statement about the policy instead of about `avgCost`.
+
+The block also asserts the **control arm** (`enabled: false` reproduces the empty selection exactly,
+or Phase 2 has nothing to compare against), the **env plumbing** (`OPCG_COUNTER_AVG_COST` is read, an
+unparseable value falls back to the default rather than to `NaN`, and the in-process override wins),
+and a **wiring check**: four `runBotMatch` games on real 50-card decks with 0 illegal commands. A
+counter selection the engine refuses would abort a game with `illegal-command`, which is exactly how
+the `orderCards` and search-to-hand defects presented. No win rate is read off those four games.
+
+### Task 1.3 — blocking and `[Trigger]` are OPEN POLICY SURFACES, not oversights
+
+Both are left exactly as they are, deliberately, and pinned by
+`the prompt resolver never blocks, and always activates a [Trigger]`:
+
+- **Blocking has no waste-free rule.** Countering is binary — it either flips the battle or does
+  nothing — so "never spend a counter that does not flip it" has no free parameter. Blocking trades a
+  permanent body for roughly two cards of hand and redirects the attack; there is no threshold at
+  which it is provably right, so a heuristic here would be an opinion shipped as a fix.
+- **Declining a `[Trigger]` is a genuine value call.** The manual makes it a choice: activate the
+  `[Trigger]` **instead of** adding the card to hand, or decline and bank it unrevealed. The confirm
+  branch takes `activate` unconditionally, so the bot never banks a Trigger card. Whether that is
+  right depends on the card.
+
+The test now asserts a real `[Trigger]` life card (`EB02-030`, whose printed Trigger is "Draw 1
+card.") is offered both `activate` and `skip` and that the resolver takes `activate`. The command is
+not applied: what is pinned is the choice, not what the card then does.
+
+### Knobs introduced by Phase 1
+
+In the same category as `SIM_TURN_BUDGET` and `PERMANENT_EFFECT_MS_LIMIT`: **assumptions, never
+measured results.** All readable from the environment so a Phase 3 sweep needs no code edit —
+`./scripts/simulate.sh --counter avg-cost=3 --counter enabled=0`, or `OPCG_COUNTER_*` directly.
+
+| knob | env var | default | what it is |
+|---|---|---|---|
+| `avgCost` | `OPCG_COUNTER_AVG_COST` | 4 | DON!! per future body in the R horizon. **THE** calibration constant; Phase 3 sweeps it |
+| `maxCardsPerCounter` | `OPCG_COUNTER_MAX_CARDS` | 2 | largest set spent on one battle; also bounds the exhaustive subset search |
+| `maxCardsForCharacter` | `OPCG_COUNTER_MAX_CARDS_FOR_CHARACTER` | 1 | largest set spent to save a body rather than life |
+| `maxSearchCandidates` | `OPCG_COUNTER_MAX_CANDIDATES` | 10 | candidates considered, lowest play value first |
+| `playValueCostWeight` | `OPCG_COUNTER_W_COST` | 1 | the coefficients Phase 3 is meant to learn |
+| `playValueEffectWeight` | `OPCG_COUNTER_W_EFFECT` | 2 | ditto |
+| `playValueCounterWeight` | `OPCG_COUNTER_W_COUNTER` | 0.001 | ditto |
+| `enabled` | `OPCG_COUNTER_ENABLED` | true | master switch; `false` is the never-counter control arm |
+| `useEventCounters` | `OPCG_COUNTER_USE_EVENT_COUNTERS` | false | see above — off because of the second-prompt defect, not because Events are weak |
+| `hardFloor` | `OPCG_COUNTER_HARD_FLOOR` | true | individually switchable so a sweep can isolate the branches |
+| `lethalOverride` | `OPCG_COUNTER_LETHAL_OVERRIDE` | true | ditto |
+| `doubleAttackOverride` | `OPCG_COUNTER_DOUBLE_ATTACK_OVERRIDE` | true | ditto |
+| `banishOverride` | `OPCG_COUNTER_BANISH_OVERRIDE` | true | ditto |
+
+Resolution order is defaults ← environment ← `setCounterPolicyConfig()`, resolved per decision and
+never cached, so a sweep that changes the environment between games is honoured. An unparseable value
+falls back to the default rather than to `NaN`; that is asserted, because a `NaN` `avgCost` would
+silently make `R` never fire.
+
+**One structural choice that is deliberately NOT a knob:** the cheapest-sufficient comparator ranks
+by CARD COUNT first and only then by play value. Card count is the resource being spent from hand, so
+one card with an effect beats two vanillas even when the two score lower on play value. If Phase 3
+wants to test the other ordering, that is a code change and should be described as one.
+
+### What the policy actually does over real games — 30 games, and NOT a win rate
+
+Instrumented probe, not committed: step three 10-game pairings with `valueRanked` on both seats,
+recording `decideCounter`'s reason at every counter prompt. **This describes the policy's behaviour.
+It is not a ladder run and no win rate is read off it** — that is Phase 2.
+
+Re-measured after the `hasEncodedAbility` correction above, with the pre-fix figures kept beside
+them — the games genuinely diverge, which is the evidence that the correction reaches real play and
+not only puzzles:
+
+| pairing | games | mean turns | counter prompts | spent on | cards spent | illegal |
+|---|---|---|---|---|---|---|
+| ace-op16 mirror | 10 | 10.6 | 280 | 74 (26.4%) | 86 (was 85) | 0 |
+| mihawk-green-proxy mirror | 10 | 14.0 (was 13.8) | 471 (was 457) | 139 (29.5%, was 141) | 150 (was 152) | 0 |
+| ace-op16 vs mihawk-green-proxy | 10 | 11.6 | 341 (was 339) | 104 (30.5%, was 103) | 121 | 0 |
+
+The mihawk mirror moves most, as it must: 8 of its 50 cards change classification, against 4 of
+`ace-op16`'s 28 counter candidates. Play value only decides WHICH card is spent among equally-sized
+sufficient sets, never whether to spend — so no reason-code logic changed, but the cards left in hand
+did, and the games diverge from there.
+
+Reasons, ace mirror / mihawk mirror / cross (post-fix):
+
+| reason | ace | mihawk | cross | what it means |
+|---|---|---|---|---|
+| `already-holds` | 112 | 263 | 154 | the attack was already going to fail; countering would be pure waste |
+| `cannot-flip` | 76 | 55 | 65 | no affordable set lifts defence above the attack |
+| `hard-floor` | 31 | 101 | 61 | this turn's remaining attacks alone reach zero life |
+| `within-horizon` | 34 | 28 | 33 | `life <= R` |
+| `tank` | 18 | 14 | 18 | declined because life is comfortably above `R` |
+| `lethal` | 8 | 9 | 8 | 0 life cards, Leader targeted |
+| `double-attack` / `save-character` | 1 / 0 | 0 / 1 | 2 / 0 | the rare override paths, each exercised at least once |
+
+Three things worth reading off this, all of them Phase 3's business rather than conclusions:
+
+1. **`already-holds` is the single largest bucket (40–56% of prompts).** Those are battles the
+   defender already wins, so the prompt exists only because the attacker swung something that cannot
+   connect. That is the `futile` puzzle class showing up in aggregate — an attacker-side policy
+   weakness, visible here as a defender-side statistic.
+2. **`tank` fires rarely (3–6%) while the floor and the horizon fire often.** With `avgCost` at 4 and
+   games ending in 10–14 turns, life drops below `R` early, so the policy spends more readily than
+   "tank early, counter late" might suggest. Whether that is right is exactly what sweeping `avgCost`
+   in Phase 3 answers; it is not evidence the default is wrong.
+3. **0 illegal commands in 30 games.** A counter selection the engine refuses aborts a game, and none
+   did.
+
+**The knob passthrough was verified the same way, end to end.** `./scripts/simulate.sh --puzzles
+--counter enabled=0` turns the policy off from the command line: the `counterPlay` block reports
+`reason=disabled` and goes red on both lethal positions, which is the control arm working rather than
+a defect. Incidentally, the two fixed-seed wiring games ran **101 and 158 commands with counters and
+62 and 76 without** — counters lengthen a game substantially. That is n=2 on command counts, not a
+win rate or a turn-count distribution; it is here only as evidence that the policy changes whole games
+and not just puzzles.
+
+### Nine mutants, and the one that made a guard better
+
+Every new guard was mutation-checked, and the harness is committed rather than thrown away:
+`python3 tools/mutation_check_engine.py`, ~5 min, exit 1 if an expected kill survives. It mutates the
+ENGINE patches and the counter policy they install and checks `sim/puzzles.test.ts` notices — a
+different corpus from the three existing mutation tools, which mutate card encodings
+(`mutation_check.py`, `mutation_sweep.py`) and `arena/log.test.ts` (`mutation_check_arena.py`).
+
+| mutant | verdict | caught by |
+|---|---|---|
+| revert the first-turn attack ban | KILLED | `neither player may attack…` |
+| revert the fixture `allowFirstTurnAttacks` flag | KILLED | `neither player may attack…` |
+| revert the counter step's call into the policy | KILLED | `counterPlay` |
+| accept counter sets that do NOT flip the battle | KILLED | `counterPlay` |
+| never tank — counter whenever a set exists | KILLED | `counterPlay` |
+| prefer the LARGEST sufficient set | KILLED | `counterPlay` |
+| ignore the `enabled: false` master switch | KILLED | `counterPlay` |
+| misname the `avgCost` env var | KILLED | `counterPlay` |
+| `hasEncodedAbility` ignores `keywords` ([Blocker] bodies) | KILLED | `hasEncodedAbility…` |
+| `hasEncodedAbility` ignores `permanentEffects` | KILLED | `hasEncodedAbility…` |
+| `hasEncodedAbility` ignores `replacementEffects` — the one the review missed | KILLED | `hasEncodedAbility…` |
+| `hasEncodedAbility` counts `deckBuildingRules` as an ability | KILLED | `hasEncodedAbility…` |
+| `hasEncodedAbility` calls an effect-less card ability-bearing | KILLED | `hasEncodedAbility…` |
+| drop the lethal override only | **SURVIVED, expected** | nothing can |
+
+**13 of 14 killed.** The four `hasEncodedAbility` clause mutants are what stop a partial fix passing:
+covering only the two collections the review named leaves the `replacementEffects` mutant alive.
+
+**The survivor is honest and worth keeping in writing.** At 0 life the hard floor
+(`remainingAttacks >= life`) and the R rule (`life <= R`, and `R >= 1` always) both fire, so the
+lethal override is redundant belt-and-braces rather than a load-bearing branch, and no position can
+isolate it. That is an equivalent mutant, the same category the 2026-08-19 mutation sweep used.
+
+**One guard was genuinely weak and mutation is what found it.** `counter-cannot-flip` originally sat
+at 3 life, where the tank rule declines anyway — so a policy that accepted insufficient counter sets
+still spent nothing and the position passed. It now sits at 0 life, where every override wants to
+counter and only the never-waste rule holds it back. Same shape as the masked `oncePerTurn`
+assertions in `docs/mutation-triage.md`: a guard whose subject is shadowed by an unrelated rule reads
+as the best-written test in the file.
+
+**And the harness itself shipped both of this project's favourite defects before it worked.** Its
+first verdict parser did not strip ANSI, so it reported SURVIVED for nine mutants while the suite was
+red for an unrelated reason; and its revert helper replaced "patched text" with "anchor text", which
+is wrong for a patch that makes two replacements — it left an import behind, the `already` marker
+went missing, and the next apply added a second import until the file would not transform. Both were
+caught only because the rewritten harness asserts its own baseline is green before reading any
+mutant. Assert the baseline.
+
 ## What is not done
 
+- **The Phase 2 re-measure.** Every ladder, play/draw and mirror figure on this page predates the
+  first-turn attack ban AND the counter policy, both of which change what a battle does. They are
+  batched on purpose — one re-run, not two — and until it happens the numbers above are the last
+  measurement of a DIFFERENT engine.
+- **Blocking and `[Trigger]` declining** remain unimplemented, on purpose (Task 1.3). Pinned by a
+  test so a silent change is loud, not so they stay that way forever.
+- **Attack target selection** is still unreachable, so a body saved by a counter is purely
+  offensive. This is the honest cost of Phase 1's scope, and it will bias Phase 3's weight on any
+  "keep a body" feature toward zero.
 - **No *meta* matchup yet — but the blocker is gone.** This used to read "every deck in the current
   field is OP15/OP16 and those cards are still shells". **That is no longer true:** OP15/OP16
   encoding completed and was verified 2026-08-19 (119 imported = 119 definitions per set, 0 cards

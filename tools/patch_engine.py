@@ -381,6 +381,646 @@ SETCOST_PREFILTER_FIX = """      const card = getCard(source.cardId);
           }"""
 
 
+# --- Patch 10: the SECOND player may attack on their own first turn ---------------------------
+#
+# The Official Rule Manual's Battle Flow footnote is "Neither player can attack on their first
+# turn." `canAttackWith` gated only the FIRST player. Turn numbering here is per PLAYER-turn --
+# `engine/queue.ts` does `state.turnNumber += 1` at each turn end -- so the first player owns the
+# odd turns and the second player the even ones, and the second player's OWN first turn is
+# `turnNumber === 2`, which sailed straight through the old condition.
+#
+# Measured before the fix, walking a real match through setup and four turns (firstPlayer north):
+#
+#   turn  active  declareAttack offered
+#   1     north   false      correct -- the first player's own first turn
+#   2     south   TRUE       WRONG   -- the second player's own first turn
+#   3     north   true       correct
+#   4     south   true       correct
+#
+# DIRECTION OF THE BIAS THIS REMOVES: the second player got one extra Leader attack (anything they
+# played that turn is summoning-sick), so every play/draw figure measured before this UNDERSTATES
+# first-player advantage. Magnitude is Phase 2's job; do not guess it here.
+#
+# WHY IT IS KEYED ON config.firstPlayer AND NOT ON activeSeat. Two formulations express "this
+# seat's own first turn":
+#
+#   A  state.turnNumber === (seat === state.config.firstPlayer ? 1 : 2)
+#   B  state.turnNumber <= 2 && state.activeSeat === seat
+#
+# They agree on every state a real game can reach, and differ only on synthetic fixtures whose
+# `activeSeat` contradicts `firstPlayer` -- `{ firstPlayer: "north", activeSeat: "south" }` at
+# `turnNumber: 1`, which is how a test fixture makes an attack legal on a freshly created board.
+# B refuses those. MEASURED BLAST RADIUS: 1248 test files declare an attack and 1020 of them use
+# exactly that seat trick (622 north-first/south-active, 398 south-first/north-active), so B would
+# have rewritten most of the suite to fix a rule that is already right in every reachable state.
+# A is also the direct symmetric extension of the first-turn DON!! rule in state.ts, which keys off
+# `config.firstPlayer` for the same reason: turn number plus seat cannot be misconfigured.
+#
+# CONSEQUENCE FOR THE PUZZLE FIXTURES, and it contradicts what the plan predicted: they do NOT
+# break. `sim/puzzles.test.ts` seats south as the SECOND player at `turnNumber: 1`, and under A
+# south's own first turn is turn 2, so its attacks stay legal. Reported rather than forced.
+FIRST_TURN_ATTACK_ANCHOR = """  if (state.turnNumber === 1 && state.activeSeat === state.config.firstPlayer) {
+    return false;
+  }"""
+
+FIRST_TURN_ATTACK_FIX = """  // OPCG-Go patch: NEITHER player may attack on their own first turn (Official Rule Manual, Battle
+  // Flow: "Neither player can attack on their first turn."). This gate read
+  // `turnNumber === 1 && activeSeat === firstPlayer`, which is only the FIRST player's first turn;
+  // turn numbering is per player-turn, so the second player's own first turn is turnNumber === 2
+  // and it was allowed to attack a full turn early. Keyed on config.firstPlayer -- the same basis
+  // as the first-turn DON!! rule in state.ts -- and phrased as "this SEAT's own first turn" so it
+  // holds for whichever seat leads. `allowFirstTurnAttacks` is set ONLY by the mid-game test
+  // fixture builder, never by a real match; see the patch note in tools/patch_engine.py.
+  if (
+    !state.config.allowFirstTurnAttacks &&
+    state.turnNumber === (seat === state.config.firstPlayer ? 1 : 2)
+  ) {
+    return false;
+  }"""
+
+
+# --- Patch 11: the bot never counters ----------------------------------------------------------
+#
+# `resolveBotPromptCommand`'s selectCards branch takes `Math.min(maxSelections, minSelections)`,
+# and `beginBattleCounterStep` builds its prompt with `minSelections: 0`, so the selection was
+# always empty and the bot NEVER countered. Measured, not inferred: a defender holding one and then
+# three real counter cards took the damage both times.
+#
+# The policy itself is a new file (see COUNTER_POLICY_SOURCE below) rather than an inlined branch,
+# because it is ~250 lines with its own config surface and a string-replacement patch that large is
+# unreadable and unreviewable. This patch is only the two-line call into it.
+#
+# The BLOCK step (engine/queue.ts) and the [Trigger] confirm (battle.ts) are deliberately left
+# alone -- see docs/simulation.md, "Open policy surfaces". Blocking has no waste-free rule and
+# declining a [Trigger] is a genuine value call; neither is an oversight and neither is silently
+# fixed here.
+COUNTER_CALL_ANCHOR = """  if (prompt.choiceKind === "confirm") {
+    const yesOption = prompt.options.find((o) => o.id === "yes" || o.id === "activate");
+    optionId = yesOption?.id ?? prompt.options[0]?.id;
+  } else if (prompt.choiceKind === "selectCards" || prompt.choiceKind === "selectTargets") {"""
+
+COUNTER_CALL_FIX = """  // OPCG-Go patch: the COUNTER STEP is a decision, not a default. Without this branch it falls
+  // through to `Math.min(maxSelections, minSelections)` below, and the counter prompt is built with
+  // `minSelections: 0`, so the bot never countered at all. counter-policy.ts holds the rules and
+  // every knob they read. The BLOCK prompt (intent "battleBlocker") and the [Trigger] confirm are
+  // deliberately NOT touched: docs/simulation.md, "Open policy surfaces".
+  if (prompt.resolutionContext?.intent === "battleCounter") {
+    return {
+      type: "resolvePrompt",
+      seat,
+      promptId: prompt.id,
+      selectedIds: decideCounter(state, prompt).selectedIds,
+    };
+  }
+
+  if (prompt.choiceKind === "confirm") {
+    const yesOption = prompt.options.find((o) => o.id === "yes" || o.id === "activate");
+    optionId = yesOption?.id ?? prompt.options[0]?.id;
+  } else if (prompt.choiceKind === "selectCards" || prompt.choiceKind === "selectTargets") {"""
+
+COUNTER_IMPORT_ANCHOR = """import type { OnePieceBotStrategy } from "./bot-strategies.ts";"""
+
+COUNTER_IMPORT_FIX = """import type { OnePieceBotStrategy } from "./bot-strategies.ts";
+// OPCG-Go patch: created by tools/patch_engine.py, not by upstream.
+import { decideCounter } from "./counter-policy.ts";"""
+
+# The policy module itself. A new FILE, not an inlined branch: it is ~250 lines with its own
+# config surface, and a string-replacement patch that large is unreviewable. `patch_engine.py`
+# writes it verbatim and recognises it later by the marker in its first line.
+COUNTER_POLICY_SOURCE = """// OPCG-Go: the defender's COUNTER STEP policy.
+//
+// CREATED BY tools/patch_engine.py. `vendor/` is gitignored and recreated by bootstrap, so this
+// file is not the source of truth -- the patch is. Edit tools/patch_engine.py, never this copy.
+//
+// WHAT IT REPLACES. `resolveBotPromptCommand`'s selectCards branch takes
+// `Math.min(prompt.maxSelections, prompt.minSelections)`, and `beginBattleCounterStep` (battle.ts)
+// builds its prompt with `minSelections: 0`, so the selection was ALWAYS empty and the bot never
+// countered. Measured, not inferred: a defender holding one and then three real counter cards took
+// the damage both times.
+//
+// WHY THE RULES ARE ABOUT *WHETHER*, NEVER *HOW MUCH*. `finalizeBattle` compares
+// `attackPower >= defensePower` with ties to the attacker, so damage is BINARY: a counter set
+// either lifts defensePower ABOVE attackPower or is entirely wasted. There is no "counter harder"
+// axis. And leader damage puts the life card IN HAND, usable as a counter later in the SAME turn
+// (unless it carries a [Trigger], which routes to resolution instead), so "tank early, counter
+// late" is dominant rather than a compromise -- the life card is not lost, it is deferred.
+//
+// EVERY PARAMETER IS CONFIG, deliberately. A Phase 3 sweep has to vary these WITHOUT a code edit,
+// which is the difference between a sweep and fifteen hand-runs: they are read from the environment
+// (OPCG_COUNTER_*) and can be overridden in-process by `setCounterPolicyConfig()`. `avgCost` is a
+// CALIBRATION KNOB in the same category as SIM_TURN_BUDGET -- an assumption about the opponent's
+// curve, never a measured result. See docs/simulation.md.
+
+import { canAttackWith } from "../battle.ts";
+import {
+  baseCost,
+  effectBlocksFor,
+  getCardCounter,
+  getCardForInstance,
+  getCardPower,
+  getInstance,
+  getKeywords,
+  getPlayer,
+} from "../shared.ts";
+import type { MatchSeat, MatchState, PromptState } from "../types.ts";
+import type { OPCard } from "@tcg/op-types";
+
+export interface CounterPolicyConfig {
+  /** Master switch. `false` reproduces the never-counter behaviour byte for byte. */
+  enabled: boolean;
+  /**
+   * KNOB, not a measurement: DON!! per future body, used only by the R horizon below. Phase 3
+   * sweeps it. Zero or negative disables the growth term rather than dividing by zero.
+   */
+  avgCost: number;
+  /** Counter when this turn's remaining attacks alone can reach zero life. */
+  hardFloor: boolean;
+  /** Counter when taking this damage loses outright (0 life cards, the Leader is the target). */
+  lethalOverride: boolean;
+  /** Counter regardless of the R rule when the attacker has [Double Attack] / [Banish]. */
+  doubleAttackOverride: boolean;
+  banishOverride: boolean;
+  /**
+   * Spend counter EVENTS as well as character counters. OFF by default, and the reason is a
+   * defect elsewhere rather than card evaluation: an Event's power grant is applied by a SECOND
+   * prompt (selectTargets), which this same resolver answers with `Math.min(max, min)` = the empty
+   * selection. Spending one today therefore trashes the card and grants nothing. Flip this only
+   * together with a targeting policy.
+   */
+  useEventCounters: boolean;
+  /** Largest set of cards spent on one battle. Also bounds the subset search. */
+  maxCardsPerCounter: number;
+  /** Largest set spent to save a CHARACTER rather than life. */
+  maxCardsForCharacter: number;
+  /** Candidates considered at all, lowest play value first. Bounds the enumeration. */
+  maxSearchCandidates: number;
+  /** Play-value weights -- the coefficients Phase 3 is meant to learn. Higher = keep the card. */
+  playValueCostWeight: number;
+  playValueEffectWeight: number;
+  playValueCounterWeight: number;
+}
+
+export const COUNTER_POLICY_DEFAULTS: CounterPolicyConfig = {
+  enabled: true,
+  avgCost: 4,
+  hardFloor: true,
+  lethalOverride: true,
+  doubleAttackOverride: true,
+  banishOverride: true,
+  useEventCounters: false,
+  maxCardsPerCounter: 2,
+  maxCardsForCharacter: 1,
+  maxSearchCandidates: 10,
+  playValueCostWeight: 1,
+  playValueEffectWeight: 2,
+  playValueCounterWeight: 0.001,
+};
+
+/** Env var per field. Explicit table, not a camelCase-to-SNAKE guess, so a rename cannot silently
+ *  orphan a sweep's knob. */
+const ENV_KEYS: Record<keyof CounterPolicyConfig, string> = {
+  enabled: "OPCG_COUNTER_ENABLED",
+  avgCost: "OPCG_COUNTER_AVG_COST",
+  hardFloor: "OPCG_COUNTER_HARD_FLOOR",
+  lethalOverride: "OPCG_COUNTER_LETHAL_OVERRIDE",
+  doubleAttackOverride: "OPCG_COUNTER_DOUBLE_ATTACK_OVERRIDE",
+  banishOverride: "OPCG_COUNTER_BANISH_OVERRIDE",
+  useEventCounters: "OPCG_COUNTER_USE_EVENT_COUNTERS",
+  maxCardsPerCounter: "OPCG_COUNTER_MAX_CARDS",
+  maxCardsForCharacter: "OPCG_COUNTER_MAX_CARDS_FOR_CHARACTER",
+  maxSearchCandidates: "OPCG_COUNTER_MAX_CANDIDATES",
+  playValueCostWeight: "OPCG_COUNTER_W_COST",
+  playValueEffectWeight: "OPCG_COUNTER_W_EFFECT",
+  playValueCounterWeight: "OPCG_COUNTER_W_COUNTER",
+};
+
+/** Read an env var without depending on @types/node, which this package does not pull in. */
+function envValue(name: string): string | undefined {
+  const proc = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process;
+  return proc?.env?.[name];
+}
+
+function parseBoolean(raw: string): boolean | undefined {
+  const text = raw.trim().toLowerCase();
+  if (text === "1" || text === "true" || text === "on" || text === "yes") return true;
+  if (text === "0" || text === "false" || text === "off" || text === "no") return false;
+  return undefined;
+}
+
+function parseNumber(raw: string): number | undefined {
+  const value = Number(raw.trim());
+  return Number.isFinite(value) ? value : undefined;
+}
+
+let inProcessOverride: Partial<CounterPolicyConfig> | null = null;
+
+/**
+ * In-process override, for tests and puzzles. Takes precedence over the environment so a puzzle can
+ * pin a knob without exporting anything; pass `null` to go back to env-and-defaults.
+ */
+export function setCounterPolicyConfig(next: Partial<CounterPolicyConfig> | null): void {
+  inProcessOverride = next;
+}
+
+/** defaults <- environment <- setCounterPolicyConfig(). Resolved per call, never cached, so a sweep
+ *  that mutates the environment between games is honoured. */
+export function counterPolicyConfig(): CounterPolicyConfig {
+  const resolved: CounterPolicyConfig = { ...COUNTER_POLICY_DEFAULTS };
+  for (const key of Object.keys(ENV_KEYS) as Array<keyof CounterPolicyConfig>) {
+    const raw = envValue(ENV_KEYS[key]);
+    if (raw === undefined || raw === "") continue;
+    if (typeof COUNTER_POLICY_DEFAULTS[key] === "boolean") {
+      const parsed = parseBoolean(raw);
+      if (parsed !== undefined) (resolved[key] as boolean) = parsed;
+    } else {
+      const parsed = parseNumber(raw);
+      if (parsed !== undefined) (resolved[key] as number) = parsed;
+    }
+  }
+  return { ...resolved, ...inProcessOverride };
+}
+
+/** Why the policy did what it did. Printed by the puzzle suite; never read by the engine. */
+export type CounterReason =
+  | "disabled"
+  | "not-a-counter-prompt"
+  | "no-battle"
+  | "already-holds"
+  | "cannot-flip"
+  | "lethal"
+  | "hard-floor"
+  | "double-attack"
+  | "banish"
+  | "within-horizon"
+  | "tank"
+  | "save-character"
+  | "character-not-worth-it";
+
+export interface CounterDecision {
+  selectedIds: string[];
+  reason: CounterReason;
+  /** Power the selection has to add for the defender to SURVIVE (ties go to the attacker). */
+  needed: number;
+  attackPower: number;
+  defensePower: number;
+  /** Life cards left; 0 means the next Leader hit ends the game. */
+  life: number;
+  /** R -- the opponent's attacker horizon. */
+  threshold: number;
+  /** Attacks the opponent can still make this turn, including the one being resolved. */
+  remainingAttacks: number;
+}
+
+interface Candidate {
+  instanceId: string;
+  /** Power this card adds to defensePower if selected. */
+  counter: number;
+  /** DON!! it costs to activate (Events only). */
+  eventCost: number;
+  /** Higher = more worth keeping in hand. */
+  playValue: number;
+}
+
+/**
+ * The power an Event's [Counter] block grants, read statically. Counts only the FIRST positive
+ * `modifyPower` in the block, which deliberately UNDER-counts a card like OP01-029 whose second
+ * clause is conditional. Under-counting can only make the policy decline a counter that would have
+ * sufficed -- a missed save. OVER-counting would spend a card that does not flip the battle, which
+ * is the one thing this policy must never do.
+ */
+function staticCounterPowerGain(state: MatchState, instanceId: string): number {
+  const card = getCardForInstance(state, instanceId);
+  const blocks = effectBlocksFor(card, "counter") as Array<{
+    actions?: Array<{ action?: string; value?: number }>;
+  }>;
+  for (const block of blocks) {
+    for (const action of block.actions ?? []) {
+      if (action.action === "modifyPower" && typeof action.value === "number" && action.value > 0) {
+        return action.value;
+      }
+    }
+  }
+  return 0;
+}
+
+/**
+ * Does this card have an encoded ability at all? The "has-effect" observable the Phase 3 feature
+ * model is meant to learn a coefficient on, so getting it wrong does not merely mis-order one
+ * counter -- it teaches the sweep a coefficient for a feature that was measured on the wrong
+ * population.
+ *
+ * IT MUST CONSULT EVERY ABILITY-BEARING COLLECTION, not just the triggered blocks. `CardEffects`
+ * (types/src/effect/effect.ts:57) declares FIVE properties, and an encoding may live entirely in
+ * any one of them:
+ *
+ *   keywords            [Blocker] / [Rush] / [Double Attack] ...  -- an ability
+ *   effects             triggered blocks (On Play, When Attacking) -- an ability
+ *   permanentEffects    continuous, e.g. [DON!! x1] +2000 power    -- an ability
+ *   replacementEffects  "if this would be K.O.'d, instead ..."     -- an ability
+ *   deckBuildingRules   unlimitedCopies / cannotInclude            -- NOT an ability
+ *
+ * `deckBuildingRules` is deliberately EXCLUDED: it constrains deck construction and does nothing
+ * once the card is in hand, so a card carrying only that is worth exactly what a vanilla is worth as
+ * counter fodder. Including it would misclassify in the other direction.
+ *
+ * Reading only `effects.effects`, as this did until 2026-08-20, called 164 of the 1368
+ * counter-bearing characters in the catalog vanilla -- 12.0% -- including every keywords-only
+ * [Blocker] body, which is close to the most valuable card in hand to KEEP. Found by Codex on
+ * PR #24; its own list named two of the four and would have left ~29 `replacementEffects` cards
+ * still wrong.
+ */
+export function hasEncodedAbility(card: OPCard): boolean {
+  const effects = card.effects;
+  if (!effects) return false;
+  return (
+    (effects.keywords?.length ?? 0) > 0 ||
+    (effects.effects?.length ?? 0) > 0 ||
+    (effects.permanentEffects?.length ?? 0) > 0 ||
+    (effects.replacementEffects?.length ?? 0) > 0
+  );
+}
+
+function playValueOf(
+  state: MatchState,
+  instanceId: string,
+  counter: number,
+  config: CounterPolicyConfig,
+): number {
+  const card = getCardForInstance(state, instanceId);
+  return (
+    baseCost(card) * config.playValueCostWeight +
+    (hasEncodedAbility(card) ? config.playValueEffectWeight : 0) +
+    counter * config.playValueCounterWeight
+  );
+}
+
+function candidatesFor(
+  state: MatchState,
+  prompt: PromptState,
+  config: CounterPolicyConfig,
+): Candidate[] {
+  const out: Candidate[] = [];
+  for (const option of prompt.options) {
+    if (option.enabled === false) continue;
+    const instanceId = option.id;
+    if (!state.cards[instanceId]) continue;
+    const card = getCardForInstance(state, instanceId);
+    if (card.cardType === "character") {
+      const counter = getCardCounter(state, instanceId);
+      if (counter <= 0) continue;
+      out.push({
+        instanceId,
+        counter,
+        eventCost: 0,
+        playValue: playValueOf(state, instanceId, counter, config),
+      });
+      continue;
+    }
+    if (card.cardType === "event" && config.useEventCounters) {
+      const counter = staticCounterPowerGain(state, instanceId);
+      if (counter <= 0) continue;
+      out.push({
+        instanceId,
+        counter,
+        eventCost: baseCost(card),
+        playValue: playValueOf(state, instanceId, counter, config),
+      });
+    }
+  }
+  // Lowest play value first, then smallest counter: the order the search should try, and the order
+  // the cap keeps if a hand offers more candidates than maxSearchCandidates.
+  out.sort(
+    (a, b) =>
+      a.playValue - b.playValue ||
+      a.counter - b.counter ||
+      a.instanceId.localeCompare(b.instanceId),
+  );
+  return out.slice(0, Math.max(0, Math.floor(config.maxSearchCandidates)));
+}
+
+/**
+ * Cheapest set that FLIPS the battle: fewest cards, then lowest total play value, then least
+ * counter overshoot. Exhaustive over subsets up to `maxCardsPerCounter` (176 of them at the
+ * defaults, 10 candidates and 2 cards), so it is exact within that bound rather than greedy.
+ */
+function cheapestSufficient(
+  candidates: Candidate[],
+  needed: number,
+  activeDon: number,
+  maxCards: number,
+): Candidate[] | null {
+  const limit = Math.min(Math.max(0, Math.floor(maxCards)), candidates.length);
+  let best: Candidate[] | null = null;
+  const better = (a: Candidate[], b: Candidate[] | null): boolean => {
+    if (b === null) return true;
+    if (a.length !== b.length) return a.length < b.length;
+    const av = a.reduce((t, c) => t + c.playValue, 0);
+    const bv = b.reduce((t, c) => t + c.playValue, 0);
+    if (av !== bv) return av < bv;
+    const ac = a.reduce((t, c) => t + c.counter, 0);
+    const bc = b.reduce((t, c) => t + c.counter, 0);
+    if (ac !== bc) return ac < bc;
+    return a.map((c) => c.instanceId).join() < b.map((c) => c.instanceId).join();
+  };
+  const walk = (start: number, picked: Candidate[]) => {
+    if (picked.length > 0) {
+      const counter = picked.reduce((t, c) => t + c.counter, 0);
+      const cost = picked.reduce((t, c) => t + c.eventCost, 0);
+      if (counter >= needed && cost <= activeDon && better(picked, best)) {
+        best = [...picked];
+      }
+    }
+    if (picked.length >= limit) return;
+    for (let i = start; i < candidates.length; i++) {
+      picked.push(candidates[i]!);
+      walk(i + 1, picked);
+      picked.pop();
+    }
+  };
+  walk(0, []);
+  return best;
+}
+
+/** Attacks the opponent can still make this turn, counting the one being resolved. The current
+ *  attacker is already rested (beginAttack rests it), so canAttackWith excludes it. */
+function remainingAttacksFor(state: MatchState, attackerSeat: MatchSeat): number {
+  const player = getPlayer(state, attackerSeat);
+  const ready = [
+    player.leaderInstanceId,
+    ...player.characterArea.filter((entry): entry is string => Boolean(entry)),
+  ].filter((instanceId) => canAttackWith(state, attackerSeat, instanceId));
+  return ready.length + 1;
+}
+
+/**
+ * R = (opponent characters + 1) + floor(opponent DON!! in play / avgCost).
+ *
+ * The first term is every body they already have plus the Leader -- all of it refreshes and can
+ * attack next turn. The second is growth: DON!! they can spend on new bodies, which cannot attack
+ * the turn they arrive, so it is a turn+2 term. Ping's shape, 2026-08-19.
+ */
+function attackerHorizon(
+  state: MatchState,
+  attackerSeat: MatchSeat,
+  config: CounterPolicyConfig,
+): number {
+  const player = getPlayer(state, attackerSeat);
+  const bodies = player.characterArea.filter(Boolean).length + 1;
+  const don = player.activeDon + player.restedDon;
+  const growth = config.avgCost > 0 ? Math.floor(don / config.avgCost) : 0;
+  return bodies + growth;
+}
+
+export function decideCounter(
+  state: MatchState,
+  prompt: PromptState,
+  configIn?: CounterPolicyConfig,
+): CounterDecision {
+  const config = configIn ?? counterPolicyConfig();
+  const empty = (reason: CounterReason, rest: Partial<CounterDecision> = {}): CounterDecision => ({
+    selectedIds: [],
+    reason,
+    needed: 0,
+    attackPower: 0,
+    defensePower: 0,
+    life: 0,
+    threshold: 0,
+    remainingAttacks: 0,
+    ...rest,
+  });
+
+  if (!config.enabled) return empty("disabled");
+  if (prompt.resolutionContext?.intent !== "battleCounter") return empty("not-a-counter-prompt");
+  const battle = state.battle;
+  if (!battle || prompt.seat === "judge") return empty("no-battle");
+
+  const seat = prompt.seat;
+  const defender = getPlayer(state, seat);
+  const attackerSeat = getInstance(state, battle.attackerId).controller;
+  const target = getInstance(state, battle.targetId);
+
+  // Recomputed here rather than read off `battle`: finalizeBattle recomputes both, and anything the
+  // block step or an [On Attack] effect did since the attack was declared has to be counted.
+  const attackPower = getCardPower(state, battle.attackerId);
+  const defensePower = getCardPower(state, battle.targetId) + battle.counterTotal;
+  const life = defender.life.length;
+  const threshold = attackerHorizon(state, attackerSeat, config);
+  const remainingAttacks = remainingAttacksFor(state, attackerSeat);
+  const context = { attackPower, defensePower, life, threshold, remainingAttacks };
+
+  const needed = attackPower - defensePower + 1;
+  // Ties go to the attacker, so needed <= 0 means the defence already holds. Spending here is the
+  // purest form of waste.
+  if (needed <= 0) return empty("already-holds", { ...context, needed });
+
+  const candidates = candidatesFor(state, prompt, config);
+  const best = cheapestSufficient(
+    candidates,
+    needed,
+    defender.activeDon,
+    config.maxCardsPerCounter,
+  );
+  // NEVER spend a counter that does not flip the outcome. Damage is binary; a set that falls short
+  // buys literally nothing.
+  if (!best) return empty("cannot-flip", { ...context, needed });
+
+  const spend = (reason: CounterReason): CounterDecision => ({
+    selectedIds: best.map((c) => c.instanceId),
+    reason,
+    needed,
+    ...context,
+  });
+
+  // A character target: the question is a body, not life, so the R rule does not apply. Bounded by
+  // its own knob instead of asserting a value for a body we cannot even attack back (no policy can
+  // choose an attack target, so a saved body is purely offensive).
+  if (target.zone !== "leader") {
+    return best.length <= config.maxCardsForCharacter
+      ? spend("save-character")
+      : empty("character-not-worth-it", { ...context, needed });
+  }
+
+  const keywords = getKeywords(state, battle.attackerId);
+  // Lethal: continueLeaderDamage declares the attacker the winner when the defender takes Leader
+  // damage on 0 life cards. Nothing is worth keeping past that.
+  if (config.lethalOverride && life === 0) return spend("lethal");
+  if (config.doubleAttackOverride && keywords.has("doubleAttack")) return spend("double-attack");
+  // [Banish] trashes the life card instead of putting it in hand, which is what makes tanking
+  // cheap; without it the card is simply gone.
+  if (config.banishOverride && keywords.has("banish")) return spend("banish");
+  if (config.hardFloor && remainingAttacks >= life) return spend("hard-floor");
+  if (life <= threshold) return spend("within-horizon");
+  return empty("tank", { ...context, needed });
+}
+"""
+
+
+# --- Patch 13: fixtures materialise a mid-game position but their turn counter says turn 1 -------
+#
+# Companion to the first-turn attack ban above, and the reason the ban is affordable at all.
+#
+# `createTestMatchState(..., { skipSetup: true })` -- the DEFAULT -- builds an arbitrary mid-game
+# board (bodies with `playedOnTurn: 0`, DON!! already active, stocked hands) and leaves
+# `state.turnNumber` at 1, because there is nothing to count. So a fixture's turn number is not the
+# game's turn number, and the ban read as: no attacks for the active seat on the fixture's first
+# turn, and none for the other seat after one `endTurn`. MEASURED: 39 tests in 31 files went red,
+# every one of them `declareAttack failed: The selected attacker cannot attack.` -- 5 in upstream's
+# `src/cards`, 21 in upstream's `tests/cards`, 5 in our own grafted OP15/OP16 tests.
+#
+# `buildConfig` ALREADY suspends three opening-turn rules for exactly this reason -- `shuffleDecks:
+# false`, `openingHandSize: 0`, `skipFirstTurnDraw: true` -- so this is upstream's own design intent
+# applied to a fourth rule, not a new escape hatch. The flag is opt-IN and real matches never set
+# it: `sim/matchup.sim.test.ts`, `arena/`, `starter-decks.ts` and `bot-harness.test.ts` all build
+# their configs directly, so the ban is enforced everywhere a game is actually played -- which is
+# everywhere it can bias a measurement.
+#
+# WHAT IT COSTS, stated rather than buried: the ban is not exercised by any fixture, so a card test
+# cannot catch a regression in it. That is why its verification is a REAL match walked through
+# setup (sim/puzzles.test.ts, "neither player may attack on their own first turn"), and why that
+# probe asserts the fixture flag is present as well -- deleting the flag has to fail loudly instead
+# of silently reverting 39 tests.
+#
+# The alternatives were measured and rejected. (a) Patch the 26 upstream test files: 26 anchored
+# rewrites of tests we do not own, each changing what the test proves. (b) Start fixtures at
+# turnNumber 3: one line, but it silently un-sickens the 15 fixtures that use `playedOnTurn: 1` to
+# mean "played this turn" and breaks the two cases asserting turnNumber 2/3 -- a wrong fixture that
+# still passes is this project's most frequent defect.
+FIRST_TURN_ATTACK_FLAG_TYPE_ANCHOR = """  skipFirstTurnDraw?: boolean;"""
+
+FIRST_TURN_ATTACK_FLAG_TYPE_FIX = """  skipFirstTurnDraw?: boolean;
+  /**
+   * OPCG-Go patch: suspend "neither player may attack on their own first turn" (Official Rule
+   * Manual, Battle Flow). A real match must never set this -- the ban IS the rule, and every
+   * simulated game relies on it. It exists for synthetic mid-game fixtures, whose `turnNumber`
+   * starts at 1 whatever position they materialise, and which already suspend three other
+   * opening-turn rules (`shuffleDecks: false`, `openingHandSize: 0`, `skipFirstTurnDraw: true`).
+   */
+  allowFirstTurnAttacks?: boolean;"""
+
+FIRST_TURN_ATTACK_FLAG_STATE_ANCHOR = (
+    """    Pick<MatchConfig, "firstPlayer" | "players" | "seed">;"""
+)
+
+FIRST_TURN_ATTACK_FLAG_STATE_FIX = (
+    """    // OPCG-Go patch: allowFirstTurnAttacks rides in the OPTIONAL half on purpose -- it stays
+    // `boolean | undefined` on state.config, so normalizeConfig needs no default and absent
+    // (every real match) reads as "the ban applies".
+    Pick<MatchConfig, "firstPlayer" | "players" | "seed" | "allowFirstTurnAttacks">;"""
+)
+
+FIRST_TURN_ATTACK_FIXTURE_ANCHOR = """    skipFirstTurnDraw: true,
+    maxCharacterSlots: options.maxCharacterSlots,"""
+
+FIRST_TURN_ATTACK_FIXTURE_FIX = """    skipFirstTurnDraw: true,
+    // OPCG-Go patch: a fixture is a mid-game position with a turn counter stuck at 1, so the
+    // first-turn attack ban (battle.ts) would refuse the active seat's attacks and, after one
+    // endTurn, the other seat's -- 39 tests in 31 files, all "The selected attacker cannot
+    // attack.". Suspended here for the same reason the three lines around it are. Real matches do
+    // not go through buildConfig and are banned as the rules require.
+    allowFirstTurnAttacks: true,
+    maxCharacterSlots: options.maxCharacterSlots,"""
+
+
 PATCHES = [
     {
         "name": "bot-harness: resolve orderCards prompts",
@@ -451,6 +1091,49 @@ PATCHES = [
         "already": "OPCG-Go patch: skip the effect before evaluating its conditions",
         "apply": lambda s: s.replace(SETCOST_PREFILTER_ANCHOR, SETCOST_PREFILTER_FIX, 1),
     },
+    {
+        "name": "battle: neither player may attack on their own first turn",
+        "relpath": "src/battle.ts",
+        "anchor": FIRST_TURN_ATTACK_ANCHOR,
+        "already": "OPCG-Go patch: NEITHER player may attack on their own first turn",
+        "apply": lambda s: s.replace(FIRST_TURN_ATTACK_ANCHOR, FIRST_TURN_ATTACK_FIX, 1),
+    },
+    {
+        "name": "counter-policy: the defender's counter step, with every knob in a config object",
+        "relpath": "src/automation/counter-policy.ts",
+        "create": COUNTER_POLICY_SOURCE,
+        "already": "OPCG-Go: the defender's COUNTER STEP policy.",
+    },
+    {
+        "name": "bot-harness: resolve the counter step through the counter policy",
+        "relpath": "src/automation/bot-harness.ts",
+        "anchor": COUNTER_CALL_ANCHOR,
+        "already": "OPCG-Go patch: the COUNTER STEP is a decision, not a default",
+        # The import goes in first: COUNTER_CALL_FIX does not contain the import anchor, so order is
+        # not load-bearing, but keeping the import edit first means a half-applied patch still names
+        # the module that is missing rather than failing on an unresolved symbol.
+        "apply": lambda s: s.replace(COUNTER_IMPORT_ANCHOR, COUNTER_IMPORT_FIX, 1).replace(
+            COUNTER_CALL_ANCHOR, COUNTER_CALL_FIX, 1
+        ),
+    },
+    {
+        "name": "types: an opt-in flag letting a mid-game FIXTURE attack on its first turn",
+        "relpath": "src/types.ts",
+        "anchor": FIRST_TURN_ATTACK_FLAG_TYPE_ANCHOR,
+        "already": "allowFirstTurnAttacks?: boolean;",
+        "apply": lambda s: s.replace(
+            FIRST_TURN_ATTACK_FLAG_TYPE_ANCHOR, FIRST_TURN_ATTACK_FLAG_TYPE_FIX, 1
+        ).replace(FIRST_TURN_ATTACK_FLAG_STATE_ANCHOR, FIRST_TURN_ATTACK_FLAG_STATE_FIX, 1),
+    },
+    {
+        "name": "test-fixtures: a mid-game fixture is not turn 1, so it may attack",
+        "relpath": "src/testing/test-fixtures.ts",
+        "anchor": FIRST_TURN_ATTACK_FIXTURE_ANCHOR,
+        "already": "allowFirstTurnAttacks: true,",
+        "apply": lambda s: s.replace(
+            FIRST_TURN_ATTACK_FIXTURE_ANCHOR, FIRST_TURN_ATTACK_FIXTURE_FIX, 1
+        ),
+    },
 ]
 
 
@@ -479,13 +1162,41 @@ def main(argv: list[str] | None = None) -> int:
     pending = 0
     for patch in PATCHES:
         path = os.path.join(args.engine, patch["relpath"])
-        if not os.path.exists(path):
+        exists = os.path.exists(path)
+        source = ""
+        if exists:
+            with open(path, encoding="utf-8") as fh:
+                source = fh.read()
+
+        # A CREATE patch adds a file upstream does not have, so it cannot be anchored -- there is
+        # nothing to anchor to. Its three states: absent (PENDING, and applying writes it), present
+        # carrying our marker (ok), or present WITHOUT the marker, which means something else
+        # occupies the path and writing over it would destroy that file (FAILED, never overwrite).
+        if "create" in patch:
+            if exists and patch["already"] in source:
+                print(f"  ok       {patch['name']} (already applied)")
+                continue
+            if exists:
+                print(
+                    f"  FAILED   {patch['name']}: {path} exists but is not ours — refusing to "
+                    f"overwrite it; re-derive this patch"
+                )
+                failed += 1
+                continue
+            if args.check:
+                print(f"  PENDING  {patch['name']}")
+                pending += 1
+                continue
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, "w", encoding="utf-8") as fh:
+                fh.write(patch["create"])
+            print(f"  applied  {patch['name']}")
+            continue
+
+        if not exists:
             print(f"  MISSING  {patch['name']}: {path} does not exist")
             failed += 1
             continue
-
-        with open(path, encoding="utf-8") as fh:
-            source = fh.read()
 
         if patch["already"] in source:
             print(f"  ok       {patch['name']} (already applied)")
