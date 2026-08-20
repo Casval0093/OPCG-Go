@@ -1263,6 +1263,22 @@ the effects being measured.
 Zero timeouts and `rules-win` in all 1600 games. Mirror sanity holds: every arm's overall CI contains
 50%, as a mirror must.
 
+**Reproducing this.** The per-game rows are deliberately NOT committed — `sim/results/` is gitignored
+because per-game output is disposable, and 2400 games of it is 550 KB of unreviewable diff. The runs
+are deterministic given the seed, so regenerate instead. Arm A, and the same line with the deck and
+the two toggles varied for B/C/D:
+
+```bash
+./scripts/simulate.sh --games 400 --seed 424242 \
+  --a sim/decks/mihawk-green-proxy.json --b sim/decks/mihawk-green-proxy.json \
+  --strategy valueRanked --out /tmp/pd/armA-mihawk.json     # ban ON, counters ON
+# arms C and D add: --counter enabled=0
+# arms B and D need patch `battle: neither player may attack on their own first turn` REVERTED, by
+#   restoring the pristine src/battle.ts in a throwaway engine clone -- NOT by setting
+#   allowFirstTurnAttacks, which exempts both seats and is a different rule set.
+python3 tools/analyse_playdraw.py /tmp/pd
+```
+
 **Paired differences** (same seeds, same seat order; win-rate CI by the harness's own `pairedDiff`
 estimator, gap CI by a 20,000-draw paired bootstrap over game indices):
 

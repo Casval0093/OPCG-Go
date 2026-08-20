@@ -834,6 +834,7 @@ arena/log.ts                    decision corpus: append-only NDJSON, one record 
 arena/replay.ts                 replayMatch — reconstruct a recorded game from (config, commands)
 tools/mutation_check_arena.py   mutation harness for arena/log.test.ts (13 mutants, 0 may survive)
 tools/mutation_check_engine.py  mutation harness for the ENGINE patches + counter policy (14 mutants)
+tools/analyse_playdraw.py       play/draw split per arm + PAIRED differences between arms (Phase 2.2)
 bench/throughput.test.ts        throughput benchmark + the patch-8 per-command regression guard
 data/op16-matchup-matrix.json   the matchup matrix, machine-readable
 data/card-coverage.json         all 2,282 cards classified encoded/gap/vanilla
@@ -858,6 +859,7 @@ python3 -m unittest discover -s tools -p 'test_*.py'   # tools/ regression tests
 node --test arena/log.test.ts                     # decision-log suite (14); needs NO engine clone
 python3 tools/mutation_check_arena.py             # prove those 14 can fail (13 mutants)
 python3 tools/mutation_check_engine.py           # prove the Phase 1 engine guards can fail (~5 min)
+python3 tools/analyse_playdraw.py <dir>          # play/draw arms: paired gap differences with CIs
 ./scripts/arena.sh --replay arena/logs/<f>.jsonl --contested   # read a played game back
 ./scripts/simulate.sh --puzzles --counter avg-cost=3 --counter enabled=0  # vary a counter-policy knob
 

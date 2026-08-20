@@ -1,5 +1,17 @@
 #!/usr/bin/env python3
-"""Phase 2.2 analysis: play/draw split per arm, and PAIRED differences between arms.
+"""Play/draw split per arm, and PAIRED differences between arms. Phase 2.2's estimator.
+
+    ./scripts/simulate.sh --games 400 --seed 424242 --a DECK --b DECK --strategy valueRanked \
+        --out /tmp/pd/armA-mihawk.json
+    python3 tools/analyse_playdraw.py /tmp/pd
+
+THE PER-GAME ROWS ARE NOT IN GIT, deliberately — `sim/results/` is gitignored because per-game output
+is disposable, and 2400 games of it is 550 KB of unreviewable diff. Regenerate them instead; the
+arms, decks and seeds are all recorded in docs/simulation.md, "Phase 2 — the baseline re-measured,
+once", and the runs are deterministic given the seed. Expected filenames are listed in ARMS below.
+
+Each arm must be run with the SAME `--seed` and `--games`, because the pairing is what makes small
+effects measurable: game i in every arm then begins from an identical shuffle and seat assignment.
 
 The four arms run identical seeds, decks, policies and game order, so game i in one arm and game i
 in another begin identically. That makes a paired estimator available, which matters because the
@@ -110,10 +122,12 @@ def paired_gap(a, b, iters=20000):
             "n": len(idx)}
 
 
+FILES = [("A", "armA-mihawk.json"), ("B", "armB-mihawk.json"),
+         ("C", "armC-mihawk.json"), ("D", "armD-mihawk.json"),
+         ("A-ace", "armA-ace.json"), ("B-ace", "armB-ace.json")]
+
 ARMS = {}
-for name, fn in [("A", "armA-mihawk.json"), ("B", "armB-mihawk.json"),
-                 ("C", "armC-mihawk.json"), ("D", "armD-mihawk.json"),
-                 ("A-ace", "armA-ace.json"), ("B-ace", "armB-ace.json")]:
+for name, fn in FILES:
     p = os.path.join(DATA_DIR, fn)
     if os.path.exists(p):
         ARMS[name] = load(p)[1]
@@ -126,6 +140,15 @@ LABEL = {
     "A-ace": "ban ON,  counters ON   (ace-op16, the primary deck)",
     "B-ace": "ban OFF, counters ON   (ace-op16, pre-fix rules)",
 }
+
+# Fail loudly on an empty data directory. Printing a header and a blank table and exiting 0 is the
+# "reports nothing, looks successful" failure mode this repo keeps finding in its own tests.
+if not ARMS:
+    raise SystemExit(
+        f"no arm files found in {DATA_DIR}\n"
+        f"expected one or more of: {', '.join(fn for _n, fn in FILES)}\n"
+        "regenerate them with ./scripts/simulate.sh --out <dir>/<armfile>; see this file's docstring"
+    )
 
 print("PER-ARM  (mihawk-green-proxy mirror, valueRanked both seats, seed 424242)\n")
 hdr = f"{'arm':6} {'rules':38} {'n':>4} {'overall':>22} {'on play':>22} {'on draw':>22} {'gap':>8} {'TO':>4} {'turns':>6} {'cmds':>7}"
