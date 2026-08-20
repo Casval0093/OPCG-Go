@@ -686,7 +686,7 @@ with, DON!! attachment, and the order of commands within a turn.
 ## Phase 0 — the primary deck was 99x more expensive per command, and is not any more
 
 Measured 2026-08-19. `OP16-017` LittleOars Jr. made `sim/decks/ace-op16.json` unaffordable to batch,
-with a cost **super-exponential in the number of copies in play**. Fixed as patch 8 in
+with a cost **super-exponential in the number of copies in play**. Fixed by the `permanent: getPermanentSetCost evaluates conditions it then discards` patch in
 `tools/patch_engine.py`.
 
 ### The mechanism was not the one the plan predicted
@@ -800,7 +800,8 @@ The guard now **constructs** the board via `OnePieceTestEngine.create` and times
 at 1–5 copies, ascending, throwing on the first result over `PERMANENT_EFFECT_MS_LIMIT`. That
 threshold is a **knob**, in the same category as `SIM_TURN_BUDGET`, and is not a measured result:
 250 ms sits ~50x above the worst post-fix value (0.71 ms) and ~6x below the first pre-fix violation
-(1,558 ms). Red-green verified: reverting patch 8 alone fails at 4 copies in ~1.6 s, restoring it
+(1,558 ms). Red-green verified: reverting the `permanent: getPermanentSetCost evaluates conditions it then discards`
+patch alone fails at 4 copies in ~1.6 s, restoring it
 passes. Checking ascending is what keeps a broken engine from grinding 154 s through 5 copies.
 
 ## Phase 1 — rules fidelity, and a counter step that is actually a decision

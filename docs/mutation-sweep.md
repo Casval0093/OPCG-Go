@@ -111,7 +111,7 @@ At the other end, `lte` → `gte` dies 83 % of the time. That is the reassuring 
 inclusive threshold flips are the perturbation upstream's fixtures are most likely to catch.
 
 **These figures are the second run.** The first put the corpus at 4,297 mutants / 62.4 %, then two
-changes landed: patch 8 fixed `OP07-030` Pappag's always-true assertion (one survivor became a
+changes landed: the `tests: OP07-030 Pappag asserted a condition that is always true` patch fixed that card's always-true assertion (one survivor became a
 kill), and operator 5 was fixed to use `finditer` rather than `search`, so a card with more than one
 `oncePerTurn` guard now has all of them mutated instead of just the first — +10 mutants across 9
 cards. The first run's results are kept under `runs/v1/`.

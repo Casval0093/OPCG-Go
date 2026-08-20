@@ -13,7 +13,8 @@
 //             primary deck went unnoticed until it was hunted by hand: the
 //             benchmark could not see it, because nothing it measured had a
 //             permanent effect whose condition re-entered cost evaluation.
-//             See patch 8 in tools/patch_engine.py for the mechanism.
+//             See the `permanent: getPermanentSetCost evaluates conditions it
+//             then discards` patch in tools/patch_engine.py for the mechanism.
 //
 // docs/engine-audit.md sizes the ISMCTS budget off the synthetic number and then
 // asserts, without measuring, that "real 51-card decks with live effects will be
@@ -226,7 +227,7 @@ test("bench", () => {
     );
   }
 
-  const [synthetic, real, pathological] = results;
+  const [synthetic, real] = results;
   if (synthetic && real) {
     // >1 means the real deck is slower, which is the expected direction.
     console.log(
@@ -274,7 +275,7 @@ test("bench", () => {
 
     // Power must be identical at every board size: 8000 base - 4000, because no
     // cost-8+ Whitebeard Pirates body is present. If this moves, the fix changed
-    // a RESULT and not just a cost, which is the one thing patch 8 must never do.
+    // a RESULT and not just a cost, which is the one thing that patch must never do.
     if (power !== 4000) {
       throw new Error(
         `OP16-017 power is ${power} with ${copies} copies out, expected 4000 ` +
@@ -287,7 +288,7 @@ test("bench", () => {
         `Permanent-effect evaluation regression: one getCardPower on ${copies} copies of ` +
           `OP16-017 took ${ms.toFixed(1)}ms, limit ${PERMANENT_EFFECT_MS_LIMIT}ms ` +
           `(curve so far ${timings.join(" ")}). Cost or power evaluation is re-entering ` +
-          `itself across sibling instances. Check patch 8 is applied ` +
+          `itself across sibling instances. Check the getPermanentSetCost prefilter is applied ` +
           `(python3 tools/patch_engine.py --check), then look for another ` +
           `compute-then-discard site in src/effects/permanent.ts.`,
       );
@@ -360,13 +361,7 @@ test("bench", () => {
   const loaded = OnePieceTestEngine.create(
     {
       leaderCardId: "OP16-060",
-      character: [
-        op05Shura106.id,
-        op15Fuza070.id,
-        op15Fuza070.id,
-        op15Fuza070.id,
-        op15Fuza070.id,
-      ],
+      character: [op05Shura106.id, op15Fuza070.id, op15Fuza070.id, op15Fuza070.id, op15Fuza070.id],
       hand: 5,
       trash: 10,
     },
@@ -376,7 +371,12 @@ test("bench", () => {
   );
   const loadedState = loaded.getState();
   const shuraId = loadedState.players.south.characterArea.find(
-    (id): id is string => Boolean(id) && getCard(getInstance(loadedState, id).cardId).name === "Shura",
+    // `id !== null`, not `Boolean(id)`: TS narrows on the comparison but not on the function call,
+    // so the original passed `string | null` into getInstance and only compiled because esbuild
+    // strips types rather than checking them. This file is not in the suite, so nothing caught it
+    // until `vp check` was run against a tree with the bench copied in.
+    (id): id is string =>
+      id !== null && getCard(getInstance(loadedState, id).cardId).name === "Shura",
   );
   if (!shuraId) {
     throw new Error(

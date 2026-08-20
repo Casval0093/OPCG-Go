@@ -1039,9 +1039,14 @@ FIRST_TURN_ATTACK_FIXTURE_FIX = """    skipFirstTurnDraw: true,
 # critical path: OP17-005's [On Play] takes a monocolored Leader's base power to 8000, which is the
 # whole OP17 Ace thesis.
 #
-# NOTE ON NUMBERING. "Patch N" in this project means the Nth entry of PATCHES below, and the list
-# has been inserted into before: CLAUDE.md calls the getPermanentSetCost prefilter "patch 8" from
-# when it was 8th, and it is now 9th. Prefer the patch NAME when writing anything durable.
+# NOTE ON NUMBERING — DO NOT WRITE "patch N" ANYWHERE DURABLE. "Patch N" means the Nth entry of
+# PATCHES below, and this list gets INSERTED INTO, so every number downstream of an insertion goes
+# stale silently. Nothing checks them. It has happened twice: PR #22 added the Pappag test fix at
+# position 7, pushing the getPermanentSetCost prefilter from 8th to 9th; then Phase 1 took 10-14,
+# pushing the setBasePower patches from 10-18 to 15-24. Between them that staled 26 references
+# across CLAUDE.md, six docs and this file's own bench, and the same string "patch 8" ended up
+# meaning the Pappag fix in two files and the getPermanentSetCost prefilter in four others. All were
+# converted to NAMES on 2026-08-21. Use the "name" field verbatim; it is greppable and cannot rot.
 #
 # THE DESIGN DECISION, and why a delta modifier is not good enough. A `setBasePower` modifier
 # stores the LITERAL in `value` and `getCardPower` substitutes it for the printed base, rather than

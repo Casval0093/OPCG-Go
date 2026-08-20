@@ -80,7 +80,8 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   the trait *matching semantics* are separately broken, and that is not this note. Do not read
   this as "traits have been checked": see the trait-matching fact below.** Blast radius was **171 of the 185 encodings
   with a `search` action** (every one that reveals to hand), and only 19 are OP15/OP16 — the other
-  152 are upstream's own cards. Fix is patch 2 in `tools/patch_engine.py`; A/B on the 10-game Ace
+  152 are upstream's own cards. Fix is the
+  `resolution: search-to-hand must not require open character slots` patch; A/B on the 10-game Ace
   mirror with the arena's masking retry disabled: **`illegal-command=1` → `rules-win=10`**. Engine
   suite 3370 pass / 0 fail. **Sent upstream as a draft PR 2026-08-19 on Ping's authorisation** —
   <https://github.com/TheCardGoat/tcg-engines/pull/216>. That does not reopen the `orderCards`
@@ -112,7 +113,7 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   **not** `src/cards/**`, where **2065** test files live. Only 26 of their basenames appear under
   `tests/cards/` at all, leaving **1972 with no running counterpart**. Pristine arithmetic confirms
   the include list accounts for everything that ran: **1384 + 4 = 1388**, exactly the file count a
-  stock `vp test run` reports. **This is why the search-to-hand bug in patch 2 survived** —
+  stock `vp test run` reports. **This is why the search-to-hand bug survived** —
   `OP12-086` Koala's own test file is one of the 1972.
   **Patch 3 in `tools/patch_engine.py` turns them all on: 1601 → 3666 files, 3370 → 6078 tests,
   0 failures, 89s → 87s.** +2065 files and +2708 tests for no measurable wall clock (`isolate: false`,
@@ -123,7 +124,8 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   2065 files assert nothing**: each is a lone `validateCardAbility(card)` call, and upstream
   stubbed that function's body out to `void card; assert.ok(true);` with every real check
   commented out (`src/cards/card-behavior-harness.ts`). So **1594 of the ~6078 tests (26%) are
-  `assert.ok(true)`**. The real gain from patch 3 is **470 files / ~913 engine-driven cases
+  `assert.ok(true)`**. The real gain from the `vite.config: run the per-card tests under src/cards`
+  patch is **470 files / ~913 engine-driven cases
   covering ~397 card ids `tests/cards/**` never tested** — genuine, and it does include
   `OP12-086` Koala, so the search-to-hand explanation above still stands. But behaviour-bearing
   cases went **~3369 → ~4282, +27%, not double.** Quote 6078 as suite SIZE; never as an encoding
@@ -155,7 +157,8 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   record is the deliverable, and carrying the fix in `tools/patch_engine.py` is the sanctioned
   mechanism. Treat any outward-facing action on third-party property as requiring an explicit,
   unprompted instruction from Ping — never propose one.
-- **The first player takes 1 DON!! on their first turn, not 2 — FIXED 2026-08-19, patch 4.**
+- **The first player takes 1 DON!! on their first turn, not 2 — FIXED 2026-08-19 by the
+  `state: first player places 1 DON!! on their first turn, not 2` patch.**
   `finalizeBeginTurnRefresh` placed `Math.min(2, donDeckCount)` every DON!! Phase with no first-turn
   exception, so the leading player opened on **2** active DON!!. The rule is 2 per DON!! Phase
   **except the first player's first turn, which is 1** — first-player compensation, and the pair of
@@ -166,7 +169,8 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   `turnNumber === 1 && seat === config.firstPlayer`, not the `skipDraw` flag — `config.firstPlayer`
   is authoritative once the 猜拳 winner's `chooseFirstPlayer` has overwritten it, and turn number
   plus seat cannot be misconfigured, whereas a flag can be switched off and would silently take the
-  DON!! rule with it. **Two upstream tests asserted the old value and are corrected by patch 5** —
+  DON!! rule with it. **Two upstream tests asserted the old value and are corrected by the
+  `tests: two upstream cases assert the pre-fix first-turn DON!! count` patch** —
   that is fixing the tests, not accommodating the fix: `shared.ts` defaults `skipFirstTurnDraw` to
   `?? true`, so those tests took the skipped draw and still expected the un-reduced DON!!.
   **Every play/draw number measured before it was measured on the wrong rules — but the practical
@@ -427,11 +431,16 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
 
   So the answer to "is the list complete enough to scope primitives?" is **yes for the remaining 2,
   no for the other 16, and OP17 will not change that split.**
-- **`setBasePower` EXISTS — a literal base-power setter, built 2026-08-20 as patches 15-23 of
-  `tools/patch_engine.py` (9 patches over 5 files). Do not re-park a "base power becomes N" clause,
-  and do not reach for `setPower` instead.** *"Patch N" means the Nth entry of that file's `PATCHES`
-  list, and the list has been inserted into before — the getPermanentSetCost prefilter is called
-  "patch 8" throughout this file from when it was 8th and is now 9th. Cite patches by NAME.* Written
+- **`setBasePower` EXISTS — a literal base-power setter, built 2026-08-20 as the ten `setBasePower`
+  patches of `tools/patch_engine.py`, over 5 files. Do not re-park a "base power becomes N" clause,
+  and do not reach for `setPower` instead.** ***CITE PATCHES BY NAME, NEVER BY NUMBER.** "Patch N" means the
+  Nth entry of that file's `PATCHES` list, and that list gets INSERTED INTO, so every number
+  downstream of an insertion goes stale silently — nothing checks these. It has happened twice
+  already: PR #22 added `tests: OP07-030 Pappag...` at position 7, which pushed the
+  getPermanentSetCost prefilter from 8th to 9th and staled five references in this file; then Phase 1
+  took 10-14, which pushed the `setBasePower` patches from 10-18 to 15-24 and staled four more. All
+  nine were converted to names on 2026-08-21. If you find a bare "patch N" here, treat it as
+  suspect and re-derive it from `PATCHES` — do not propagate it.* Written
   `{ action: "setBasePower", target, value: 7000, duration: "thisTurn" }`.
   - **Why the three near-misses all fail.** `setPower` is the only other literal-valued power setter
     and it adds `action.value - getCardPower(target)` at resolution — a TOTAL-power set, so it
@@ -473,7 +482,8 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
     narrowing was kept anyway — provably equivalent and strictly cheaper — but it was not the fix.
     `bench/throughput.test.ts` now carries the ratio as a second guard at a **1.6x** limit,
     red-green verified in both directions: the slow guard order measures 1.80x there and fails, and
-    a 2.5x limit would have passed both and been decoration. Same lesson as patch 8, one level
+    a 2.5x limit would have passed both and been decoration. Same lesson as the
+    `permanent: getPermanentSetCost evaluates conditions it then discards` patch, one level
     deeper: prefilter before you evaluate anything you might discard — and profile before you
     believe a mechanism.
   - Two DIFFERENT literals on one card resolve to whichever source is scanned first, the same
@@ -495,8 +505,9 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
     not move. `basePower` is consequently unused in `actions.ts` and the import is dropped in the
     same patch — `noUnusedLocals` is what keeps "every printed-base read was converted" honest.
     Pinned by `copyPower REPLACES this clause's set base power` in `cards/tests/OP16/106-*.test.ts`.
-    **The PERMANENT `setBasePowerFrom` branch had the same defect and is ALSO fixed now — patch 24,
-    after Codex flagged it on PR #26. The "bounded and known, not fixed blind" line that stood here
+    **The PERMANENT `setBasePowerFrom` branch had the same defect and is ALSO fixed now — by the
+    `permanent: setBasePowerFrom is a replacement, not a power delta` patch, after Codex flagged it
+    on PR #26. The "bounded and known, not fixed blind" line that stood here
     was the wrong call.** The reason given for deferring was that calling `getEffectiveBasePower`
     inside `getPermanentModifierTotal` would re-enter `getPermanentSetBasePower` across siblings.
     That was true of that particular fix and irrelevant to the right one: `setBasePowerFrom` is a
@@ -665,8 +676,9 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   must be checked another way. Decode with `chr(ord(c)+31)` for `0x21..0x5A`. No poppler, pypdf,
   pdfplumber or PyObjC Quartz on this machine; `./.venv/bin/pip install pypdf` was used for the read
   and no committed code depends on it.
-- **`OP16-017` LittleOars Jr. made the Ace deck ~99x more expensive per command — FIXED 2026-08-19,
-  patch 8. Do not re-derive, and do NOT trust the mechanism this note used to give.** The cost was
+- **`OP16-017` LittleOars Jr. made the Ace deck ~99x more expensive per command — FIXED 2026-08-19
+  by the `permanent: getPermanentSetCost evaluates conditions it then discards` patch. Do not
+  re-derive, and do NOT trust the mechanism this note used to give.** The cost was
   super-exponential in the number of copies in play; `sim/decks/ace-op16.json` runs 4.
   Per-command cost, mirrors at seed 7 (the only figure comparable across hosts):
   `mihawk-green-proxy` **8.24 -> 5.51 ms**, `ace-op16` **814.60 -> 14.12 ms**, ratio **98.9x -> 2.56x**.
@@ -705,8 +717,9 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   seed 7 did and cost 3,682 ms/command on the same 50 cards. It even had a non-vacuity check, which
   passed while the measurement meant nothing. `bench/throughput.test.ts` now builds the board with
   `OnePieceTestEngine.create` and times one `getCardPower` at 1-5 copies, ascending, throwing past
-  `PERMANENT_EFFECT_MS_LIMIT` (250 ms — a KNOB, not a result). Red-green verified: reverting patch 8
-  alone fails at 4 copies in ~1.6 s; restoring it passes. It also asserts `power === 4000` at every
+  `PERMANENT_EFFECT_MS_LIMIT` (250 ms — a KNOB, not a result). Red-green verified: reverting the
+  `permanent: getPermanentSetCost evaluates conditions it then discards` patch alone fails at 4
+  copies in ~1.6 s; restoring it passes. It also asserts `power === 4000` at every
   board size, so a future change that alters the answer fails instead of passing quietly.
 - **`scripts/bootstrap.sh` had never completed on a fresh clone — FIXED 2026-08-19.** It `cd`s into
   the engine for `pnpm install`, then invoked `tools/patch_engine.py` and `tools/correct_cards.py`,
@@ -758,9 +771,11 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   (which SUPERSEDE the `--vendor-set` sweep's older files of the same name — same corpus, same
   operators, but 105/108 cards against 94/86 because the sweep path skips zero-mutant cards);
   gate: `./runs/mutation_shard.py --aggregate`, which exits 1 on a survivor OR a missing card.
-  **Run TWICE, on two different engine states — before and after patches 17-18 — and the two runs
+  **Run TWICE, on two different engine states — before and after
+  `actions: setBasePowerFrom/copyPower/swapBasePower measure from the effective base` and its
+  companion import patch — and the two runs
   are byte-identical record-for-record, card for card and label for label.** That is the evidence
-  that patches 17-18 were result-preserving; it is stronger than the reasoning, which is why it was
+  that those two were result-preserving; it is stronger than the reasoning, which is why it was
   measured instead of argued.
   **Worst offenders, each matching a defect class already in this file:** `zone: "field"` →
   `"character"` survives **15/15** (the C1/C2 Leader-exclusion defect, rulings #979/#993); deleting
@@ -831,8 +846,9 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   audit predicted it "will actively resist the fix"; it did. (b) `tests/cards/characters/`
   `eb03-008-hibari.test.ts` used **`OP11-012` Franky as its SWORD-trait body**, but `OP11-012` is a
   Straw Hat Crew card that the engine had stored as `["Navy SWORD"]` — data and test shared one wrong
-  trait, so both cases passed while asserting something the card cannot do. Fixes are patches 6 and 7
-  in `tools/patch_engine.py`: Borsalino now asserts **both** sides of the boundary (5 gains, 6 does
+  trait, so both cases passed while asserting something the card cannot do. Fixes are the
+  `tests: OP06-054's Blocker threshold...` and `tests: EB03-008 Hibari...` patches in
+  `tools/patch_engine.py`: Borsalino now asserts **both** sides of the boundary (5 gains, 6 does
   not), because a one-sided threshold test is what let it hide; Hibari uses `OP11-092` Helmeppo, which
   is genuinely Navy/SWORD. **When a data correction turns a test red, suspect the test's premise
   before suspecting the correction.**
@@ -995,7 +1011,8 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
 - **The benchmark deck is fixed and the re-measure is done (2026-08-17). Do not redo it.**
   `bench/throughput.test.ts` runs the 4-card synthetic deck and the engine's real 50-card
   ST01 deck back to back. **Realism ratio 1.79x per game, 0.97x per command** — re-measured
-  2026-08-19 after patch 8 at **1.78x / 0.96x**, i.e. unmoved, which is the expected result since
+  2026-08-19 after the `getPermanentSetCost` prefilter at **1.78x / 0.96x**, i.e. unmoved, which is
+  the expected result since
   neither of those decks contains the pathological shape. (The file gained a third deck and a
   constructed-board regression guard in 2026-08-19, and the setBasePower overhead guard in
   2026-08-20; the realism ratio is still the first two decks only.) **Do NOT read the realism ratio
@@ -1155,7 +1172,7 @@ python3 tools/analyse_playdraw.py <dir>          # play/draw arms: paired gap di
 ./scripts/arena.sh --replay arena/logs/<f>.jsonl --contested   # read a played game back
 ./scripts/simulate.sh --puzzles --counter avg-cost=3 --counter enabled=0  # vary a counter-policy knob
 
-# throughput benchmark AND two regression guards. (1) patch 8: fails loudly if permanent-effect
+# throughput benchmark AND 3 guards. (1) the getPermanentSetCost prefilter: fails loudly if permanent-effect
 # evaluation starts re-entering itself again. (2)+(3) setBasePower: fails if the base-power lookup
 # costs getCardPower more than 1.6x its pre-primitive body on a vanilla board, or 2.0x on a board
 # where four permanent setBasePower clauses are live. Both measured in-process against a locally
@@ -1163,7 +1180,11 @@ python3 tools/analyse_playdraw.py <dir>          # play/draw arms: paired gap di
 # The vanilla probe is the one that catches a guard-order regression (1.77x); the loaded probe is the
 # only coverage the per-source condition/candidate-pool loop has at all.
 # NOTE this file is NOT in the suite by default -- the 6111 count excludes it, and copying it in
-# makes the suite report 6112.
+# makes the suite report 6112. CONSEQUENCE WORTH KNOWING: nothing type-checks or lints this file
+# unless you copy it in and run `vp check` there. `vp test run` on it passes regardless, because
+# esbuild strips types without checking them -- a `Boolean(id)` type predicate that never
+# narrowed sat in it from 2026-08-20 until a citation sweep on 08-21 happened to run vp check.
+# Run `vp check tests/cards/throughput.test.ts` after editing this file, not just the test.
 cp bench/throughput.test.ts vendor/tcg-engines/submodules/one-piece/packages/engine/tests/cards/
 cd vendor/tcg-engines/submodules/one-piece/packages/engine && ./node_modules/.bin/vp test run tests/cards/throughput.test.ts
 ```
@@ -1184,7 +1205,8 @@ The `tools/` tests are stdlib `unittest`, matching the tools' own stdlib-only co
    119 imported = 119 definitions per set, 0 cards unencoded-and-unparked, 213 test files. The
    remaining work is not encoding, it is the DSL primitives below.
    ~~**Build `setBasePowerLiteral` first — it blocks item 2.**~~ — **DONE 2026-08-20.** It is the
-   DSL action `setBasePower`, patches 10–16 of `tools/patch_engine.py`, and all 6 parked clauses are
+   DSL action `setBasePower`, the ten `setBasePower` patches of `tools/patch_engine.py`, and all 6
+   parked clauses are
    encoded and tested. Item 2 is unblocked on the engine side; what still blocks it is Bandai not
    having published OP17.
    **Next up, and in this order: `giveDonSourcePlayer` (10 clauses, all OP15) then

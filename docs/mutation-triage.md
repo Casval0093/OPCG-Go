@@ -87,12 +87,14 @@ expect(withoutCamie.getView("south").decisions.some((d) => d.title.includes("Blo
 built as `` `${playerName} may block` `` (`src/engine/queue.ts:55`). The substring `"Blocker"`
 never appears in any prompt label, so the assertion was `false === false` unconditionally.
 
-Fixed as **patch 8** in `tools/patch_engine.py`, using the idiom the Borsalino patch already
+Fixed by the `tests: OP07-030 Pappag asserted a condition that is always true`
+patch, using the idiom the Borsalino patch already
 established — `expect(() => engine.pendingDecision("battleBlocker", seat)).toThrow()`. Verified: the
 test still passes, and Pappag's `delete filter:name` mutant now **dies** (0/1 → 1/1).
 
-This is the third test of this exact class carried locally, after `OP06-054` Borsalino (patch 6) and
-`EB03-008` Hibari (patch 7). Per the standing rule, nothing goes upstream.
+This is the third test of this exact class carried locally, after `tests: OP06-054's Blocker threshold asserted the defect, not the card`
+and `tests: EB03-008 Hibari used a non-SWORD card as its SWORD body`.
+Per the standing rule, nothing goes upstream.
 
 ## Equivalent mutants worth suppressing rather than re-triaging
 
