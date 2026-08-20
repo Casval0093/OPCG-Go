@@ -79,12 +79,19 @@ class PatchEngineTest(unittest.TestCase):
         file per patch let the last one win and silently deleted the earlier anchor, so those patches
         reported FAILED and three tests here went red the moment a second patch landed on a file that
         already had one.
+
+        Anchors are seeded via `patch_anchors`, i.e. EVERY anchor a patch needs and not just its
+        primary one. Seeding only the primary was silently wrong: a multi-edit patch's secondary
+        `str.replace` then found nothing and no-opped, the patch still wrote its marker, and these
+        apply tests passed while the file was half-patched. The tests were resting on the bug
+        `replace_once` now raises for. Codex flagged the production side of this on PR #28.
         """
         anchors: dict[str, list[str]] = {}
         for patch in patch_engine.PATCHES:
             if "create" in patch:
                 continue
-            anchors.setdefault(patch["relpath"], []).append(patch["anchor"])
+            for anchor in patch_engine.patch_anchors(patch):
+                anchors.setdefault(patch["relpath"], []).append(anchor)
         for relpath, texts in anchors.items():
             body = "\n".join(f"{text}\nafter\n" for text in texts)
             self.write(relpath, f"before\n{body}")
@@ -162,7 +169,12 @@ class PatchEngineTest(unittest.TestCase):
             source = self.read(patch["relpath"])
             # `already` is how every later run recognises the patch; if apply() does not produce
             # it, the tool re-patches forever and idempotence is a lie.
-            self.assertIn(patch["already"], source, patch["name"])
+            # Every marker, not just the first: a multi-edit patch declares one per edit, and
+            # checking only the first is the defect this suite now covers.
+            for marker in patch_engine.applied_markers(patch):
+                self.assertIn(marker, source, patch["name"])
+            for marker in patch_engine.absent_markers(patch):
+                self.assertNotIn(marker, source, patch["name"])
 
     # --- CREATE patches: a file upstream does not have, so there is no anchor to verify ----------
 
@@ -202,6 +214,89 @@ class PatchEngineTest(unittest.TestCase):
         # And it really did not write: the foreign content survives.
         for patch in self.create_patches():
             self.assertEqual(self.read(patch["relpath"]), "someone else's file\n")
+
+    # --- every edit of a multi-edit patch is verified (Codex, PR #28) ------------------------
+    #
+    # The defect these cover: a patch that made several edits chained bare `str.replace` calls, and
+    # `str.replace` with a target that is absent is a SILENT no-op. Only the primary anchor was
+    # verified and only the first edit's marker was checked, so a secondary anchor that upstream had
+    # reworded left its edit undone while the tool printed `applied` and every later `--check`
+    # printed `ok`. For the permanent-lookup patch that is invisible to the engine suite too,
+    # because the narrowing is result-preserving -- the optimisation would simply be gone.
+
+    def multi_edit_patch(self) -> dict:
+        for patch in patch_engine.PATCHES:
+            if len(patch_engine.patch_anchors(patch)) > 1:
+                return patch
+        raise AssertionError("no multi-edit patch to test against")
+
+    def test_every_multi_edit_patch_declares_a_marker_per_anchor(self) -> None:
+        """The invariant that keeps the fix from rotting.
+
+        A future patch that adds a second anchor but keeps one `already` string would reintroduce
+        exactly the reported defect, and nothing else here would notice.
+        """
+        for patch in patch_engine.PATCHES:
+            anchors = len(patch_engine.patch_anchors(patch))
+            markers = len(patch_engine.applied_markers(patch)) + len(
+                patch_engine.absent_markers(patch)
+            )
+            self.assertGreaterEqual(
+                markers,
+                anchors,
+                f"{patch['name']}: {anchors} anchor(s) but only {markers} marker(s) — a "
+                f"half-applied file would report ok",
+            )
+
+    def test_moved_secondary_anchor_fails_and_writes_nothing(self) -> None:
+        patch = self.multi_edit_patch()
+        self.seed_stock()
+        secondary = patch_engine.patch_anchors(patch)[1]
+        before = self.read(patch["relpath"])
+        self.assertIn(secondary, before)
+        self.write(patch["relpath"], before.replace(secondary, "upstream reworded this", 1))
+
+        code, text = run("--engine", self.engine)
+        self.assertIn("FAILED", text)
+        self.assertIn(patch["name"], text)
+        self.assertEqual(code, 1)
+        # The decisive part: no marker was written, so a later --check cannot call this applied.
+        after = self.read(patch["relpath"])
+        for marker in patch_engine.applied_markers(patch):
+            self.assertNotIn(marker, after, patch["name"])
+
+    def test_partially_applied_patch_is_failed_not_ok(self) -> None:
+        """The state the single-marker check used to call `ok`."""
+        patch = self.multi_edit_patch()
+        markers = patch_engine.applied_markers(patch)
+        self.assertGreater(len(markers), 1, patch["name"])
+        self.seed_stock()
+        # Only the FIRST edit's marker present -- what the old code wrote after a silent no-op.
+        self.write(patch["relpath"], self.read(patch["relpath"]) + "\n" + markers[0] + "\n")
+
+        code, text = run("--check", "--engine", self.engine)
+        self.assertIn("PARTIALLY applied", text)
+        self.assertIn(patch["name"], text)
+        self.assertEqual(code, 1)
+
+    def test_replace_once_raises_unless_there_is_exactly_one_match(self) -> None:
+        with self.assertRaises(patch_engine.PatchAnchorError):
+            patch_engine.replace_once("no anchor here", "ANCHOR", "fix")
+        with self.assertRaises(patch_engine.PatchAnchorError):
+            patch_engine.replace_once("ANCHOR and ANCHOR", "ANCHOR", "fix")
+        self.assertEqual(patch_engine.replace_once("a ANCHOR b", "ANCHOR", "fix"), "a fix b")
+
+    def test_replace_every_raises_only_when_nothing_matches(self) -> None:
+        with self.assertRaises(patch_engine.PatchAnchorError):
+            patch_engine.replace_every("no id here", "oldId", "newId")
+        self.assertEqual(patch_engine.replace_every("oldId oldId", "oldId", "newId"), "newId newId")
+
+    def test_anchor_description_names_the_distinctive_line(self) -> None:
+        """A failure message reading 'try {' identifies nothing, which is why this is asserted."""
+        self.assertEqual(
+            patch_engine.describe_anchor("try {\n  const somethingDistinctive = 1;\n"),
+            "const somethingDistinctive = 1;",
+        )
 
 
 if __name__ == "__main__":

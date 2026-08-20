@@ -33,6 +33,106 @@ import sys
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ENGINE = os.path.join(REPO_ROOT, "vendor/tcg-engines/submodules/one-piece/packages/engine")
 
+
+# --- Anchor safety --------------------------------------------------------------------------
+#
+# A patch that makes SEVERAL edits used to chain bare `str.replace` calls, and `str.replace` on a
+# string that does not contain its target is a silent no-op. Only the patch's PRIMARY `anchor` was
+# verified, and only ONE `already` marker was checked -- and that marker lived in the first edit's
+# replacement text. So if upstream reworded the region a SECONDARY anchor matched:
+#
+#   1. the primary anchor still matched, so the patch was applied,
+#   2. the secondary replace silently did nothing,
+#   3. the marker was written anyway, and
+#   4. every later `--check` reported the whole patch as applied.
+#
+# For the three permanent-lookup callers that is invisible to the engine suite as well, because the
+# narrowing is result-preserving -- the optimisation would simply be gone. This is precisely the
+# "a check that cannot fail" defect class CLAUDE.md names as this project's most frequent, sitting
+# inside the tool whose entire job is to be the check. Reported by Codex on PR #28 and reproduced
+# before fixing: perturbing one line inside SETCOST_SOURCES_ANCHOR left getPermanentSetCost on the
+# old body while `--check` still said `ok`.
+#
+# Two changes close it, one at apply time and one at check time, because they catch different states:
+#
+#   * `replace_once` / `replace_every` raise instead of no-opping, so a moved anchor FAILS the patch
+#     and the file is never written.
+#   * `already` may be a LIST -- one marker per edit -- and `--check` requires all of them. A tree
+#     half-applied by an older build of this tool is then reported FAILED rather than ok.
+
+
+class PatchAnchorError(RuntimeError):
+    """A patch's anchor did not match the number of times the patch expects."""
+
+
+def describe_anchor(anchor: str, width: int = 78) -> str:
+    """The most identifying line of an anchor, for a failure message.
+
+    NOT `splitlines()[0]`: several anchors open on boilerplate like `try {` or `if (`, and naming
+    that tells the reader nothing about WHICH anchor moved. The longest of the first few lines is
+    almost always the distinctive one.
+    """
+    lines = [line.strip() for line in anchor.strip().splitlines()[:6] if line.strip()]
+    if not lines:
+        return "<blank anchor>"
+    return max(lines, key=len)[:width]
+
+
+def replace_once(source: str, anchor: str, fix: str) -> str:
+    """Replace `anchor` exactly once, or raise. Never a silent no-op."""
+    found = source.count(anchor)
+    if found != 1:
+        raise PatchAnchorError(
+            f"expected exactly 1 match for the anchor at "
+            f"{describe_anchor(anchor)!r} ({len(anchor.splitlines())} lines), found {found} — "
+            f"upstream changed this region; re-derive the patch"
+        )
+    return source.replace(anchor, fix, 1)
+
+
+def replace_every(source: str, old: str, new: str) -> str:
+    """Replace every occurrence of `old`, requiring at least one. Never a silent no-op."""
+    found = source.count(old)
+    if found == 0:
+        raise PatchAnchorError(
+            f"expected at least 1 match for {old!r}, found 0 — upstream changed this "
+            f"region; re-derive the patch"
+        )
+    return source.replace(old, new)
+
+
+def patch_anchors(patch: dict) -> list[str]:
+    """Every anchor a patch needs, primary first.
+
+    A multi-edit patch declares `anchors` so that ALL of them are verified before it is applied,
+    not just the primary one. This is the third leg of the Codex fix and the one that catches the
+    problem EARLIEST -- on a stock engine whose secondary anchor upstream has reworded, `--check`
+    now says FAILED ("anchor not found") instead of PENDING, so the tool never even attempts a
+    write it cannot complete.
+
+    It also fixes tools/test_patch_engine.py, whose `seed_stock()` seeded only primary anchors.
+    Those apply tests were green ONLY because the missing secondary replace silently no-opped --
+    the test suite was resting on the very bug under repair.
+    """
+    declared = patch.get("anchors")
+    if declared:
+        return list(declared)
+    # A CREATE patch has no anchor -- there is nothing in the tree to anchor to.
+    return [patch["anchor"]] if "anchor" in patch else []
+
+
+def applied_markers(patch: dict) -> list[str]:
+    """The markers whose presence means this patch is FULLY applied (one per edit)."""
+    markers = patch["already"]
+    return [markers] if isinstance(markers, str) else list(markers)
+
+
+def absent_markers(patch: dict) -> list[str]:
+    """Text a fully-applied patch must have REMOVED. For edits that only delete."""
+    markers = patch.get("already_absent", [])
+    return [markers] if isinstance(markers, str) else list(markers)
+
+
 # --- the bot cannot resolve `orderCards` prompts ----------------------------------------------
 #
 # `resolveBotPromptCommand` branches on four of the six ChoiceKinds and lets `orderCards` fall
@@ -1871,8 +1971,12 @@ SETCOST_SOURCES_ANCHOR = """  try {
         continue;
       }
       const card = getCard(source.cardId);
-      for (const effect of card.effects?.permanentEffects ?? []) {
-        // OPCG-Go patch: skip the effect before evaluating its conditions when it has no `setCost`"""
+      for (const effect of card.effects?.permanentEffects ?? []) {"""
+
+# The anchor deliberately stops SHORT of the earlier setCost-prefilter patch's comment. Including
+# it made this anchor carry another patch's `already` marker, so seeding this anchor in
+# tools/test_patch_engine.py made that patch report `ok` on a stock engine. The block is unique
+# without it -- getPermanentModifierTotal's twin has `let total = 0;` in between.
 
 SETCOST_SOURCES_FIX = """  try {
     // OPCG-Go patch: the same two fixes as getPermanentModifierTotal -- a source set narrowed to
@@ -1893,8 +1997,7 @@ SETCOST_SOURCES_FIX = """  try {
       ) {
         continue;
       }
-      for (const effect of effects) {
-        // OPCG-Go patch: skip the effect before evaluating its conditions when it has no `setCost`"""
+      for (const effect of effects) {"""
 
 KEYWORDS_SOURCES_ANCHOR = """    const keywords = new Set<Keyword>();
     for (const source of Object.values(state.cards)) {
@@ -2017,9 +2120,14 @@ PATCHES = [
         "name": "tests: two upstream cases assert the pre-fix first-turn DON!! count",
         "relpath": "tests/index.test.ts",
         "anchor": MULLIGAN_DON_ANCHOR,
-        "already": "south wins 猜拳 and chooses itself first",
-        "apply": lambda s: s.replace(MULLIGAN_DON_ANCHOR, MULLIGAN_DON_FIX, 1).replace(
-            STAGE_TURN_ANCHOR, STAGE_TURN_FIX, 1
+        "anchors": [MULLIGAN_DON_ANCHOR, STAGE_TURN_ANCHOR],
+        # One marker per edit: --check requires BOTH, so a half-applied file reads FAILED, not ok.
+        "already": [
+            "south wins 猜拳 and chooses itself first",
+            "stage's power projection, not the opening DON!! count",
+        ],
+        "apply": lambda s: replace_once(
+            replace_once(s, MULLIGAN_DON_ANCHOR, MULLIGAN_DON_FIX), STAGE_TURN_ANCHOR, STAGE_TURN_FIX
         ),
     },
     {
@@ -2040,12 +2148,20 @@ PATCHES = [
         "name": "tests: EB03-008 Hibari used a non-SWORD card as its SWORD body",
         "relpath": "tests/cards/characters/eb03-008-hibari.test.ts",
         "anchor": HIBARI_ANCHOR,
-        "already": "op11Helmeppo092",
+        "anchors": [HIBARI_ANCHOR, "op11Franky012", "frankyId"],
+        "already": [
+            "OP11-092 Helmeppo is really Navy/SWORD",
+            "op11Helmeppo092",
+            "helmeppoId",
+        ],
         # The comment goes in first, anchored on the original import line; only then can the
         # remaining identifiers be swapped wholesale, or the anchor would already be gone.
-        "apply": lambda s: s.replace(HIBARI_ANCHOR, HIBARI_FIX, 1)
-        .replace("op11Franky012", "op11Helmeppo092")
-        .replace("frankyId", "helmeppoId"),
+        # The identifier swaps are replace_EVERY (many occurrences each), not replace_once.
+        "apply": lambda s: replace_every(
+            replace_every(replace_once(s, HIBARI_ANCHOR, HIBARI_FIX), "op11Franky012", "op11Helmeppo092"),
+            "frankyId",
+            "helmeppoId",
+        ),
     },
     {
         "name": "permanent: getPermanentSetCost evaluates conditions it then discards",
@@ -2071,22 +2187,37 @@ PATCHES = [
         "name": "bot-harness: resolve the counter step through the counter policy",
         "relpath": "src/automation/bot-harness.ts",
         "anchor": COUNTER_CALL_ANCHOR,
-        "already": "OPCG-Go patch: the COUNTER STEP is a decision, not a default",
+        "anchors": [COUNTER_CALL_ANCHOR, COUNTER_IMPORT_ANCHOR],
+        "already": [
+            "OPCG-Go patch: the COUNTER STEP is a decision, not a default",
+            'import { decideCounter } from "./counter-policy.ts";',
+        ],
         # The import goes in first: COUNTER_CALL_FIX does not contain the import anchor, so order is
         # not load-bearing, but keeping the import edit first means a half-applied patch still names
         # the module that is missing rather than failing on an unresolved symbol.
-        "apply": lambda s: s.replace(COUNTER_IMPORT_ANCHOR, COUNTER_IMPORT_FIX, 1).replace(
-            COUNTER_CALL_ANCHOR, COUNTER_CALL_FIX, 1
+        "apply": lambda s: replace_once(
+            replace_once(s, COUNTER_IMPORT_ANCHOR, COUNTER_IMPORT_FIX),
+            COUNTER_CALL_ANCHOR,
+            COUNTER_CALL_FIX,
         ),
     },
     {
         "name": "types: an opt-in flag letting a mid-game FIXTURE attack on its first turn",
         "relpath": "src/types.ts",
         "anchor": FIRST_TURN_ATTACK_FLAG_TYPE_ANCHOR,
-        "already": "allowFirstTurnAttacks?: boolean;",
-        "apply": lambda s: s.replace(
-            FIRST_TURN_ATTACK_FLAG_TYPE_ANCHOR, FIRST_TURN_ATTACK_FLAG_TYPE_FIX, 1
-        ).replace(FIRST_TURN_ATTACK_FLAG_STATE_ANCHOR, FIRST_TURN_ATTACK_FLAG_STATE_FIX, 1),
+        "anchors": [
+            FIRST_TURN_ATTACK_FLAG_TYPE_ANCHOR,
+            FIRST_TURN_ATTACK_FLAG_STATE_ANCHOR,
+        ],
+        "already": [
+            "allowFirstTurnAttacks?: boolean;",
+            "allowFirstTurnAttacks rides in the OPTIONAL half on purpose",
+        ],
+        "apply": lambda s: replace_once(
+            replace_once(s, FIRST_TURN_ATTACK_FLAG_TYPE_ANCHOR, FIRST_TURN_ATTACK_FLAG_TYPE_FIX),
+            FIRST_TURN_ATTACK_FLAG_STATE_ANCHOR,
+            FIRST_TURN_ATTACK_FLAG_STATE_FIX,
+        ),
     },
     {
         "name": "bot-strategies: the policy compared PRINTED power, not the power a card plays at",
@@ -2169,58 +2300,118 @@ PATCHES = [
         "name": "actions: swap the basePower import for getEffectiveBasePower",
         "relpath": "src/effects/actions.ts",
         "anchor": SETTERS_EFFECTIVE_IMPORT_ANCHOR,
-        "already": "OPCG-Go patch: `basePower` is gone from this file",
+        "anchors": [SETTERS_EFFECTIVE_IMPORT_ANCHOR, SETTERS_EFFECTIVE_ADD_ANCHOR],
+        "already": [
+            "OPCG-Go patch: `basePower` is gone from this file",
+            "\n  getEffectiveBasePower,\n",
+        ],
         # Two edits, one patch: drop the now-unused `basePower` and add `getEffectiveBasePower`.
         # Splitting them would leave the file un-typecheckable between the two.
-        "apply": lambda s: s.replace(
-            SETTERS_EFFECTIVE_IMPORT_ANCHOR, SETTERS_EFFECTIVE_IMPORT_FIX, 1
-        ).replace(SETTERS_EFFECTIVE_ADD_ANCHOR, SETTERS_EFFECTIVE_ADD_FIX, 1),
+        "apply": lambda s: replace_once(
+            replace_once(s, SETTERS_EFFECTIVE_IMPORT_ANCHOR, SETTERS_EFFECTIVE_IMPORT_FIX),
+            SETTERS_EFFECTIVE_ADD_ANCHOR,
+            SETTERS_EFFECTIVE_ADD_FIX,
+        ),
     },
     {
         "name": "actions: setBasePowerFrom/copyPower/swapBasePower measure from the effective base",
         "relpath": "src/effects/actions.ts",
         "anchor": SETTERS_EFFECTIVE_SWAP_ANCHOR,
-        "already": "OPCG-Go patch: EFFECTIVE base, not printed. Swapping base powers",
-        "apply": lambda s: s.replace(SETTERS_EFFECTIVE_SWAP_ANCHOR, SETTERS_EFFECTIVE_SWAP_FIX, 1)
-        .replace(SETTERS_EFFECTIVE_FROM_ANCHOR, SETTERS_EFFECTIVE_FROM_FIX, 1)
-        .replace(SETTERS_EFFECTIVE_COPY_ANCHOR, SETTERS_EFFECTIVE_COPY_FIX, 1),
+        "anchors": [
+            SETTERS_EFFECTIVE_SWAP_ANCHOR,
+            SETTERS_EFFECTIVE_FROM_ANCHOR,
+            SETTERS_EFFECTIVE_COPY_ANCHOR,
+        ],
+        "already": [
+            "OPCG-Go patch: EFFECTIVE base, not printed. Swapping base powers",
+            "both sides read the EFFECTIVE base rather than the printed one",
+            "OPCG-Go patch: EFFECTIVE base. `copyPower` replaces the bearer's base power",
+        ],
+        "apply": lambda s: replace_once(
+            replace_once(
+                replace_once(s, SETTERS_EFFECTIVE_SWAP_ANCHOR, SETTERS_EFFECTIVE_SWAP_FIX),
+                SETTERS_EFFECTIVE_FROM_ANCHOR,
+                SETTERS_EFFECTIVE_FROM_FIX,
+            ),
+            SETTERS_EFFECTIVE_COPY_ANCHOR,
+            SETTERS_EFFECTIVE_COPY_FIX,
+        ),
     },
     {
         "name": "permanent: setBasePowerFrom is a replacement, not a power delta",
         "relpath": "src/effects/permanent.ts",
         "anchor": PERM_SETBASEPOWERFROM_ANCHOR,
+        "anchors": [
+            PERM_SETBASEPOWERFROM_ANCHOR,
+            PERM_SETBASEPOWERFROM_BRANCH_ANCHOR + "\n",
+        ],
         "already": "OPCG-Go patch: `setBasePowerFrom` used to be folded in here as a power delta",
+        # The second edit only DELETES, so it has no text to look for. Its completion is asserted as
+        # an ABSENCE instead -- the branch must be gone -- which is the same per-edit guarantee the
+        # `already` lists above give, expressed the only way a deletion can express it.
+        "already_absent": PERM_SETBASEPOWERFROM_BRANCH_ANCHOR,
         # Two edits, one patch: narrow relevantActions AND delete the branch it used to admit.
         # Splitting them would leave either dead code or a filter with no handler.
-        "apply": lambda s: s.replace(PERM_SETBASEPOWERFROM_ANCHOR, PERM_SETBASEPOWERFROM_FIX, 1)
         # `+ "\n"` so the deletion takes the branch's own trailing newline with it. Without that
         # the closing brace's line break survives as a blank line and `vp check` fails on format.
-        .replace(
-            PERM_SETBASEPOWERFROM_BRANCH_ANCHOR + "\n", PERM_SETBASEPOWERFROM_BRANCH_FIX, 1
+        "apply": lambda s: replace_once(
+            replace_once(s, PERM_SETBASEPOWERFROM_ANCHOR, PERM_SETBASEPOWERFROM_FIX),
+            PERM_SETBASEPOWERFROM_BRANCH_ANCHOR + "\n",
+            PERM_SETBASEPOWERFROM_BRANCH_FIX,
         ),
     },
     {
         "name": "permanent: sourceIsInPlay/sourceEffectsAreNegated, exported for the bench A/B",
         "relpath": "src/effects/permanent.ts",
         "anchor": PERM_EXPORT_INPLAY_ANCHOR,
-        "already": "OPCG-Go patch: exported for bench/throughput.test.ts",
+        "anchors": [PERM_EXPORT_INPLAY_ANCHOR, PERM_EXPORT_NEGATED_ANCHOR],
+        "already": [
+            "OPCG-Go patch: exported for bench/throughput.test.ts",
+            "OPCG-Go patch: exported for the same bench A/B as sourceIsInPlay above",
+        ],
         # Two edits, one patch: the bench's re-implemented old body needs BOTH predicates, and
         # exporting one without the other leaves it un-importable.
-        "apply": lambda s: s.replace(PERM_EXPORT_INPLAY_ANCHOR, PERM_EXPORT_INPLAY_FIX, 1).replace(
-            PERM_EXPORT_NEGATED_ANCHOR, PERM_EXPORT_NEGATED_FIX, 1
+        "apply": lambda s: replace_once(
+            replace_once(s, PERM_EXPORT_INPLAY_ANCHOR, PERM_EXPORT_INPLAY_FIX),
+            PERM_EXPORT_NEGATED_ANCHOR,
+            PERM_EXPORT_NEGATED_FIX,
         ),
     },
     {
         "name": "permanent: narrow the source set and put the structural test first",
         "relpath": "src/effects/permanent.ts",
         "anchor": PERM_SOURCES_ANCHOR,
-        "already": "OPCG-Go patch: the source set the permanent lookups scan",
+        "anchors": [
+            PERM_SOURCES_ANCHOR,
+            MODIFIER_TOTAL_ANCHOR,
+            SETCOST_SOURCES_ANCHOR,
+            KEYWORDS_SOURCES_ANCHOR,
+        ],
+        # FOUR markers, one per caller. Codex flagged the single-marker version on PR #28: with
+        # only the helper's marker checked, a moved SETCOST_SOURCES_ANCHOR left getPermanentSetCost
+        # on the old body while `--check` still reported ok -- and because the narrowing is
+        # result-preserving, the engine suite could not see it either. Reproduced, then fixed.
+        "already": [
+            "OPCG-Go patch: the source set the permanent lookups scan",
+            "OPCG-Go patch: the STRUCTURAL test first, then the expensive guards",
+            "OPCG-Go patch: the same two fixes as getPermanentModifierTotal",
+            "OPCG-Go patch: the same two fixes again, and this function was the worst",
+        ],
         # Four edits, one patch, and they cannot be split: `permanentSources` is dead code without
         # its three callers, and each caller is un-typecheckable without the helper.
-        "apply": lambda s: s.replace(PERM_SOURCES_ANCHOR, PERM_SOURCES_FIX, 1)
-        .replace(MODIFIER_TOTAL_ANCHOR, MODIFIER_TOTAL_FIX, 1)
-        .replace(SETCOST_SOURCES_ANCHOR, SETCOST_SOURCES_FIX, 1)
-        .replace(KEYWORDS_SOURCES_ANCHOR, KEYWORDS_SOURCES_FIX, 1),
+        "apply": lambda s: replace_once(
+            replace_once(
+                replace_once(
+                    replace_once(s, PERM_SOURCES_ANCHOR, PERM_SOURCES_FIX),
+                    MODIFIER_TOTAL_ANCHOR,
+                    MODIFIER_TOTAL_FIX,
+                ),
+                SETCOST_SOURCES_ANCHOR,
+                SETCOST_SOURCES_FIX,
+            ),
+            KEYWORDS_SOURCES_ANCHOR,
+            KEYWORDS_SOURCES_FIX,
+        ),
     },
     {
         "name": "tests: OP11-023 Arlong, the only permanent setCost reached through hand",
@@ -2266,8 +2457,15 @@ def main(argv: list[str] | None = None) -> int:
         # nothing to anchor to. Its three states: absent (PENDING, and applying writes it), present
         # carrying our marker (ok), or present WITHOUT the marker, which means something else
         # occupies the path and writing over it would destroy that file (FAILED, never overwrite).
+        markers = applied_markers(patch)
+        forbidden = absent_markers(patch)
+        present = [m for m in markers if m in source]
+        removed = [m for m in forbidden if m not in source]
+        fully_applied = len(present) == len(markers) and len(removed) == len(forbidden)
+        partly_applied = not fully_applied and bool(present)
+
         if "create" in patch:
-            if exists and patch["already"] in source:
+            if exists and fully_applied:
                 print(f"  ok       {patch['name']} (already applied)")
                 continue
             if exists:
@@ -2292,14 +2490,35 @@ def main(argv: list[str] | None = None) -> int:
             failed += 1
             continue
 
-        if patch["already"] in source:
+        if fully_applied:
             print(f"  ok       {patch['name']} (already applied)")
             continue
 
-        if patch["anchor"] not in source:
+        # HALF APPLIED. Before per-edit markers this state printed `ok`: only the first edit's
+        # marker was checked, so a secondary anchor that upstream had moved left its edit undone and
+        # nothing said so. Never re-apply from here -- the edits that DID land are already in the
+        # file, so a second pass would either no-op or double-apply. Report it and stop.
+        if partly_applied:
+            missing = [describe_anchor(m, 60) for m in markers if m not in source]
+            missing += [
+                f"(should be gone) {describe_anchor(m, 44)}" for m in forbidden if m in source
+            ]
             print(
-                f"  FAILED   {patch['name']}: anchor text not found — upstream changed, "
-                f"re-derive this patch against {path}"
+                f"  FAILED   {patch['name']}: PARTIALLY applied — "
+                f"{len(present)}/{len(markers)} edits present. Missing: "
+                + "; ".join(missing)
+                + f". Re-derive this patch against {path}, then re-clone the engine."
+            )
+            failed += 1
+            continue
+
+        absent_anchors = [a for a in patch_anchors(patch) if a not in source]
+        if absent_anchors:
+            print(
+                f"  FAILED   {patch['name']}: "
+                f"{len(absent_anchors)} of {len(patch_anchors(patch))} anchor(s) not found "
+                f"({'; '.join(describe_anchor(a, 52) for a in absent_anchors)}) — upstream "
+                f"changed, re-derive this patch against {path}"
             )
             failed += 1
             continue
@@ -2309,8 +2528,17 @@ def main(argv: list[str] | None = None) -> int:
             pending += 1
             continue
 
+        # A moved SECONDARY anchor now raises here rather than silently no-opping, so the file is
+        # never written half-patched. That is the apply-time half of the Codex fix; the
+        # partly_applied branch above is the check-time half.
+        try:
+            patched = patch["apply"](source)
+        except PatchAnchorError as exc:
+            print(f"  FAILED   {patch['name']}: {exc}")
+            failed += 1
+            continue
         with open(path, "w", encoding="utf-8") as fh:
-            fh.write(patch["apply"](source))
+            fh.write(patched)
         print(f"  applied  {patch['name']}")
 
     if failed:
