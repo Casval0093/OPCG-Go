@@ -991,8 +991,11 @@ The `tools/` tests are stdlib `unittest`, matching the tools' own stdlib-only co
    a broken policy more precisely. Two measured corrections to the audit still stand: the
    deck-realism multiplier is ~1.79x per game (flat per command, so the cost is state transitions,
    not effect resolution), making Option C optimistic by ~3.4x; and the calibration evidence that
-   would trigger Option A/B is much weaker than it looked — the play/draw gap is 8.5 pts on a real
-   Block 2+ deck, not the 54.5 pts ST01 showed.
+   would trigger Option A/B is much weaker than it looked — the play/draw gap is small on a real Block
+   2+ deck, not the 54.5 pts ST01 showed. **Phase 2 re-measured that second clause and it survives
+   with different numbers: `ace-op16` is −2.50 pts. But the "8.5 pts" this sentence used to quote is
+   retired** — it was measured on the broken first-turn rules, and the same-class `mihawk-green-proxy`
+   comes out at +34.50, so "a real Block 2+ deck" is not one number.
 5. **Both upstream items are sent — nothing outstanding, just waiting on maintainers.**
    - Fix: <https://github.com/TheCardGoat/tcg-engines/pull/216> — 2 files, +56/−3, `MERGEABLE`,
      **ready for review** (opened as a draft per their `CONTRIBUTING.md`, promoted once issue #217

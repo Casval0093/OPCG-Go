@@ -245,9 +245,11 @@ policies mid-run.
 | firstLegal | passOnly | 100.0% | 98.1 – 100 | 0 |
 | **random** | **passOnly** | **89.0%** | 83.9 – 92.6 | **22** |
 
-**Total order, now measured rather than assumed:**
+**Total order, now measured rather than assumed** — *and RETIRED by Phase 2: post-Phase-1 this is a
+PARTIAL order only, `greedy ≈ firstLegal` and `random vs passOnly` unorderable. Do not quote the
+chain below.*
 
-> **passOnly < random < firstLegal < greedy < valueRanked**
+> **passOnly < random < firstLegal < greedy < valueRanked**  ← pre-Phase-1 only
 
 All 10 pairs were played, every pair has a decisive winner, and the win counts come out 4-3-2-1-0
 with **no cycles**. That last part had to be checked rather than assumed: pairwise policy strength
@@ -568,8 +570,10 @@ fix:
 **Every play/draw figure in this file understates first-player advantage as a result**, because the
 second player got one extra attack — the Leader only, since anything played that turn is
 summoning-sick. That applies to the 8.5 pts on a real Block 2+ deck, the 26.7 on a vanilla pile and
-the 54.5 on ST01. **The fix does not retroactively change those numbers**; Phase 2 re-measures them
-and the magnitude stays unmeasured until it does.
+the 54.5 on ST01. **The fix does not retroactively change those numbers, and Phase 2 has now measured
+what it cost them:** +52.50 pts [43.38, 62.01] of play/draw gap on `mihawk-green-proxy` and +26.00
+[16.99, 35.06] on `ace-op16`. "Understates" was the right direction and much too gentle a word — on
+the primary deck the pre-fix gap was −28.50 pts, i.e. the second player was substantially favoured.
 
 The coupling this section predicted — that fixing it "breaks the batch-2 puzzle fixtures" — **did not
 happen, and 39 other tests broke instead.** See "The plan predicted the puzzle fixtures would break"
@@ -1388,11 +1392,13 @@ So the exemption remains necessary for upstream's fixtures and is no longer load
   been run — that is step 3 of the policy-quality plan.
 - The `orderCards` fix uses identity order, which is legal but not a policy. Ordering
   top-of-deck cards deliberately is real strategy and is unimplemented.
-- Policy quality has a **floor** but no **ceiling**. The dominance ladder above orders the five
-  policies and shows `valueRanked` clears `greedy` by ~21 points, so it is not broken and not
-  trivial. Nothing yet speaks to absolute quality — a plausible play/draw split is a sanity check,
-  not a skill test, and neither is beating four weaker heuristics. Steps 2–5 of the plan in CLAUDE.md
-  are what would close this.
+- Policy quality has a **floor** but no **ceiling**, and Phase 2 lowered the floor. The ladder no
+  longer orders the five policies — it is a PARTIAL order (`greedy ≈ firstLegal`, and `random` vs
+  `passOnly` unorderable at 100% double losses) — and `valueRanked` clears `greedy` by **6.5 points**
+  over 600 games, not the ~21 measured before Phase 1. Nothing yet speaks to absolute quality: a
+  plausible play/draw split is a sanity check, not a skill test, and beating two weaker heuristics
+  while tying a third is weaker evidence than beating four. Steps 5–7 of the plan in CLAUDE.md are
+  what would close this.
 - The turns-to-minutes mapping is unmeasured, so the timeout column is a knob, not a prediction.
 - The bot does not value Life, which the elimination-bracket tiebreak rewards.
 - Mulligan policy is whatever the engine's default is; the Comprehensive Rules allow one
