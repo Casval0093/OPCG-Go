@@ -1727,7 +1727,262 @@ BOT_POWER_FIX = """/**
 function getTotalPower(state: MatchState, instanceId: string): number {
   return getCardPower(state, instanceId);
 }"""
+# --- three permanent lookups scan every card in the match, negation-check first ---------------
+#
+# `getCardPower` is the hottest read in the engine. Measured on a vanilla 10-body board, 200k calls
+# per function in ONE process: `getPermanentModifierTotal(state, id, "power")` cost 25.64us/call
+# while `getPermanentSetBasePower` -- added the same day, doing structurally identical work -- cost
+# 1.35us. The whole gap is two things the sibling does and these three did not.
+#
+#   1. LOOP DOMAIN. `Object.values(state.cards)` is every card in the match: both decks, both
+#      hands, both trashes, Life. ~72 on a normal board, of which at most 14 can be in play, and
+#      `sourceIsInPlay` discarded the other ~58 one line later. `inPlaySources` reads the three
+#      area lists directly.
+#   2. GUARD ORDER, and profiling says this is the dominant half, not the loop domain. Narrowing
+#      the loop alone moved the sibling's whole-call overhead 2.04x -> 1.91x; putting the cheap
+#      STRUCTURAL test -- does this source even carry an action of the kind being asked about --
+#      ahead of `sourceEffectsAreNegated` took it to 1.16x. The negation check is expensive: it
+#      scans `state.modifiers` and then re-enters `effectsNegatedByPermanentEffect`, which walks
+#      every permanent effect in play. Paying it per source on a board where nothing prints the
+#      action bought nothing.
+#
+# THIS IS NOT THE SIBLING COPIED. `getPermanentModifierTotal` and `getPermanentSetCost` carry a
+# `sourceIsSelfInHand` exception -- a card in HAND modifying its OWN cost -- and `inPlaySources`
+# cannot express it. That is how every "give this card in your hand -N cost" ability works:
+# OP15-013 Pincers, OP16-005 Thatch, OP07-064 Sanji, PRB02-014 Sabo and OP15-021 through
+# `modifyCost`, OP11-023 Arlong through `setCost`. Losing it raises no error and fails no type
+# check; it just silently switches those abilities off. `permanentSources` is `inPlaySources` plus
+# that one instance.
+#
+# `getPermanentKeywords` gets the same two fixes but NOT the exception, deliberately: it never had
+# one, no card in the 2,537-card catalog grants a keyword to a card in hand, and adding it would be
+# a behaviour change rather than a narrowing. It is also the worst of the three today -- it has no
+# structural prefilter at all, so it evaluates the conditions of every permanent effect in play
+# even when the effect grants no keyword.
+#
+# Result-preserving by construction in all three: every guard on the path to a contribution is
+# conjunctive, so a source the new structural test rejects could not have contributed. And the
+# narrowed source set is provably the same SET -- `sourceIsInPlay`, which every caller still runs,
+# accepts a card only when it is listed in a leader/character/stage slot, and those lists are
+# exactly what `inPlaySources` reads.
 
+PERM_SOURCES_ANCHOR = """function sourceEffectsAreNegatedByModifier(state: MatchState, sourceInstanceId: string): boolean {"""
+
+PERM_SOURCES_FIX = """/**
+ * OPCG-Go patch: the source set the permanent lookups scan.
+ *
+ * `Object.values(state.cards)` is every card in the match -- both decks, both hands, both trashes,
+ * Life, roughly 72 on a normal board -- and all but at most 14 of them are thrown away by
+ * `sourceIsInPlay` a line later. This reads the three area lists instead.
+ *
+ * PLUS the one source those lists cannot express: a card in HAND modifying its OWN cost. That is
+ * how every "give this card in your hand -N cost" ability works -- OP15-013 Pincers, OP16-005
+ * Thatch, OP07-064 Sanji, PRB02-014 Sabo and OP15-021 through `modifyCost`, OP11-023 Arlong (the
+ * catalog's only one) through `setCost`. Dropping it raises no error and fails no type check; it
+ * silently switches those abilities off, which is why this helper exists instead of a bare
+ * `inPlaySources` call at each site.
+ *
+ * Callers keep their own `sourceIsInPlay(...) || sourceIsSelfInHand` guard, and that is what makes
+ * the narrowing provably result-preserving rather than merely plausible: `sourceIsInPlay` accepts a
+ * card only when it is listed in a leader, character or stage slot, and those lists are exactly
+ * what `inPlaySources` reads.
+ *
+ * The hand instance is appended only when it is not already yielded. A stale area-list entry
+ * pointing at a card whose own `zone` field says `hand` would otherwise be scanned twice, and
+ * `getPermanentModifierTotal` SUMS over its sources.
+ */
+function permanentSources(state: MatchState, targetInstanceId: string): CardInstance[] {
+  const sources = inPlaySources(state);
+  const target = state.cards[targetInstanceId];
+  if (
+    target?.zone === "hand" &&
+    !sources.some((source) => source.instanceId === targetInstanceId)
+  ) {
+    sources.push(target);
+  }
+  return sources;
+}
+
+function sourceEffectsAreNegatedByModifier(state: MatchState, sourceInstanceId: string): boolean {"""
+
+# The bench's A/B re-implements the pre-narrowing body in-process, which needs both predicates.
+# They are pure, argument-only reads of state; exporting them adds no capability.
+PERM_EXPORT_INPLAY_ANCHOR = """function sourceIsInPlay(state: MatchState, sourceInstanceId: string): boolean {"""
+PERM_EXPORT_INPLAY_FIX = """// OPCG-Go patch: exported for bench/throughput.test.ts, which re-implements the pre-narrowing
+// body of getPermanentModifierTotal in-process to measure this patch as a ratio. A pure predicate.
+export function sourceIsInPlay(state: MatchState, sourceInstanceId: string): boolean {"""
+
+PERM_EXPORT_NEGATED_ANCHOR = """function sourceEffectsAreNegated(state: MatchState, sourceInstanceId: string): boolean {"""
+PERM_EXPORT_NEGATED_FIX = """// OPCG-Go patch: exported for the same bench A/B as sourceIsInPlay above. This is the EXPENSIVE
+// guard the patch moves behind the structural test -- it scans state.modifiers and then every
+// permanent effect in play -- so the old body cannot be re-implemented faithfully without it.
+export function sourceEffectsAreNegated(state: MatchState, sourceInstanceId: string): boolean {"""
+
+MODIFIER_TOTAL_ANCHOR = """  try {
+    let total = 0;
+    for (const source of Object.values(state.cards)) {
+      const sourceIsSelfInHand = source.instanceId === targetInstanceId && source.zone === "hand";
+      if (
+        (!sourceIsInPlay(state, source.instanceId) && !sourceIsSelfInHand) ||
+        sourceEffectsAreNegated(state, source.instanceId)
+      ) {
+        continue;
+      }
+
+      const card = getCard(source.cardId);
+      for (const effect of card.effects?.permanentEffects ?? []) {"""
+
+MODIFIER_TOTAL_FIX = """  try {
+    let total = 0;
+    // OPCG-Go patch: the STRUCTURAL test first, then the expensive guards, over a source set
+    // narrowed from every card in the match to the slots that can hold a permanent effect. See
+    // `permanentSources` for why this is not a bare `inPlaySources` -- the self-in-hand exception
+    // below is load-bearing and the area lists cannot express it. Measured 25.64us/call before,
+    // against 1.35us for the getPermanentSetBasePower sibling that already did it this way.
+    //
+    // Result-preserving: every guard on the path to `total +=` is conjunctive, so a source with no
+    // action of this `type` contributed 0 whether or not its effects were negated.
+    for (const source of permanentSources(state, targetInstanceId)) {
+      const effects = getCard(source.cardId).effects?.permanentEffects;
+      if (
+        !effects?.some((effect) =>
+          effect.actions.some((action) => actionIsDynamicModifier(action, type)),
+        )
+      ) {
+        continue;
+      }
+      const sourceIsSelfInHand = source.instanceId === targetInstanceId && source.zone === "hand";
+      if (
+        (!sourceIsInPlay(state, source.instanceId) && !sourceIsSelfInHand) ||
+        sourceEffectsAreNegated(state, source.instanceId)
+      ) {
+        continue;
+      }
+
+      for (const effect of effects) {"""
+
+SETCOST_SOURCES_ANCHOR = """  try {
+    for (const source of Object.values(state.cards)) {
+      const sourceIsSelfInHand = source.instanceId === targetInstanceId && source.zone === "hand";
+      if (
+        (!sourceIsInPlay(state, source.instanceId) && !sourceIsSelfInHand) ||
+        sourceEffectsAreNegated(state, source.instanceId)
+      ) {
+        continue;
+      }
+      const card = getCard(source.cardId);
+      for (const effect of card.effects?.permanentEffects ?? []) {
+        // OPCG-Go patch: skip the effect before evaluating its conditions when it has no `setCost`"""
+
+SETCOST_SOURCES_FIX = """  try {
+    // OPCG-Go patch: the same two fixes as getPermanentModifierTotal -- a source set narrowed to
+    // the in-play slots plus the self-in-hand exception, and the structural test ahead of the
+    // negation check. The per-EFFECT prefilter below (the earlier patch) is still needed: this one
+    // asks whether the SOURCE carries a `setCost` anywhere, that one whether THIS effect does.
+    // OP11-023 Arlong is the catalog's only permanent `setCost` reached through hand, so
+    // `permanentSources` rather than `inPlaySources` is what keeps it working.
+    for (const source of permanentSources(state, targetInstanceId)) {
+      const effects = getCard(source.cardId).effects?.permanentEffects;
+      if (!effects?.some((effect) => effect.actions.some((a) => a.action === "setCost"))) {
+        continue;
+      }
+      const sourceIsSelfInHand = source.instanceId === targetInstanceId && source.zone === "hand";
+      if (
+        (!sourceIsInPlay(state, source.instanceId) && !sourceIsSelfInHand) ||
+        sourceEffectsAreNegated(state, source.instanceId)
+      ) {
+        continue;
+      }
+      for (const effect of effects) {
+        // OPCG-Go patch: skip the effect before evaluating its conditions when it has no `setCost`"""
+
+KEYWORDS_SOURCES_ANCHOR = """    const keywords = new Set<Keyword>();
+    for (const source of Object.values(state.cards)) {
+      if (
+        !sourceIsInPlay(state, source.instanceId) ||
+        sourceEffectsAreNegated(state, source.instanceId)
+      ) {
+        continue;
+      }
+      const card = getCard(source.cardId);
+      for (const effect of card.effects?.permanentEffects ?? []) {"""
+
+KEYWORDS_SOURCES_FIX = """    const keywords = new Set<Keyword>();
+    // OPCG-Go patch: the same two fixes again, and this function was the worst of the three -- it
+    // had NO structural prefilter at all, so it ran `evaluateConditions` for every permanent effect
+    // in play even when that effect grants no keyword.
+    //
+    // `inPlaySources`, NOT `permanentSources`: no self-in-hand exception here, on purpose. This
+    // function never had one, no card in the catalog grants a keyword to a card in hand, and the
+    // `sourceIsInPlay` guard below already excluded that case -- so adding the exception would be a
+    // behaviour change rather than a narrowing, and belongs to whoever finds a card that needs it.
+    for (const source of inPlaySources(state)) {
+      const effects = getCard(source.cardId).effects?.permanentEffects;
+      if (!effects?.some((effect) => effect.actions.some((a) => a.action === "grantKeyword"))) {
+        continue;
+      }
+      if (
+        !sourceIsInPlay(state, source.instanceId) ||
+        sourceEffectsAreNegated(state, source.instanceId)
+      ) {
+        continue;
+      }
+      for (const effect of effects) {"""
+
+# --- OP11-023 Arlong, the catalog's only permanent setCost reached through hand ----------------
+#
+# It had no test. So the `sourceIsSelfInHand` exception in `getPermanentSetCost` -- the thing patch
+# 25 above has to carry over by hand and the thing whose loss is silent -- was guarded by nothing
+# in the 6111-test suite. The `modifyCost` twin of the same exception IS covered, by
+# op07-064-sanji.test.ts and prb02-014-sabo.test.ts; the `setCost` twin was not.
+#
+# Both sides of the threshold, because CLAUDE.md's OP06-054 Borsalino lesson is that a one-sided
+# boundary test is exactly what lets a wrong comparison hide: 5 rested cards discounts, 4 does not.
+
+ARLONG_TEST_SOURCE = '''import { describe, expect, test } from "vite-plus/test";
+import { op03Arlong022, op11Arlong023 } from "@tcg/op-cards";
+
+import { OnePieceTestEngine } from "../../../src/index.ts";
+
+// OPCG-Go patch: OP11-023 is the ONLY card in the catalog whose PERMANENT `setCost` is reached
+// through the hand, and it shipped with no test -- so the `sourceIsSelfInHand` exception in
+// getPermanentSetCost had no coverage at all. It is the kind of exception whose loss is silent:
+// no error, no type failure, the ability simply stops applying.
+//
+// Both sides of the rested-card threshold are asserted. A one-sided boundary test is what let
+// OP06-054 Borsalino's inverted Blocker threshold pass for a year.
+const cost = (engine: OnePieceTestEngine, instanceId: string) =>
+  engine.getView("south").players.south.hand.find((card) => card.instanceId === instanceId)?.cost;
+
+describe("OP11-023 Arlong", () => {
+  test("costs 3 in hand with a Fish-Man Leader, 3 Life and 5 rested opposing cards", () => {
+    const engine = OnePieceTestEngine.create(
+      { leaderCardId: op03Arlong022.id, hand: [op11Arlong023], life: 3 },
+      { restedDon: 5 },
+    );
+    const arlongId = engine.findCardInZone("south", "hand", op11Arlong023);
+
+    expect(cost(engine, arlongId)).toBe(3);
+  });
+
+  test("costs its printed 7 with only 4 rested opposing cards", () => {
+    const engine = OnePieceTestEngine.create(
+      { leaderCardId: op03Arlong022.id, hand: [op11Arlong023], life: 3 },
+      { restedDon: 4 },
+    );
+    const arlongId = engine.findCardInZone("south", "hand", op11Arlong023);
+
+    expect(cost(engine, arlongId)).toBe(7);
+  });
+
+  test("costs its printed 7 with a Leader that is not a Fish-Man", () => {
+    const engine = OnePieceTestEngine.create({ hand: [op11Arlong023], life: 3 }, { restedDon: 5 });
+    const arlongId = engine.findCardInZone("south", "hand", op11Arlong023);
+
+    expect(cost(engine, arlongId)).toBe(7);
+  });
+});
+'''
 
 PATCHES = [
     {
@@ -1943,6 +2198,35 @@ PATCHES = [
         .replace(
             PERM_SETBASEPOWERFROM_BRANCH_ANCHOR + "\n", PERM_SETBASEPOWERFROM_BRANCH_FIX, 1
         ),
+    },
+    {
+        "name": "permanent: sourceIsInPlay/sourceEffectsAreNegated, exported for the bench A/B",
+        "relpath": "src/effects/permanent.ts",
+        "anchor": PERM_EXPORT_INPLAY_ANCHOR,
+        "already": "OPCG-Go patch: exported for bench/throughput.test.ts",
+        # Two edits, one patch: the bench's re-implemented old body needs BOTH predicates, and
+        # exporting one without the other leaves it un-importable.
+        "apply": lambda s: s.replace(PERM_EXPORT_INPLAY_ANCHOR, PERM_EXPORT_INPLAY_FIX, 1).replace(
+            PERM_EXPORT_NEGATED_ANCHOR, PERM_EXPORT_NEGATED_FIX, 1
+        ),
+    },
+    {
+        "name": "permanent: narrow the source set and put the structural test first",
+        "relpath": "src/effects/permanent.ts",
+        "anchor": PERM_SOURCES_ANCHOR,
+        "already": "OPCG-Go patch: the source set the permanent lookups scan",
+        # Four edits, one patch, and they cannot be split: `permanentSources` is dead code without
+        # its three callers, and each caller is un-typecheckable without the helper.
+        "apply": lambda s: s.replace(PERM_SOURCES_ANCHOR, PERM_SOURCES_FIX, 1)
+        .replace(MODIFIER_TOTAL_ANCHOR, MODIFIER_TOTAL_FIX, 1)
+        .replace(SETCOST_SOURCES_ANCHOR, SETCOST_SOURCES_FIX, 1)
+        .replace(KEYWORDS_SOURCES_ANCHOR, KEYWORDS_SOURCES_FIX, 1),
+    },
+    {
+        "name": "tests: OP11-023 Arlong, the only permanent setCost reached through hand",
+        "relpath": "tests/cards/characters/op11-023-arlong.test.ts",
+        "create": ARLONG_TEST_SOURCE,
+        "already": "OPCG-Go patch: OP11-023 is the ONLY card in the catalog",
     },
 ]
 

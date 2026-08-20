@@ -372,20 +372,63 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   equally consistent with the policy being unable to notice, and that suite cannot tell the two
   apart. `docs/simulation.md` now says so. Closing move: one puzzle whose correct attacker is only
   correct under a live `setBasePower`.
-- **`getPermanentModifierTotal` is 25µs per call and it is on `getCardPower`'s path — a ~10x
-  speedup looks available and has NOT been taken. Measured 2026-08-20, not estimated.** On a vanilla
-  10-body board it costs **25.64µs** while its new sibling `getPermanentSetBasePower` costs
-  **1.35µs** doing structurally the same work, and the whole difference is two things the sibling
-  does and it does not: iterate `inPlaySources` (≤14 slots) instead of `Object.values(state.cards)`
-  (~72 cards, i.e. both decks, hands, trashes and Life), and run the cheap structural "does this
-  card even carry a relevant action" test BEFORE the expensive `sourceEffectsAreNegated` check.
-  `getCardPower` is the hottest read in the engine, so this is a throughput lever that costs nothing
-  in fidelity — and it is a bigger one than any of `docs/engine-audit.md`'s options A–D.
-  **The port is NOT a copy-paste**: `getPermanentModifierTotal` has a `sourceIsSelfInHand` exception
-  (a card in hand modifying its own cost) that `inPlaySources` does not cover, so the source set has
-  to be `inPlaySources` PLUS that one card, and getting it wrong silently switches off every
-  "give this card in your hand -N cost" in the game. It wants its own branch, a before/after suite
-  run, and the overhead guard in `bench/throughput.test.ts` pointed at it.
+- **The `getPermanentModifierTotal` speedup HAS NOW BEEN TAKEN — 2026-08-20, the
+  `permanent: narrow the source set and put the structural test first` patch and its two
+  companions. Do not
+  re-derive it, and do not re-open the "is it available" question.** `getCardPower` is the hottest
+  read in the engine and this was the most expensive thing it called. Two fixes, both ported from
+  the `getPermanentSetBasePower` sibling that already did it right: iterate `inPlaySources` (≤14
+  slots) instead of `Object.values(state.cards)` (~72 cards — both decks, hands, trashes, Life), and
+  run the cheap structural "does this source even carry a relevant action" test BEFORE the expensive
+  `sourceEffectsAreNegated` check. Applied to **all three** of `getPermanentModifierTotal`,
+  `getPermanentSetCost` and `getPermanentKeywords` — the last of which was worst, having no
+  structural prefilter at all.
+  **Measured in-process on one host, 200k calls, old body re-implemented locally in
+  `bench/throughput.test.ts` (absolute ms is host-dependent; only these ratios are quotable):
+  `getPermanentModifierTotal` **6.70x faster**, **22.7µs → 3.2µs** per call, and **1.02x with the
+  patch reverted** — which is the correct red value, since the two bodies are then identical.
+  (A second run read 6.75x but was taken on a tree where the SIBLING's guards were swapped for the
+  slow-shape measurement below, so it is not an independent clean repeat. Quote 6.70x.) Whole-`getCardPower` effect on the same host: vanilla 10-body board **6983ms →
+  611ms per 200k calls (11.4x)**, the 4x-Fuza loaded board **4871ms → 999ms (4.9x)**.
+  **The port was NOT a copy-paste and the reason is now covered by a test.** The sibling has no
+  `sourceIsSelfInHand` exception; `getPermanentModifierTotal` and `getPermanentSetCost` do — a card
+  in HAND modifying its own cost, which is how every "give this card in your hand -N cost" ability
+  works. The source set is therefore `permanentSources` = `inPlaySources` PLUS that one instance,
+  deduped (a stale area-list entry pointing at a hand card would otherwise be summed twice).
+  Mutating the exception out fails **3 tests in 3 files**: `op07-064-sanji`, `prb02-014-sabo`
+  (`modifyCost`) and the new `op11-023-arlong` (`setCost`). **`OP11-023` Arlong is the catalog's ONLY
+  permanent `setCost` reached through hand and it shipped with no test at all**, so that half of the
+  exception was guarded by nothing in 6111 tests until the
+  `tests: OP11-023 Arlong, the only permanent setCost reached through hand` patch added one — both sides of its
+  threshold, per the OP06-054 Borsalino lesson. `getPermanentKeywords` deliberately does NOT get the
+  exception: it never had one, no card grants a keyword to a card in hand, and adding it would be a
+  behaviour change rather than a narrowing.
+  **Two existing bench limits had to be RE-BASED, and the reason is a trap worth remembering: those
+  ratios share their denominator with the term this patch shrank.** `BASE_POWER_OVERHEAD_LIMIT`
+  1.6 → **4.0**, `LOADED_BASE_POWER_LIMIT` 2.0 → **5.0**. Nothing got slower — `getCardPower` got
+  11.4x faster in absolute terms — but with the shared `getPermanentModifierTotal` term down from
+  ~22µs to ~3µs, the same absolute setBasePower cost now reads as a larger multiple. **This made
+  both guards STRONGER, not weaker**: the vanilla probe's fast-vs-slow window went from 1.04x-vs-1.80x
+  (1.7x wide) to **1.93x-vs-15.74x (8.2x wide)**, re-measured by swapping the sibling's guards back.
+  **Attribution: the pre-narrowing RIGHT-order figures (1.04x vanilla, 1.20x loaded) were measured
+  here; the pre-narrowing WRONG-order figures (1.80x, 1.44x) are quoted from the bench's existing
+  comments and were NOT re-measured.** Only the post-narrowing pair is this session's measurement.
+  And **the loaded probe's standing claim that it "DOES NOT CATCH THE GUARD-ORDER REGRESSION" is now
+  false** — post-narrowing it reads 3.58x right / 6.84x wrong, where before it read 1.20x / 1.44x
+  and a 2.0x limit passed both. The comment is corrected in the file.
+  **Verification, all on the merged Phase 1 + Phase 2 + `setBasePower` tree:** suite **6111 → 6114
+  pass**, 3666 → 3667 files, reconciling exactly against the 3 tests the Arlong patch adds — 0 fail after the
+  change, though the 6111 baseline run flaked once on `src/automation/bot-harness.test.ts`'s batch
+  test (a timeout under full-suite parallelism on a cold tree; passes in isolation at ~20s and
+  passed in the final run — pre-existing and unrelated);
+  `patch_engine.py --check` exit 0 with every patch applied; `correct_cards.py --check` 48/48;
+  `tools/` unittests 76 OK; and `./scripts/simulate.sh --puzzles` reproduces **valueRanked 8/11,
+  greedy 10/11, firstLegal 5/11, random 0/11, passOnly 0/11** — play is unchanged end to end.
+  **The 1.35µs the sibling reports is NOT this function's target and never was**: the sibling's probe
+  board short-circuits structurally on every source, while this one deliberately keeps one live
+  modifier (`OP09-004` Shanks, the catalog's only unconditional permanent `modifyPower` reaching the
+  opponent's Characters) so the old-vs-new equality check has a non-zero value to agree on. Same
+  shape of work, different amounts of it.
 - **Engine throughput: ~2–4 games/s single-core, host-dependent.** The 2.80 figure was measured on
   another machine and is not comparable across hosts; only within-run ratios are. Full-strength
   ISMCTS remains ~2 orders of magnitude out of reach. **But throughput has not been the binding
