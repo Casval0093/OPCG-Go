@@ -24,16 +24,18 @@ pairs where either side never finished are SKIPPED rather than scored as losses.
 needs a paired BOOTSTRAP instead, because a gap is a difference of two proportions computed on
 disjoint halves of the same run.
 """
-import json, math, os, sys, random
+import hashlib, json, math, os, sys, random
 
-random.seed(20260820)  # fixed: a bootstrap CI that moves between reads is not a measurement
+# NO module-global RNG: each contrast gets its own, seeded from its own identity -- see rng_for().
+BOOTSTRAP_BASE_SEED = 20260820
 
-# Defaults to the committed Phase 2 rows sitting beside this script; pass another directory to
-# re-analyse a later run.
+# The per-game rows are not in git (see the docstring); pass the directory a run wrote them to.
 DATA_DIR = sys.argv[1] if len(sys.argv) > 1 else os.path.dirname(os.path.abspath(__file__))
 
 
 def load(path):
+    """Return (metadata, rows). The metadata is KEPT, not discarded: it is what makes the pairing
+    below checkable rather than merely asserted -- see require_pairable."""
     with open(path) as fh:
         d = json.load(fh)
     for key in ("baseline", "games", "results", "rows"):
@@ -43,6 +45,56 @@ def load(path):
         if isinstance(v, list) and v and isinstance(v[0], dict) and "outcome" in v[0]:
             return d, v
     raise SystemExit(f"{path}: no per-game array found; keys = {list(d)}")
+
+
+# Run parameters that MUST match for two arms to be paired. `seed0` and `games` fix the game
+# sequence; the decks, strategies and turn budget fix what each game IS. An arm differing in any of
+# them is a different experiment, and pairing it by array index is meaningless.
+PAIR_KEYS = ("seed0", "games", "deckA", "deckB", "strategyA", "strategyB", "turnBudget")
+
+
+def require_pairable(x_name, x_meta, x_rows, y_name, y_meta, y_rows):
+    """Refuse to compute a paired statistic across arms that are not actually paired.
+
+    Without this, the paired functions index-zip whatever they are given and truncate to the shorter
+    arm, so a stale or differently-configured file yields a confident "same-seed paired CI" that is
+    nothing of the kind. Flagged by Codex on PR #25; it is the failure mode this repo keeps finding
+    elsewhere -- a guarantee stated in a docstring and never checked.
+
+    LIMITATION, stated because the check cannot cover it: the payload does not record which ENGINE
+    produced it, so nothing here can verify that two arms differ only in the rule they were meant to
+    differ in. The arm-to-rules mapping in LABEL is the operator's claim, not a measurement.
+    """
+    problems = []
+    for key in PAIR_KEYS:
+        if x_meta.get(key) != y_meta.get(key):
+            problems.append(f"{key}: {x_name}={x_meta.get(key)!r} vs {y_name}={y_meta.get(key)!r}")
+    if len(x_rows) != len(y_rows):
+        problems.append(f"row counts differ: {x_name}={len(x_rows)} vs {y_name}={len(y_rows)} "
+                        "— index pairing would silently truncate to the shorter arm")
+    for i in range(min(len(x_rows), len(y_rows))):
+        if x_rows[i].get("seed") != y_rows[i].get("seed"):
+            problems.append(f"row {i} seed: {x_name}={x_rows[i].get('seed')} vs "
+                            f"{y_name}={y_rows[i].get('seed')} — the arms are not seed-aligned")
+            break
+        if x_rows[i].get("aOnPlay") != y_rows[i].get("aOnPlay"):
+            problems.append(f"row {i} aOnPlay: {x_name}={x_rows[i].get('aOnPlay')} vs "
+                            f"{y_name}={y_rows[i].get('aOnPlay')} — seat order diverges")
+            break
+    if problems:
+        raise SystemExit(f"REFUSING to pair {x_name} with {y_name}:\n  " + "\n  ".join(problems))
+
+
+def rng_for(x_name, y_name):
+    """A bootstrap RNG belonging to THIS contrast.
+
+    Consuming one module-global RNG made a contrast's CI depend on which OTHER arm files happened to
+    be present, because earlier contrasts drew from it first. Measured, not hypothesised: the ace
+    contrast came out [+17.03, +34.97] with only the ace arms loaded and [+16.99, +35.06] with all
+    six, from identical data. Flagged by Codex on PR #25.
+    """
+    digest = hashlib.sha256(f"{x_name}|{y_name}|{BOOTSTRAP_BASE_SEED}".encode()).digest()
+    return random.Random(int.from_bytes(digest[:8], "big"))
 
 
 def wilson(k, n):
@@ -105,8 +157,11 @@ def paired_winrate(a, b):
             "n": m, "discordant": sum(1 for d in diffs if d != 0), "skipped": skipped}
 
 
-def paired_gap(a, b, iters=20000):
-    """Paired bootstrap over game INDICES for the difference of play/draw gaps."""
+def paired_gap(a, b, rng, iters=20000):
+    """Paired bootstrap over game INDICES for the difference of play/draw gaps.
+
+    `rng` is the contrast's OWN generator, so this interval does not depend on how many other
+    contrasts were computed before it."""
     n = min(len(a), len(b))
     idx = [i for i in range(n)
            if a[i]["outcome"] != "unfinished" and b[i]["outcome"] != "unfinished"]
@@ -115,7 +170,7 @@ def paired_gap(a, b, iters=20000):
     point = gap_of([a[i] for i in idx]) - gap_of([b[i] for i in idx])
     draws = []
     for _ in range(iters):
-        s = [random.choice(idx) for _ in idx]
+        s = [rng.choice(idx) for _ in idx]
         draws.append(gap_of([a[i] for i in s]) - gap_of([b[i] for i in s]))
     draws.sort()
     return {"point": point, "lo": draws[int(0.025 * iters)], "hi": draws[int(0.975 * iters)],
@@ -126,11 +181,11 @@ FILES = [("A", "armA-mihawk.json"), ("B", "armB-mihawk.json"),
          ("C", "armC-mihawk.json"), ("D", "armD-mihawk.json"),
          ("A-ace", "armA-ace.json"), ("B-ace", "armB-ace.json")]
 
-ARMS = {}
+ARMS, META = {}, {}
 for name, fn in FILES:
     p = os.path.join(DATA_DIR, fn)
     if os.path.exists(p):
-        ARMS[name] = load(p)[1]
+        META[name], ARMS[name] = load(p)
 
 LABEL = {
     "A": "ban ON,  counters ON   (current engine)",
@@ -171,8 +226,9 @@ for x, y, what in [("A", "B", "the first-turn attack ban"),
                    ("A-ace", "B-ace", "the attack ban ON THE PRIMARY DECK")]:
     if x not in ARMS or y not in ARMS:
         continue
+    require_pairable(x, META[x], ARMS[x], y, META[y], ARMS[y])
     w = paired_winrate(ARMS[x], ARMS[y])
-    g = paired_gap(ARMS[x], ARMS[y])
+    g = paired_gap(ARMS[x], ARMS[y], rng_for(x, y))
     print(f"{x} - {y}   ({what})")
     if w:
         print(f"   overall win rate  {w['mean']:+.2f} pts  95% CI [{w['lo']:+.2f}, {w['hi']:+.2f}]"

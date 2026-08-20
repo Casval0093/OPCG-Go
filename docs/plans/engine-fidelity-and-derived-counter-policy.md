@@ -220,8 +220,8 @@ Re-measure the play/draw gap. This is where the magnitude of the second-player i
 gets answered. Direction is known (every prior figure **understates** first-player advantage);
 magnitude is not, and must not be guessed before this run.
 
-**DONE 2026-08-20. The magnitude is +52.50 pts [43.38, 62.01]** on `mihawk-green-proxy` and **+26.00
-pts [17.03, 34.97]** on `ace-op16` — four paired arms, 400 games each on identical seeds, one rule
+**DONE 2026-08-20. The magnitude is +52.50 pts [43.31, 62.04]** on `mihawk-green-proxy` and **+26.00
+pts [17.16, 35.02]** on `ace-op16` — four paired arms, 400 games each on identical seeds, one rule
 changed at a time. **The direction recorded in this plan was right and its framing was far too
 gentle:** the bug was not shading the gap, it was cancelling it and pushing it negative. On the
 primary deck the pre-fix gap was **−28.50 pts** — the second player substantially favoured — against

@@ -200,8 +200,8 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
 - **Real Block 2+ decks now simulate end to end**, 400/400 `rules-win`, median 9 turns.
 - **Play/draw: RE-MEASURED 2026-08-20 in Phase 2, and the old figures were a RULES BUG cancelling
   first-player advantage, not a measurement of it.** The second player's illegal first-turn attack was
-  worth **+52.50 pts [43.38, 62.01]** of play/draw gap on `mihawk-green-proxy` and **+26.00 pts
-  [17.03, 34.97]** on `ace-op16` — paired arms, 400 games each on identical seeds, everything else
+  worth **+52.50 pts [43.31, 62.04]** of play/draw gap on `mihawk-green-proxy` and **+26.00 pts
+  [17.16, 35.02]** on `ace-op16` — paired arms, 400 games each on identical seeds, everything else
   held fixed. Pre-fix the gap on the primary deck was **−28.50 pts**, i.e. the player going SECOND was
   substantially favoured; post-fix it is **−2.50 pts**. So the recorded direction ("prior figures
   understate first-player advantage") was right and the recorded magnitude was far too gentle.
@@ -211,7 +211,7 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   encoding and it behaves like the degenerate end of the interaction scale — the ST01 lesson one rung
   up. **Quote `ace-op16`'s −2.50 as the current play/draw figure**; keep the proxy for the ladder,
   where both seats play it and the deck cancels.
-  **The counter policy is worth −38.50 pts [−49.51, −27.37] of gap on its own**, which is the single
+  **The counter policy is worth −38.50 pts [−49.71, −27.32] of gap on its own**, which is the single
   largest thing standing between this simulator and a pure race up the Leader — and the reason
   blocking, still unimplemented by decision, is now the largest measured defensive gap.
 - **Do not calibrate on ST01.** The play/draw gap was **54.5 pts** on ST01, **26.7** on a vanilla

@@ -571,8 +571,8 @@ fix:
 second player got one extra attack — the Leader only, since anything played that turn is
 summoning-sick. That applies to the 8.5 pts on a real Block 2+ deck, the 26.7 on a vanilla pile and
 the 54.5 on ST01. **The fix does not retroactively change those numbers, and Phase 2 has now measured
-what it cost them:** +52.50 pts [43.38, 62.01] of play/draw gap on `mihawk-green-proxy` and +26.00
-[16.99, 35.06] on `ace-op16`. "Understates" was the right direction and much too gentle a word — on
+what it cost them:** +52.50 pts [43.31, 62.04] of play/draw gap on `mihawk-green-proxy` and +26.00
+[17.16, 35.02] on `ace-op16`. "Understates" was the right direction and much too gentle a word — on
 the primary deck the pre-fix gap was −28.50 pts, i.e. the second player was substantially favoured.
 
 The coupling this section predicted — that fixing it "breaks the batch-2 puzzle fixtures" — **did not
@@ -1280,19 +1280,28 @@ python3 tools/analyse_playdraw.py /tmp/pd
 ```
 
 **Paired differences** (same seeds, same seat order; win-rate CI by the harness's own `pairedDiff`
-estimator, gap CI by a 20,000-draw paired bootstrap over game indices):
+estimator, gap CI by a 20,000-draw paired bootstrap over game indices).
+
+`tools/analyse_playdraw.py` **checks the pairing instead of assuming it** — it refuses to compute a
+paired statistic unless the two arms agree on `seed0`, `games`, both decks, both strategies and the
+turn budget, AND agree on `seed` and `aOnPlay` at every row index. Index-zipping two arms that are
+not seed-aligned yields a confident interval that means nothing, and truncating to the shorter arm
+hides it; both were possible until Codex flagged it on PR #25. Each contrast also seeds its OWN
+bootstrap RNG, so an interval does not depend on which other arms happen to be in the directory —
+before that fix the ace interval moved from [+17.03, +34.97] to [+16.99, +35.06] on identical data
+purely by loading four more files first:
 
 | contrast | what it isolates | play/draw GAP difference | overall win rate |
 |---|---|---|---|
-| A − B | **the first-turn attack ban** | **+52.50 pts [+43.38, +62.01]** | −3.25 [−8.59, +2.09] n.s. |
-| C − D | the attack ban, counters OFF | **+76.50 pts [+66.37, +86.73]** | +2.25 [−4.12, +8.62] n.s. |
-| A − C | the counter policy | −38.50 pts [−49.51, −27.37] | +3.75 [−2.15, +9.65] n.s. |
-| B − D | the counter policy, ban OFF | −14.50 pts [−26.71, −2.20] | +9.25 [+3.05, +15.45] |
-| D − A | all of Phase 1 together | −38.00 pts [−51.11, −24.77] | −6.00 [−12.88, +0.88] n.s. |
+| A − B | **the first-turn attack ban** | **+52.50 pts [+43.31, +62.04]** | −3.25 [−8.59, +2.09] n.s. |
+| C − D | the attack ban, counters OFF | **+76.50 pts [+65.96, +86.59]** | +2.25 [−4.12, +8.62] n.s. |
+| A − C | the counter policy | −38.50 pts [−49.71, −27.32] | +3.75 [−2.15, +9.65] n.s. |
+| B − D | the counter policy, ban OFF | −14.50 pts [−26.77, −2.03] | +9.25 [+3.05, +15.45] |
+| D − A | all of Phase 1 together | −38.00 pts [−51.24, −24.84] | −6.00 [−12.88, +0.88] n.s. |
 
 **THE ANSWER TO THE QUESTION THIS TASK EXISTS TO ANSWER.** The second player's illegal first-turn
-attack was worth **+52.50 pts [43.38, 62.01]** of play/draw gap under current rules, and **+76.50 pts
-[66.37, 86.73]** with counters off. The recorded direction was right — every prior figure understated
+attack was worth **+52.50 pts [43.31, 62.04]** of play/draw gap under current rules, and **+76.50 pts
+[65.96, 86.59]** with counters off. The recorded direction was right — every prior figure understated
 first-player advantage — but the recorded framing was far too gentle. **The bug was not shading the
 gap; it was cancelling it and pushing it negative.** On the pre-Phase-1 engine the gap is −3.50 pts,
 i.e. the player going SECOND was very slightly favoured, which is what an extra Leader attack buys in
