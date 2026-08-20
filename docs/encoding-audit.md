@@ -103,7 +103,8 @@ and 6 does not, because a one-sided threshold test is what let the defect hide i
 other direction.** `tests/cards/characters/eb03-008-hibari.test.ts` used `OP11-012` Franky as its
 SWORD-trait body across two tests. `OP11-012` is a **Straw Hat Crew** card; the engine had stored
 `["Navy SWORD"]`. The card data and the test shared one wrong trait, so both tests passed while
-asserting something the card cannot do. Correcting the trait turned them red; patch 7 substitutes
+asserting something the card cannot do. Correcting the trait turned them red; the `tests: EB03-008 Hibari used a non-SWORD card as its SWORD body`
+patch substitutes
 `OP11-092` Helmeppo, which is genuinely Navy/SWORD (checked on Limitless) and at 7000 power still
 beats the 3000-power Doma both tests attack. **The lesson generalises past card text: a fixture that
 picks the wrong card is as invisible to a green suite as an encoding that reads the wrong text.**

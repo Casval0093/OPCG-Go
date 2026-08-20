@@ -10,7 +10,7 @@ Ping's decision 2026-08-19: **key cards are to be DERIVED from batch simulation,
 Phases 0–2 exist because a derivation is only as good as the simulator it runs on, and three things
 currently make it either unaffordable or wrong:
 
-1. ~~**Unaffordable.**~~ **RESOLVED 2026-08-19 by patch 8 — see Task 0.1.** `ace-op16` measured
+1. ~~**Unaffordable.**~~ **RESOLVED 2026-08-19 by the `permanent: getPermanentSetCost evaluates conditions it then discards` patch — see Task 0.1.** `ace-op16` measured
    84.6 s/game before and **1.465 s/game** after; per command, 814.60 ms → 14.12 ms, which is
    98.9× → 2.56× the Mihawk proxy. The 6,000-game sweep is **2.4 h single-core** (~0.3 h across 8
    APFS clones), against 5.9 days before. **The "~1 hour after the fix" estimate here was optimistic
@@ -75,7 +75,7 @@ All measured this session; full detail in `CLAUDE.md` and `docs/simulation.md`.
 ## Phase 0 — make the primary deck affordable to simulate
 
 ### Task 0.1 — fix `OP16-017`'s exponential ~~power~~ COST evaluation
-Patch 8 (see the amendment to constraint 2). **DONE 2026-08-19.**
+the `permanent: getPermanentSetCost evaluates conditions it then discards` patch (see the amendment to constraint 2). **DONE 2026-08-19.**
 
 **The plan's stated mechanism was WRONG, and the profiling instruction is what caught it.** This
 section assumed power recursion, from the card's `modifyPower … self: true`. Instrumented call

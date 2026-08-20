@@ -33,7 +33,7 @@ import sys
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ENGINE = os.path.join(REPO_ROOT, "vendor/tcg-engines/submodules/one-piece/packages/engine")
 
-# --- Patch 1: the bot cannot resolve `orderCards` prompts -----------------------------------
+# --- the bot cannot resolve `orderCards` prompts ----------------------------------------------
 #
 # `resolveBotPromptCommand` branches on four of the six ChoiceKinds and lets `orderCards` fall
 # through to `optionId = prompt.options[0]?.id`. An orderCards prompt wants a full permutation in
@@ -63,7 +63,7 @@ ORDERCARDS_FIX = """  // OPCG-Go patch: `orderCards` needs a full ordering in se
 
   if (prompt.choiceKind === "confirm") {"""
 
-# --- Patch 2: search-to-hand is gated on open CHARACTER slots ------------------------------
+# --- search-to-hand is gated on open CHARACTER slots ------------------------------------------
 #
 # `effectSearchSelection` in effects/resolution.ts rejects a selection when
 #   selectedIds.filter(cardType === "character").length > openCharacterSlots
@@ -103,7 +103,7 @@ SEARCH_SLOTS_FIX = """        selectedIds.some((instanceId) => !playableEligible
             (instanceId) => getCardForInstance(state, instanceId).cardType === "character",
           ).length > openCharacterSlots) ||"""
 
-# --- Patch 3: src/cards per-card tests are never executed -----------------------------------
+# --- src/cards per-card tests are never executed ----------------------------------------------
 #
 # `packages/engine/vite.config.ts` sets `test.include` to `tests/cards/**` plus four named files.
 # It does NOT cover `src/cards/**`, where 2065 `*.test.ts` files live -- 1972 of them with no
@@ -130,7 +130,7 @@ SRC_CARDS_TESTS_FIX = """      "src/automation/bot-harness.test.ts",
       "src/cards/**/*.test.ts","""
 
 
-# --- Patch 4: the first player takes 2 DON!! on their first turn, and should take 1 -----------
+# --- the first player takes 2 DON!! on their first turn, and should take 1 --------------------
 #
 # `finalizeBeginTurnRefresh` places `Math.min(2, player.donDeckCount)` every DON!! Phase with no
 # first-turn exception, so the player going first opens on 2 active DON!! instead of 1.
@@ -169,7 +169,7 @@ FIRST_TURN_DON_FIX = """  const player = getPlayer(state, seat);
   const placedDon = Math.min(isFirstPlayersFirstTurn ? 1 : 2, player.donDeckCount);"""
 
 
-# --- Patch 5: two upstream tests assert the pre-fix DON!! behaviour --------------------------
+# --- two upstream tests assert the pre-fix DON!! behaviour ------------------------------------
 #
 # Patch 4 makes the first player place 1 DON!! on their first turn. Two tests in
 # `tests/index.test.ts` were written against the old flat 2 and fail after it. Both are correcting
@@ -208,7 +208,7 @@ STAGE_TURN_FIX = """  test("plays a stage, activates it, and projects the modifi
     ]);"""
 
 
-# --- Patch 6: two upstream tests assert the card data that data/card-corrections.json fixes -------
+# --- two upstream tests assert the card data that data/card-corrections.json fixes ------------
 #
 # Both are the failure mode docs/encoding-audit.md is built around: a per-card test asserts that the
 # encoding matches *the text the encoder read*, so when that text was wrong the test is wrong in the
@@ -279,7 +279,7 @@ HIBARI_FIX = """// OPCG-Go patch: this test used OP11-012 Franky as its SWORD bo
 import { eb01Doma005, eb03Hibari008, op11Helmeppo092 } from "@tcg/op-cards";"""
 
 
-# --- Patch 8: getPermanentSetCost evaluates conditions it is about to throw away ---------------
+# --- getPermanentSetCost evaluates conditions it is about to throw away -----------------------
 #
 # `OP16-017` LittleOars Jr. made `sim/decks/ace-op16.json` ~200x slower than every other deck, and
 # the cost was EXPONENTIAL in the number of copies in play. Measured on this host, 1 game at
@@ -381,7 +381,7 @@ SETCOST_PREFILTER_FIX = """      const card = getCard(source.cardId);
           }"""
 
 
-# --- Patch 10: the SECOND player may attack on their own first turn ---------------------------
+# --- the SECOND player may attack on their own first turn -------------------------------------
 #
 # The Official Rule Manual's Battle Flow footnote is "Neither player can attack on their first
 # turn." `canAttackWith` gated only the FIRST player. Turn numbering here is per PLAYER-turn --
@@ -439,7 +439,7 @@ FIRST_TURN_ATTACK_FIX = """  // OPCG-Go patch: NEITHER player may attack on thei
   }"""
 
 
-# --- Patch 11: the bot never counters ----------------------------------------------------------
+# --- the bot never counters -------------------------------------------------------------------
 #
 # `resolveBotPromptCommand`'s selectCards branch takes `Math.min(maxSelections, minSelections)`,
 # and `beginBattleCounterStep` builds its prompt with `minSelections: 0`, so the selection was
@@ -955,7 +955,7 @@ export function decideCounter(
 """
 
 
-# --- Patch 13: fixtures materialise a mid-game position but their turn counter says turn 1 -------
+# --- fixtures materialise a mid-game position but their turn counter says turn 1 --------------
 #
 # Companion to the first-turn attack ban above, and the reason the ban is affordable at all.
 #
@@ -1020,7 +1020,7 @@ FIRST_TURN_ATTACK_FIXTURE_FIX = """    skipFirstTurnDraw: true,
     allowFirstTurnAttacks: true,
     maxCharacterSlots: options.maxCharacterSlots,"""
 
-# --- Patches 15-23: setBasePower, a literal base-power setter -------------------------------
+# --- setBasePower, a literal base-power setter ------------------------------------------------
 #
 # The DSL had no verb for "base power becomes <literal>", and three near-misses that each fail in
 # a different way:
@@ -1039,9 +1039,33 @@ FIRST_TURN_ATTACK_FIXTURE_FIX = """    skipFirstTurnDraw: true,
 # critical path: OP17-005's [On Play] takes a monocolored Leader's base power to 8000, which is the
 # whole OP17 Ace thesis.
 #
-# NOTE ON NUMBERING. "Patch N" in this project means the Nth entry of PATCHES below, and the list
-# has been inserted into before: CLAUDE.md calls the getPermanentSetCost prefilter "patch 8" from
-# when it was 8th, and it is now 9th. Prefer the patch NAME when writing anything durable.
+# NOTE ON NUMBERING — DO NOT WRITE "patch N" ANYWHERE DURABLE. "Patch N" means the Nth entry of
+# PATCHES below, and this list gets INSERTED INTO, so every number downstream of an insertion goes
+# stale silently. Nothing checks them. It has happened twice: PR #22 inserted the Pappag test fix at
+# position 7, pushing the getPermanentSetCost prefilter down one; then Phase 1 inserted five,
+# pushing the setBasePower block down five. (This states the SHIFT, not the destination, on purpose:
+# an earlier version named the resulting range and a third insertion would have made this very
+# warning one of the stale numbers it warns about.) Between them that staled 26 references
+# across CLAUDE.md, six docs and this file's own bench, and the same string "patch 8" ended up
+# meaning the Pappag fix in two files and the getPermanentSetCost prefilter in four others. All were
+# converted to NAMES on 2026-08-21. Use the "name" field verbatim; it is greppable and cannot rot.
+#
+# THE SECTION HEADERS BELOW NO LONGER CARRY NUMBERS EITHER, and that is the actual fix rather than
+# tidiness: a reader took the number off a header and cited it, so the headers were the source that
+# kept re-seeding stale references. The text after the dashes identifies the patch; the "name" field
+# on the entry is the citable form.
+#
+# One trap for whoever audits this next: grep CASE-INSENSITIVELY. The 2026-08-21 sweep ran
+# `grep -oE "patch(es)? [0-9]+"` and so was blind to every capitalised "Patch N" -- which is exactly
+# how the headers here, plus a plan doc and a prose reference to the getCardPower patch, survived a
+# sweep that reported itself complete. Codex caught two of the four; the fourth was found only by
+# re-running with -i.
+#
+# AND A NUMBER CAN BE WRONG ON THE DAY IT IS WRITTEN, which is a stronger reason to use names than
+# rot is: the bot-policy branch labelled its own new patch 15 when it was in fact 14, having counted
+# this list by eye rather than asking it. If you must know a position, ask:
+#   python3 -c "import sys;sys.path.insert(0,'tools');import patch_engine as p;\
+#               [print(i, x['name']) for i, x in enumerate(p.PATCHES, 1)]"
 #
 # THE DESIGN DECISION, and why a delta modifier is not good enough. A `setBasePower` modifier
 # stores the LITERAL in `value` and `getCardPower` substitutes it for the printed base, rather than
@@ -1427,12 +1451,13 @@ SETBASEPOWER_ACTION_FIX = """    case "setBasePower": {
     case "setBasePowerFrom": {"""
 
 
-# --- Patches 22-23: the older base-power setters must measure from the EFFECTIVE base ---------
+# --- the older base-power setters must measure from the EFFECTIVE base ------------------------
 #
 # REGRESSION INTRODUCED BY the getCardPower patch above, found by review and reproduced before fixing. `copyPower`,
 # `setBasePowerFrom` and `swapBasePower` each emit a `type: "power"` delta of
 # `desired - basePower(card)`. That was self-consistent while getCardPower started from the printed
-# base -- `printed + (desired - printed) == desired`. Patch 14 made getCardPower start from
+# base -- `printed + (desired - printed) == desired`. The `shared: getCardPower substitutes a set
+# base power for the printed one` patch made getCardPower start from
 # getEffectiveBasePower, so a card carrying BOTH a setBasePower literal and one of those deltas
 # reads `literal + (desired - printed)`: two mutually exclusive REPLACEMENTS combined additively.
 #
@@ -1504,7 +1529,7 @@ SETTERS_EFFECTIVE_ADD_FIX = """  getCardPower,
   getEffectiveBasePower,
   getInstance,"""
 
-# --- Patch 24: getPermanentModifierTotal must not ALSO apply setBasePowerFrom ------------------
+# --- getPermanentModifierTotal must not ALSO apply setBasePowerFrom ---------------------------
 #
 # Found by Codex review on PR #26. `setBasePowerFrom` in `permanentEffects` was handled here as a
 # `type: "power"` delta of `sourceBase - printedTargetBase`, which was self-consistent only while
