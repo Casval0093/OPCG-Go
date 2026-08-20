@@ -45,8 +45,9 @@ import patch_engine as pe  # noqa: E402
 PROBE = "neither player may attack on their own first turn"
 COUNTER = "counterPlay (prompt resolver, not scored as policy)"
 SURFACES = "the prompt resolver never blocks, and always activates a [Trigger]"
+ABILITY = "hasEncodedAbility counts every ability-bearing collection, and only those"
 PUZZLES = "puzzles"
-TESTS = [PROBE, COUNTER, SURFACES, PUZZLES, "fixture integrity",
+TESTS = [PROBE, COUNTER, SURFACES, ABILITY, PUZZLES, "fixture integrity",
          "no ladder strategy can choose an attack target",
          "drainPrompts resolves a real multi-prompt cascade (not just the no-op branch)"]
 
@@ -65,6 +66,21 @@ MUTANTS = [
      ('if (!config.enabled) return empty("disabled");', 'if (false) return empty("disabled");'), [COUNTER]),
     ("policy: misname the avgCost env var", "sub",
      ('avgCost: "OPCG_COUNTER_AVG_COST"', 'avgCost: "OPCG_COUNTER_AVG_COST_TYPO"'), [COUNTER]),
+    # The hasEncodedAbility clauses, one mutant each. Codex named `keywords` and `permanentEffects`
+    # on PR #24 and missed `replacementEffects`, so that clause gets its own mutant: a fix that
+    # covered only the two reported collections has to fail here.
+    ("policy: hasEncodedAbility ignores keywords ([Blocker] bodies)", "sub",
+     ("(effects.keywords?.length ?? 0) > 0 ||", "false ||"), [ABILITY]),
+    ("policy: hasEncodedAbility ignores permanentEffects", "sub",
+     ("(effects.permanentEffects?.length ?? 0) > 0 ||", "false ||"), [ABILITY]),
+    ("policy: hasEncodedAbility ignores replacementEffects (the one Codex missed)", "sub",
+     ("(effects.replacementEffects?.length ?? 0) > 0\n", "false\n"), [ABILITY]),
+    ("policy: hasEncodedAbility counts deckBuildingRules as an ability", "sub",
+     ("(effects.replacementEffects?.length ?? 0) > 0\n",
+      "(effects.replacementEffects?.length ?? 0) > 0 ||\n    (effects.deckBuildingRules?.length ?? 0) > 0\n"),
+     [ABILITY]),
+    ("policy: hasEncodedAbility calls an effect-less card ability-bearing", "sub",
+     ("if (!effects) return false;", "if (!effects) return true;"), [ABILITY]),
     ("policy: drop the lethal override only", "sub",
      ("if (config.lethalOverride && life === 0) return spend",
       "if (config.lethalOverride && life === -1) return spend"), []),

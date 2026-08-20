@@ -523,6 +523,7 @@ import {
   getPlayer,
 } from "../shared.ts";
 import type { MatchSeat, MatchState, PromptState } from "../types.ts";
+import type { OPCard } from "@tcg/op-types";
 
 export interface CounterPolicyConfig {
   /** Master switch. `false` reproduces the never-counter behaviour byte for byte. */
@@ -702,6 +703,43 @@ function staticCounterPowerGain(state: MatchState, instanceId: string): number {
   return 0;
 }
 
+/**
+ * Does this card have an encoded ability at all? The "has-effect" observable the Phase 3 feature
+ * model is meant to learn a coefficient on, so getting it wrong does not merely mis-order one
+ * counter -- it teaches the sweep a coefficient for a feature that was measured on the wrong
+ * population.
+ *
+ * IT MUST CONSULT EVERY ABILITY-BEARING COLLECTION, not just the triggered blocks. `CardEffects`
+ * (types/src/effect/effect.ts:57) declares FIVE properties, and an encoding may live entirely in
+ * any one of them:
+ *
+ *   keywords            [Blocker] / [Rush] / [Double Attack] ...  -- an ability
+ *   effects             triggered blocks (On Play, When Attacking) -- an ability
+ *   permanentEffects    continuous, e.g. [DON!! x1] +2000 power    -- an ability
+ *   replacementEffects  "if this would be K.O.'d, instead ..."     -- an ability
+ *   deckBuildingRules   unlimitedCopies / cannotInclude            -- NOT an ability
+ *
+ * `deckBuildingRules` is deliberately EXCLUDED: it constrains deck construction and does nothing
+ * once the card is in hand, so a card carrying only that is worth exactly what a vanilla is worth as
+ * counter fodder. Including it would misclassify in the other direction.
+ *
+ * Reading only `effects.effects`, as this did until 2026-08-20, called 164 of the 1368
+ * counter-bearing characters in the catalog vanilla -- 12.0% -- including every keywords-only
+ * [Blocker] body, which is close to the most valuable card in hand to KEEP. Found by Codex on
+ * PR #24; its own list named two of the four and would have left ~29 `replacementEffects` cards
+ * still wrong.
+ */
+export function hasEncodedAbility(card: OPCard): boolean {
+  const effects = card.effects;
+  if (!effects) return false;
+  return (
+    (effects.keywords?.length ?? 0) > 0 ||
+    (effects.effects?.length ?? 0) > 0 ||
+    (effects.permanentEffects?.length ?? 0) > 0 ||
+    (effects.replacementEffects?.length ?? 0) > 0
+  );
+}
+
 function playValueOf(
   state: MatchState,
   instanceId: string,
@@ -709,10 +747,9 @@ function playValueOf(
   config: CounterPolicyConfig,
 ): number {
   const card = getCardForInstance(state, instanceId);
-  const hasEffect = (card.effects?.effects?.length ?? 0) > 0;
   return (
     baseCost(card) * config.playValueCostWeight +
-    (hasEffect ? config.playValueEffectWeight : 0) +
+    (hasEncodedAbility(card) ? config.playValueEffectWeight : 0) +
     counter * config.playValueCounterWeight
   );
 }

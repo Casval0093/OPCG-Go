@@ -885,6 +885,61 @@ Where an Event's grant IS read (only when that knob is on), the reader takes the
 can only decline a counter that would have sufficed; over-counting would spend a card that does not
 flip the battle, which is the one thing this policy must never do.
 
+### The has-effect observable was reading one of four collections — Codex, PR #24
+
+`playValueOf` computed `hasEffect` as `(card.effects?.effects?.length ?? 0) > 0`, which is only the
+TRIGGERED blocks. `CardEffects` (`types/src/effect/effect.ts:57`) declares five properties, and an
+encoding may live entirely in any one of them:
+
+| collection | runtime consumer | ability? |
+|---|---|---|
+| `keywords` | `getKeywords`, `shared.ts:432` | yes — `[Blocker]`, `[Rush]`, `[Double Attack]` |
+| `effects` | `effectBlocksFor`, `shared.ts:95` | yes — triggered/activated |
+| `permanentEffects` | 14 sites in `effects/permanent.ts` | yes — continuous |
+| `replacementEffects` | `effects/replacements.ts:176`, `state.ts:67` | yes — "instead of X, do Y" |
+| `deckBuildingRules` | **none anywhere under `engine/src`** | **no** — construction-time only |
+
+So a card whose whole ability was a keyword or a permanent effect was valued as a vanilla and could
+be trashed as counter fodder ahead of a genuinely blank body. **Measured against the engine's live
+runtime catalog: 180 of 1523 counter-bearing character printings, 11.8%** — the suite recomputes and
+prints that number every run rather than quoting this paragraph. By distinct definition rather than
+printing the same figure is 164 of 1368 (12.0%); the units differ and are worth naming, because the
+runtime catalog counts `_pN` variant printings separately.
+
+The sharpest case is a keywords-only **`[Blocker]`** — close to the most valuable card in hand to
+KEEP — scoring identically to a blank body.
+
+**It reaches the decks the project actually simulates**, which is what makes it more than a
+theoretical mis-ranking:
+
+| deck | reclassified by the fix |
+|---|---|
+| `ace-op16` | `OP16-017` ×4 (keywords + permanentEffects, counter 1000) |
+| `mihawk-green-proxy` | `OP10-032` ×4 (**replacementEffects**, counter 2000), `OP14-026` ×4 (permanentEffects, counter 2000) |
+
+Now `hasEncodedAbility(card)`, an exported predicate over the four ability-bearing collections.
+`deckBuildingRules` is **deliberately excluded** and that exclusion is asserted, not commented: it
+constrains deck construction and does nothing once the card is in hand, and `grep -rn
+deckBuildingRules engine/src/` finds no consumer at all. `OP16-042`'s own source says so — *"nothing
+in packages/engine reads it"*.
+
+**Three things about how this was handled, since the review itself was incomplete in one direction
+and the fix had to be wider than what was reported.** Codex named two of the four collections and
+missed `replacementEffects`, which is 29 of the 180 — including `OP10-032`, a 4-of in
+`mihawk-green-proxy`. A fix limited to the two reported collections would have left those wrong and
+passed any test pinned to the two named example cards. So the guard discovers one real card per
+collection *by shape* from `allCards` and fails if the catalog stops offering an example, and the
+mutation harness carries one mutant per clause — the `replacementEffects` mutant is what makes a
+two-property fix fail.
+
+**A limitation to carry into Phase 3, stated now rather than discovered then:** the flag is BINARY,
+so `OP14-026`'s *"[Opponent's Turn] if rested, +2000 power"* scores the same +2 as a `[Blocker]`. It
+is the right value for "does this card do anything", and the wrong value for "how much". If the
+learned coefficient on this feature comes out unstable, that is the likely reason, and the answer is
+to split the feature rather than to re-weight it. The flag still splits the population (84% ability /
+16% vanilla catalog-wide), so it is not degenerate — but inside `mihawk-green-proxy` all 50 cards are
+ability-bearing, so it carries no information in that matchup at all.
+
 ### The counterPlay positions, and what they deliberately do not assert
 
 `./scripts/simulate.sh --puzzles`. Reported apart from the ladder totals, like the blocker and
@@ -974,31 +1029,40 @@ Instrumented probe, not committed: step three 10-game pairings with `valueRanked
 recording `decideCounter`'s reason at every counter prompt. **This describes the policy's behaviour.
 It is not a ladder run and no win rate is read off it** — that is Phase 2.
 
+Re-measured after the `hasEncodedAbility` correction above, with the pre-fix figures kept beside
+them — the games genuinely diverge, which is the evidence that the correction reaches real play and
+not only puzzles:
+
 | pairing | games | mean turns | counter prompts | spent on | cards spent | illegal |
 |---|---|---|---|---|---|---|
-| ace-op16 mirror | 10 | 10.6 | 280 | 74 (26.4%) | 85 | 0 |
-| mihawk-green-proxy mirror | 10 | 13.8 | 457 | 141 (30.9%) | 152 | 0 |
-| ace-op16 vs mihawk-green-proxy | 10 | 11.6 | 339 | 103 (30.4%) | 121 | 0 |
+| ace-op16 mirror | 10 | 10.6 | 280 | 74 (26.4%) | 86 (was 85) | 0 |
+| mihawk-green-proxy mirror | 10 | 14.0 (was 13.8) | 471 (was 457) | 139 (29.5%, was 141) | 150 (was 152) | 0 |
+| ace-op16 vs mihawk-green-proxy | 10 | 11.6 | 341 (was 339) | 104 (30.5%, was 103) | 121 | 0 |
 
-Reasons, ace mirror / mihawk mirror / cross:
+The mihawk mirror moves most, as it must: 8 of its 50 cards change classification, against 4 of
+`ace-op16`'s 28 counter candidates. Play value only decides WHICH card is spent among equally-sized
+sufficient sets, never whether to spend — so no reason-code logic changed, but the cards left in hand
+did, and the games diverge from there.
+
+Reasons, ace mirror / mihawk mirror / cross (post-fix):
 
 | reason | ace | mihawk | cross | what it means |
 |---|---|---|---|---|
-| `already-holds` | 112 | 249 | 152 | the attack was already going to fail; countering would be pure waste |
-| `cannot-flip` | 76 | 53 | 66 | no affordable set lifts defence above the attack |
-| `hard-floor` | 31 | 101 | 60 | this turn's remaining attacks alone reach zero life |
-| `within-horizon` | 34 | 29 | 33 | `life <= R` |
+| `already-holds` | 112 | 263 | 154 | the attack was already going to fail; countering would be pure waste |
+| `cannot-flip` | 76 | 55 | 65 | no affordable set lifts defence above the attack |
+| `hard-floor` | 31 | 101 | 61 | this turn's remaining attacks alone reach zero life |
+| `within-horizon` | 34 | 28 | 33 | `life <= R` |
 | `tank` | 18 | 14 | 18 | declined because life is comfortably above `R` |
-| `lethal` | 8 | 10 | 8 | 0 life cards, Leader targeted |
+| `lethal` | 8 | 9 | 8 | 0 life cards, Leader targeted |
 | `double-attack` / `save-character` | 1 / 0 | 0 / 1 | 2 / 0 | the rare override paths, each exercised at least once |
 
 Three things worth reading off this, all of them Phase 3's business rather than conclusions:
 
-1. **`already-holds` is the single largest bucket (40–54% of prompts).** Those are battles the
+1. **`already-holds` is the single largest bucket (40–56% of prompts).** Those are battles the
    defender already wins, so the prompt exists only because the attacker swung something that cannot
    connect. That is the `futile` puzzle class showing up in aggregate — an attacker-side policy
    weakness, visible here as a defender-side statistic.
-2. **`tank` fires rarely (5–6%) while the floor and the horizon fire often.** With `avgCost` at 4 and
+2. **`tank` fires rarely (3–6%) while the floor and the horizon fire often.** With `avgCost` at 4 and
    games ending in 10–14 turns, life drops below `R` early, so the policy spends more readily than
    "tank early, counter late" might suggest. Whether that is right is exactly what sweeping `avgCost`
    in Phase 3 answers; it is not evidence the default is wrong.
@@ -1031,7 +1095,15 @@ different corpus from the three existing mutation tools, which mutate card encod
 | prefer the LARGEST sufficient set | KILLED | `counterPlay` |
 | ignore the `enabled: false` master switch | KILLED | `counterPlay` |
 | misname the `avgCost` env var | KILLED | `counterPlay` |
+| `hasEncodedAbility` ignores `keywords` ([Blocker] bodies) | KILLED | `hasEncodedAbility…` |
+| `hasEncodedAbility` ignores `permanentEffects` | KILLED | `hasEncodedAbility…` |
+| `hasEncodedAbility` ignores `replacementEffects` — the one the review missed | KILLED | `hasEncodedAbility…` |
+| `hasEncodedAbility` counts `deckBuildingRules` as an ability | KILLED | `hasEncodedAbility…` |
+| `hasEncodedAbility` calls an effect-less card ability-bearing | KILLED | `hasEncodedAbility…` |
 | drop the lethal override only | **SURVIVED, expected** | nothing can |
+
+**13 of 14 killed.** The four `hasEncodedAbility` clause mutants are what stop a partial fix passing:
+covering only the two collections the review named leaves the `replacementEffects` mutant alive.
 
 **The survivor is honest and worth keeping in writing.** At 0 life the hard floor
 (`remainingAttacks >= life`) and the R rule (`life <= R`, and `R >= 1` always) both fire, so the

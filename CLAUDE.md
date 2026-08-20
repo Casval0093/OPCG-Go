@@ -219,7 +219,7 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   disjoint batches, for whole-corpus runs), `mutation_check_arena.py` (a different corpus
   entirely — `arena/log.test.ts`, not card encodings), and `mutation_check_engine.py`
   (added 2026-08-20: mutates the ENGINE patches in `tools/patch_engine.py` and the counter policy
-  they install, and checks `sim/puzzles.test.ts` notices — 9 mutants, 8 must die, 1 documented
+  they install, and checks `sim/puzzles.test.ts` notices — 14 mutants, 13 must die, 1 documented
   equivalent survivor).
   **The rule applies to our own test files as well: writing `tools/test_mutation_tools.py` produced
   a vacuous test on the first pass** — the no-files guard could be deleted with the test still
@@ -356,11 +356,26 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   **Measured behaviour over 30 real games** (three 10-game pairings, `valueRanked` both seats, 0
   illegal commands): the policy spends on **26-31% of counter prompts**. Reason mix, and two of these
   are worth knowing before reading any Phase 2 number: **`already-holds` is the LARGEST bucket
-  (40-54%)** — battles the defender already wins, so the prompt exists only because the attacker
+  (40-56%)** — battles the defender already wins, so the prompt exists only because the attacker
   swung something that cannot connect, which is the `futile` puzzle class showing up as a
-  defender-side statistic; and **`tank` fires on only 5-6%** while the hard floor and the R horizon
+  defender-side statistic; and **`tank` fires on only 3-6%** while the hard floor and the R horizon
   fire often, because games end in 10-14 turns and life drops under R early. Do not read that as "the
   default avgCost is wrong" — it is the quantity Phase 3 sweeps. Full tables: `docs/simulation.md`.
+  **The "has-effect" observable counts FOUR collections, not one — corrected 2026-08-20 on Codex's
+  PR #24 review, do not narrow it again.** `CardEffects` (`types/src/effect/effect.ts:57`) has five
+  properties and an encoding may live entirely in any of them: `keywords` (a [Blocker] body!),
+  `effects`, `permanentEffects`, `replacementEffects` — all abilities — plus `deckBuildingRules`,
+  which is **NOT** one and is deliberately excluded because `grep -rn deckBuildingRules engine/src/`
+  finds no consumer at all. Reading only `effects.effects` called **180 of 1523 counter-bearing
+  character printings (11.8%) vanilla** — 164 of 1368 by distinct definition; name the unit, the
+  runtime catalog counts `_pN` variants separately — and it reached both simulated decks
+  (`OP16-017` x4 in ace, `OP10-032` x4 + `OP14-026` x4 in mihawk). The review named two of the four
+  and missed `replacementEffects`, which is 29 of the 180, so **a fix scoped to what was reported
+  would have left those wrong**; the guard therefore discovers one card per collection BY SHAPE from
+  `allCards` and the mutation harness carries one mutant per clause. **Phase 3 caveat:** the flag is
+  binary, so `OP14-026`'s "[Opponent's Turn] if rested, +2000 power" scores the same as a [Blocker].
+  If that feature's learned coefficient comes out unstable, split the feature rather than re-weight
+  it.
 - **The SECOND player could illegally attack on their own first turn — FIXED 2026-08-20, patch
   `battle: neither player may attack on their own first turn`. Do not re-derive, and do not reinstate
   the prediction that it breaks the puzzle fixtures.** The Official Rule Manual's Battle Flow footnote
@@ -800,7 +815,7 @@ data/cards-OP16-en.json         imported OP16, 119 cards
 arena/log.ts                    decision corpus: append-only NDJSON, one record per decision
 arena/replay.ts                 replayMatch — reconstruct a recorded game from (config, commands)
 tools/mutation_check_arena.py   mutation harness for arena/log.test.ts (13 mutants, 0 may survive)
-tools/mutation_check_engine.py  mutation harness for the ENGINE patches + counter policy (9 mutants)
+tools/mutation_check_engine.py  mutation harness for the ENGINE patches + counter policy (14 mutants)
 bench/throughput.test.ts        throughput benchmark + the patch-8 per-command regression guard
 data/op16-matchup-matrix.json   the matchup matrix, machine-readable
 data/card-coverage.json         all 2,282 cards classified encoded/gap/vanilla

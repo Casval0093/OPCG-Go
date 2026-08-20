@@ -59,6 +59,7 @@ import {
   COUNTER_POLICY_DEFAULTS,
   counterPolicyConfig,
   decideCounter,
+  hasEncodedAbility,
   setCounterPolicyConfig,
 } from "../../src/automation/counter-policy.ts";
 import { OnePieceTestEngine } from "../../src/index.ts";
@@ -1559,6 +1560,131 @@ run(
   },
   30_000,
 );
+
+/**
+ * The "has-effect" observable, asserted over the REAL catalog rather than over two hand-picked ids.
+ *
+ * Codex flagged on PR #24 that `hasEffect` read only `card.effects.effects`, so a card whose ability
+ * lives in a sibling collection scored as vanilla and could be trashed as counter fodder ahead of a
+ * genuinely blank body. Measured: 164 of the 1368 counter-bearing characters, 12.0%, including every
+ * keywords-only [Blocker] -- close to the most valuable card in hand to KEEP.
+ *
+ * WHY THIS TEST IS SHAPED THIS WAY. Codex named two collections of the four that matter, and a test
+ * pinning only its two examples would have passed while leaving ~29 `replacementEffects` cards
+ * wrong. So the cards are DISCOVERED from `allCards` by their actual shape, one per collection, and
+ * the suite fails if the catalog stops offering an example -- which is itself worth knowing. It
+ * asserts the CLASSIFICATION and never a play-value number, because the weights are swept in Phase 3
+ * and an assertion on them would freeze a knob that is meant to move.
+ */
+run("hasEncodedAbility counts every ability-bearing collection, and only those", () => {
+  const failures: string[] = [];
+  const shapeOf = (card: (typeof allCards)[number]): string[] => {
+    const e = card.effects;
+    if (!e) return [];
+    return (
+      [
+        ["keywords", e.keywords?.length ?? 0],
+        ["effects", e.effects?.length ?? 0],
+        ["permanentEffects", e.permanentEffects?.length ?? 0],
+        ["replacementEffects", e.replacementEffects?.length ?? 0],
+        ["deckBuildingRules", e.deckBuildingRules?.length ?? 0],
+      ] as Array<[string, number]>
+    )
+      .filter(([, n]) => n > 0)
+      .map(([k]) => k);
+  };
+
+  // 1. One real card per ability collection, in ISOLATION -- the only populated collection is the
+  //    one under test, so a predicate that misses it cannot be rescued by a sibling.
+  for (const collection of [
+    "keywords",
+    "effects",
+    "permanentEffects",
+    "replacementEffects",
+  ] as const) {
+    const example = allCards.find((card) => {
+      const shape = shapeOf(card);
+      return shape.length === 1 && shape[0] === collection;
+    });
+    if (!example) {
+      failures.push(
+        `no catalog card populates ONLY ${collection} — the isolation case for it is untested`,
+      );
+      continue;
+    }
+    if (!hasEncodedAbility(example)) {
+      failures.push(
+        `${example.id} has an ability only in ${collection} and hasEncodedAbility called it vanilla`,
+      );
+    }
+    console.log(`  ${collection.padEnd(19)} isolated example ${example.id.padEnd(10)} -> true`);
+  }
+
+  // 2. deckBuildingRules is deliberately NOT an ability: it constrains construction and does nothing
+  //    once the card is in hand. Asserted rather than merely commented, or the exclusion is opinion.
+  const rulesOnly = allCards.find((card) => {
+    const shape = shapeOf(card);
+    return shape.length === 1 && shape[0] === "deckBuildingRules";
+  });
+  if (rulesOnly) {
+    if (hasEncodedAbility(rulesOnly)) {
+      failures.push(
+        `${rulesOnly.id} carries only a deckBuildingRule and was counted as an ability — a ` +
+          `construction constraint is worth nothing in hand`,
+      );
+    }
+    console.log(`  deckBuildingRules   isolated example ${rulesOnly.id.padEnd(10)} -> false`);
+  } else {
+    console.log("  deckBuildingRules   no isolated example in the catalog; exclusion untested");
+  }
+
+  // 3. A genuinely blank card must still be false, or the predicate is just `true`.
+  const vanilla = allCards.find((card) => !card.effects && card.cardType === "character");
+  if (!vanilla) {
+    failures.push("no vanilla character in the catalog — the negative case is untested");
+  } else if (hasEncodedAbility(vanilla)) {
+    failures.push(`${vanilla.id} has no effects object at all and was called ability-bearing`);
+  }
+
+  // 4. The two cards on the review thread, pinned by id because they are the reported cases.
+  for (const id of ["OP16-027", "OP16-044"]) {
+    const card = allCards.find((entry) => entry.id === id);
+    if (!card) {
+      failures.push(`${id} is not in the catalog — the reported case cannot be checked`);
+      continue;
+    }
+    if (!hasEncodedAbility(card)) {
+      failures.push(`${id} (${shapeOf(card).join("+")}) still reads as vanilla`);
+    }
+  }
+
+  // 5. The feature must still SPLIT the population. A flag that is true for every counter card
+  //    carries no information, and Phase 3 would learn a coefficient for a constant.
+  const counterBearing = allCards.filter(
+    (card) => card.cardType === "character" && (card.counter ?? 0) > 0,
+  );
+  const bearing = counterBearing.filter((card) => hasEncodedAbility(card)).length;
+  const blank = counterBearing.length - bearing;
+  // The blast radius of the defect, recomputed from the live catalog every run rather than quoted
+  // from a one-off measurement: cards the OLD predicate (triggered blocks only) called vanilla and
+  // the corrected one does not. A number in a doc goes stale; this one cannot.
+  const wasMisclassified = counterBearing.filter(
+    (card) => hasEncodedAbility(card) && (card.effects?.effects?.length ?? 0) === 0,
+  );
+  console.log(
+    `  counter-bearing characters ${counterBearing.length}: ability ${bearing}, vanilla ${blank}` +
+      `  |  the old effects-only predicate misclassified ${wasMisclassified.length}` +
+      ` (${((100 * wasMisclassified.length) / counterBearing.length).toFixed(1)}%)`,
+  );
+  if (bearing === 0 || blank === 0) {
+    failures.push(
+      `hasEncodedAbility is CONSTANT over the ${counterBearing.length} counter-bearing characters ` +
+        `(ability ${bearing}, vanilla ${blank}) — it carries no information as a feature`,
+    );
+  }
+
+  if (failures.length) throw new Error(failures.join(" | "));
+});
 
 /**
  * TASK 1.3 -- THE TWO OPEN POLICY SURFACES, PINNED RATHER THAN FIXED.
