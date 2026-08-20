@@ -39,8 +39,11 @@ import os
 import re
 import sys
 
-CARDS_ROOT = "vendor/tcg-engines/submodules/one-piece/packages/cards/src/cards"
-TABLE = "data/card-corrections.json"
+# Anchored on this file, not on the caller's cwd -- see the same note in tools/patch_engine.py.
+# `scripts/bootstrap.sh` runs this from inside the engine directory.
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CARDS_ROOT = os.path.join(REPO_ROOT, "vendor/tcg-engines/submodules/one-piece/packages/cards/src/cards")
+TABLE = os.path.join(REPO_ROOT, "data/card-corrections.json")
 
 EXPORT_RE = re.compile(r"export const (\w+)\s*:\s*\w+Card\s*=\s*\{")
 ID_RE = re.compile(r'(?m)^  id:\s*"([^"]+)"')

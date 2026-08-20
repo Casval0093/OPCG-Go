@@ -10,9 +10,11 @@ Ping's decision 2026-08-19: **key cards are to be DERIVED from batch simulation,
 Phases 0–2 exist because a derivation is only as good as the simulator it runs on, and three things
 currently make it either unaffordable or wrong:
 
-1. **Unaffordable.** `ace-op16` costs **106 s/game** against 0.57 s for every other deck, because of
-   one card (`OP16-017`, exponential in copies). A 15-card × 2-arm × 200-game sweep is ~7.4 days
-   single-core now, ~1 hour after the fix.
+1. ~~**Unaffordable.**~~ **RESOLVED 2026-08-19 by patch 8 — see Task 0.1.** `ace-op16` measured
+   84.6 s/game before and **1.465 s/game** after; per command, 814.60 ms → 14.12 ms, which is
+   98.9× → 2.56× the Mihawk proxy. The 6,000-game sweep is **2.4 h single-core** (~0.3 h across 8
+   APFS clones), against 5.9 days before. **The "~1 hour after the fix" estimate here was optimistic
+   by ~2.4×**; affordable either way, which was the point.
 2. **Wrong dimension.** The counter policy cannot be derived on a simulator that never counters.
 3. **Circular.** The policy needs the weights; the weights come from batches run with the policy.
    Resolved by fixed-point iteration (Phase 3), but it must be named rather than discovered.
@@ -22,8 +24,13 @@ currently make it either unaffordable or wrong:
 All measured this session; full detail in `CLAUDE.md` and `docs/simulation.md`.
 
 - `OP16-017` scales ×10 per copy in play: 1/2/3/4 copies → 405 / 1,982 / 20,065 / 192,908 ms.
-  Its `permanentEffect` applies `modifyPower -4000` to **itself** behind a `notHasCard` scan of your
-  own character zone, so `getCardPower` re-enters itself across sibling copies.
+  ~~Its `permanentEffect` applies `modifyPower -4000` to **itself** behind a `notHasCard` scan of your
+  own character zone, so `getCardPower` re-enters itself across sibling copies.~~
+  **The struck-through mechanism is WRONG — corrected 2026-08-19 by measurement, see Task 0.1.**
+  Power evaluation runs exactly once; the re-entry is in COST evaluation, via `getPermanentSetCost`
+  evaluating conditions it discards. The `modifyPower` is a red herring; the `cost` filter inside the
+  `notHasCard` condition is the actual cycle. Re-measured on this host: 350 / 1,499 / 16,789 /
+  228,271 ms.
 - **Encoded decks are NOT slow in general.** `mihawk-green-proxy`, a real encoded Block 2+ deck, is
   6.3 ms/command. CLAUDE.md's ~2–4 games/s stands; do not retract it.
 - The Official Rule Manual's Battle Flow footnote is *"Neither player can attack on their first
@@ -44,7 +51,9 @@ All measured this session; full detail in `CLAUDE.md` and `docs/simulation.md`.
    mirror before and after and asserting an **identical** winner sequence and command count. A
    memoisation bug that silently changes outcomes is worse than the slowness.
 2. **Every engine fix lands in `tools/patch_engine.py`**, never as a hand-edit to `vendor/`, which is
-   gitignored. Existing patches are 1–5; these are 6+.
+   gitignored. **Amended 2026-08-19: existing patches are 1–7, not 1–5** — PR #20 landed patches 6
+   (`OP06-054` Borsalino) and 7 (`EB03-008` Hibari) after this plan was written, so the patches
+   below are 8+.
 3. **Nothing goes to any external repository, and it is never proposed.** Standing rule, Ping
    2026-08-19.
 4. **Phases 1 and 2 are one unit.** Every rules fix invalidates the ladder, the play/draw split and
@@ -57,11 +66,24 @@ All measured this session; full detail in `CLAUDE.md` and `docs/simulation.md`.
 
 ## Phase 0 — make the primary deck affordable to simulate
 
-### Task 0.1 — fix `OP16-017`'s exponential power evaluation
-Patch 6. Prefer a **recursion guard** (a per-evaluation in-progress set that breaks the cycle) over
-caching: a cache keyed on mutable state is the easy way to change results by accident, and constraint
-1 forbids that. Investigate in a profiler first to confirm the mechanism rather than assuming it from
-the encoding.
+### Task 0.1 — fix `OP16-017`'s exponential ~~power~~ COST evaluation
+Patch 8 (see the amendment to constraint 2). **DONE 2026-08-19.**
+
+**The plan's stated mechanism was WRONG, and the profiling instruction is what caught it.** This
+section assumed power recursion, from the card's `modifyPower … self: true`. Instrumented call
+counts show `getPermanentModifierTotal:power` is called **exactly once** at every copy count, before
+and after. The blowup is entirely on the **cost** path: `getPermanentSetCost` evaluates every
+permanent effect's `conditions` *before* checking whether that effect has a `setCost` action, and
+`OP16-017`'s condition carries a `{ filter: "cost" }` scan of your own character zone. So cost
+evaluation evaluates a condition it then discards, and that condition asks for the cost of every
+sibling copy. The existing guard is keyed `${type}:${instanceId}`, which breaks the direct self-cycle
+but not re-entry across permutations of siblings.
+
+**The fix is therefore neither a recursion guard nor a cache** — both were the right instincts for
+the assumed mechanism, and both are unnecessary for the real one. It is a three-line pre-filter that
+skips an effect before evaluating conditions whose result is discarded, mirroring what
+`getPermanentModifierTotal` already does 40 lines above in the same file. That is why constraint 1
+holds without argument: the skipped computation had no consumer.
 
 **Verification**
 - 1/2/3/4-copy decks: growth must be roughly linear, not ×10 per copy.
@@ -80,7 +102,8 @@ pathological shape) so a per-command cost regression fails loudly.
 ## Phase 1 — rules fidelity
 
 ### Task 1.1 — neither player may attack on their own first turn
-Patch 7. Condition must express "this seat's own first turn", not `turnNumber === 1`.
+Patch 9 (renumbered; see the amendment to constraint 2). Condition must express "this seat's own
+first turn", not `turnNumber === 1`.
 
 **Verification** the probe table (turns 1–4, both seats) shows `declareAttack offered` false only on
 each seat's own first turn. Engine suite green. **Batch-2 puzzle fixtures will break** — they sit at

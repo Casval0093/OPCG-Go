@@ -326,27 +326,55 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   must be checked another way. Decode with `chr(ord(c)+31)` for `0x21..0x5A`. No poppler, pypdf,
   pdfplumber or PyObjC Quartz on this machine; `./.venv/bin/pip install pypdf` was used for the read
   and no committed code depends on it.
-- **`OP16-017` LittleOars Jr. makes the Ace deck ~200x slower to simulate — EXPONENTIAL in the number
-  of copies in play. Measured 2026-08-19, do not re-derive.** This is the single reason the project's
-  PRIMARY deck cannot be batch-simulated affordably, and it is one card, not a general engine limit.
-  Per-command cost on this host: `green-vanilla-control` 4.6 ms, `st01` 5.4 ms,
-  **`mihawk-green-proxy` (a real ENCODED Block 2+ deck) 6.3 ms**, `ace-op16` **1,087 ms**.
-  So "encoded decks are slow" is FALSE and CLAUDE.md's ~2-4 games/s figure still holds for
-  everything else — do not retract it.
-  Isolated by bisection, all at `--turn-budget 6`, 1 game: Ace's LEADER with a vanilla main deck is
-  fast (4.9 ms/cmd), an inert leader with Ace's MAIN deck is slow (1,740 ms/cmd), and of the 15
-  distinct main-deck cards only `OP16-017` is slow — **192,908 ms vs 186-408 ms for the other 14**.
-  Scaling in copies is the diagnosis: **1 copy 405 ms, 2 copies 1,982 ms, 3 copies 20,065 ms,
-  4 copies 192,908 ms** -- roughly x10 per extra copy.
-  Mechanism (structural, from the encoding, not yet confirmed in a profiler): the card carries a
-  `permanentEffect` whose `modifyPower -4000` targets ITSELF (`self: true`) gated on a `notHasCard`
-  condition over your own character zone. `getCardPower` sums `getPermanentModifierTotal`, and
-  evaluating that effect's condition/target re-enters power evaluation for the other copies, so N
-  copies on board recurse into each other. Fix direction is memoisation or cycle-breaking inside
-  permanent-effect evaluation, NOT a change to the card.
-  **Consequence for the derive-from-batch plan:** at 106 s/game a 15-card x 2-arm x 200-game sweep is
-  ~7.4 days single-core; at the ~0.6 s/game every other deck manages it is ~1 hour. Fixing this is
-  the highest-leverage item on the engine track and it was on none of the audit's options A-D.
+- **`OP16-017` LittleOars Jr. made the Ace deck ~99x more expensive per command — FIXED 2026-08-19,
+  patch 8. Do not re-derive, and do NOT trust the mechanism this note used to give.** The cost was
+  super-exponential in the number of copies in play; `sim/decks/ace-op16.json` runs 4.
+  Per-command cost, mirrors at seed 7 (the only figure comparable across hosts):
+  `mihawk-green-proxy` **8.24 -> 5.51 ms**, `ace-op16` **814.60 -> 14.12 ms**, ratio **98.9x -> 2.56x**.
+  Deck-level, 1 game at `--turn-budget 6`: 1/2/3/4 copies **350 / 1,499 / 16,789 / 228,271 ms**
+  before, **287 / 600 / 940 / 1,057 ms** after — 216x at 4 copies.
+  **"Encoded decks are slow" was FALSE then and is still false** — the ~2-4 games/s figure stands.
+  **THE OLD MECHANISM IN THIS NOTE WAS WRONG.** It said `getCardPower` re-enters itself across
+  copies, reasoning from the card's `modifyPower … self: true`. That was structural, never profiled,
+  and measurement refuted it: `getPermanentModifierTotal:power` is called **exactly once** at every
+  copy count, before and after. The blowup is on the **COST** path. `getPermanentSetCost` evaluates
+  every permanent effect's `conditions` *before* checking whether the effect has a `setCost` action;
+  `OP16-017` has none, but its `notHasCard` condition carries `{ filter: "cost", gte 8 }`, so cost
+  evaluation computes a condition it discards and that condition asks the cost of every sibling. The
+  guard is keyed `${type}:${instanceId}`, which stops the direct self-cycle but not re-entry across
+  permutations of siblings. `getCardCost` calls for one `getCardPower`: **2 / 52 / 2,034 / 126,224 /
+  11,450,650** at 1-5 copies before, **1 / 4 / 9 / 16 / 25** after (exactly N^2).
+  The fix is therefore **neither a recursion guard nor a cache** — both were proposed, both
+  unnecessary. It is a three-line pre-filter mirroring `getPermanentModifierTotal`, the only one of
+  that file's 14 condition-evaluating functions that already pre-filtered. Result-preserving by
+  construction (the discarded condition had no consumer) and by measurement (4-game fixed-seed Ace
+  mirror: identical winner sequence `LWWL`, identical commands `[100, 95, 109, 111]`, identical turns
+  and aggregates; suite 6078 pass / 0 fail).
+  **The lesson generalises: a mechanism inferred from an encoding is a hypothesis, not a finding.**
+  This one was recorded here as fact for a day and sent two plans down the wrong path.
+  **Catalog exposure after the fix is 0 for the shape that caused it:** of 12 permanent effects
+  carrying a `cost` filter, no multi-copy character pairs one with a cost-path action. `OP05-097`
+  (stage) and `OP10-042` (leader) do, but one copy plus the 5-slot area bounds them at Σ P(5,k)=325.
+  **Consequence for the derive-from-batch plan, measured not estimated:** `ace-op16` is now
+  **1,465 ms/game** (was 84.6 s). The Phase 3 sweep of 15 buckets x 2 arms x 200 games = 6,000 games
+  is **2.4 h single-core** / ~0.3 h across 8 APFS engine clones, against **5.9 days** before. The
+  plan's "~1 hour" was optimistic by ~2.4x; it is affordable either way, which was the point.
+- **A deck-based performance guard is unreliable; construct the board — measured 2026-08-19.**
+  The first Task 0.2 guard was a per-command ratio on a deck running 4 copies of `OP16-017`, and it
+  **passed on the unpatched engine** at 1.55x ST01. The blowup needs copies *simultaneously on the
+  board*, and that is the shuffle's call: bench seeds 1000+i never stacked them, the sim harness at
+  seed 7 did and cost 3,682 ms/command on the same 50 cards. It even had a non-vacuity check, which
+  passed while the measurement meant nothing. `bench/throughput.test.ts` now builds the board with
+  `OnePieceTestEngine.create` and times one `getCardPower` at 1-5 copies, ascending, throwing past
+  `PERMANENT_EFFECT_MS_LIMIT` (250 ms — a KNOB, not a result). Red-green verified: reverting patch 8
+  alone fails at 4 copies in ~1.6 s; restoring it passes. It also asserts `power === 4000` at every
+  board size, so a future change that alters the answer fails instead of passing quietly.
+- **`scripts/bootstrap.sh` had never completed on a fresh clone — FIXED 2026-08-19.** It `cd`s into
+  the engine for `pnpm install`, then invoked `tools/patch_engine.py` and `tools/correct_cards.py`,
+  both of which defaulted to **cwd-relative** paths. They printed "engine not found", exited 1, and
+  `set -e` aborted bootstrap **before any patch, any card correction, or the test run**. Only
+  `graft_cards.py` survived, because it alone anchored on `__file__`. All three now do. Symptom to
+  recognise: bootstrap ends at the graft step and `patch_engine.py --check` reports 8 PENDING.
 - **`sim/catalog.json`'s `hasEffects`/`hasEffectText` flags are STALE for OP15/OP16** — it reports
   `effects=False` for `OP16-118` Portgas.D.Ace, which demonstrably has an `[On Play]` two-prompt
   search cascade, and for `OP16-017` above. Card count (2537) is current, the flags are not. Re-dump
@@ -576,8 +604,12 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   `CERTIFICATE_VERIFY_FAILED` until `/Applications/Python 3.13/Install Certificates.command`
   is run once. Not a repo bug; it bites every fresh machine.
 - **The benchmark deck is fixed and the re-measure is done (2026-08-17). Do not redo it.**
-  `bench/throughput.test.ts` now runs the 4-card synthetic deck and the engine's real 50-card
-  ST01 deck back to back. **Realism ratio 1.79x per game, 0.97x per command.** The audit's
+  `bench/throughput.test.ts` runs the 4-card synthetic deck and the engine's real 50-card
+  ST01 deck back to back. **Realism ratio 1.79x per game, 0.97x per command** — re-measured
+  2026-08-19 after patch 8 at **1.78x / 0.96x**, i.e. unmoved, which is the expected result since
+  neither of those decks contains the pathological shape. (The file gained a third deck and a
+  constructed-board regression guard in 2026-08-19; the realism ratio is still the first two decks
+  only.) The audit's
   assumed 2–5x roughly holds in magnitude but its mechanism was wrong: per-command cost is flat,
   and the whole slowdown is game length (94.6 cmds/game vs 51.1). Effect resolution is not the
   bottleneck — state transitions are. See `docs/engine-audit.md`.
@@ -650,7 +682,7 @@ data/cards-OP16-en.json         imported OP16, 119 cards
 arena/log.ts                    decision corpus: append-only NDJSON, one record per decision
 arena/replay.ts                 replayMatch — reconstruct a recorded game from (config, commands)
 tools/mutation_check_arena.py   mutation harness for arena/log.test.ts (13 mutants, 0 may survive)
-bench/throughput.test.ts        engine throughput benchmark
+bench/throughput.test.ts        throughput benchmark + the patch-8 per-command regression guard
 data/op16-matchup-matrix.json   the matchup matrix, machine-readable
 data/card-coverage.json         all 2,282 cards classified encoded/gap/vanilla
 scripts/bootstrap.sh            clone + install the vendored engine, run its tests
@@ -671,6 +703,11 @@ python3 -m unittest discover -s tools -p 'test_*.py'   # tools/ regression tests
 node --test arena/log.test.ts                     # decision-log suite (14); needs NO engine clone
 python3 tools/mutation_check_arena.py             # prove those 14 can fail (13 mutants)
 ./scripts/arena.sh --replay arena/logs/<f>.jsonl --contested   # read a played game back
+
+# throughput benchmark AND the per-command regression guard (patch 8). Fails loudly if
+# permanent-effect evaluation starts re-entering itself again.
+cp bench/throughput.test.ts vendor/tcg-engines/submodules/one-piece/packages/engine/tests/cards/
+cd vendor/tcg-engines/submodules/one-piece/packages/engine && ./node_modules/.bin/vp test run tests/cards/throughput.test.ts
 ```
 
 `ev_analysis.py` needs numpy; scipy is optional (Nash is skipped without it).

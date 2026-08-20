@@ -25,7 +25,13 @@ import argparse
 import os
 import sys
 
-ENGINE = "vendor/tcg-engines/submodules/one-piece/packages/engine"
+# Anchored on this file, not on the caller's cwd: `scripts/bootstrap.sh` has to `cd` into the engine
+# for `pnpm install` and then invoked this by absolute path, so a cwd-relative default resolved to
+# nothing, the script exited 1, and `set -e` aborted bootstrap before it ever applied a patch or ran
+# the suite. `tools/graft_cards.py` already anchors this way, which is why it was the only one of the
+# three that survived the `cd`.
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ENGINE = os.path.join(REPO_ROOT, "vendor/tcg-engines/submodules/one-piece/packages/engine")
 
 # --- Patch 1: the bot cannot resolve `orderCards` prompts -----------------------------------
 #
@@ -253,6 +259,108 @@ HIBARI_FIX = """// OPCG-Go patch: this test used OP11-012 Franky as its SWORD bo
 import { eb01Doma005, eb03Hibari008, op11Helmeppo092 } from "@tcg/op-cards";"""
 
 
+# --- Patch 8: getPermanentSetCost evaluates conditions it is about to throw away ---------------
+#
+# `OP16-017` LittleOars Jr. made `sim/decks/ace-op16.json` ~200x slower than every other deck, and
+# the cost was EXPONENTIAL in the number of copies in play. Measured on this host, 1 game at
+# `--turn-budget 6`, seed 7 (matchup wall clock):
+#
+#   copies of OP16-017   1       2        3         4
+#   before             350ms  1,499ms  16,789ms  228,271ms      x4.3, x11.2, x13.6 per copy
+#
+# The Ace deck runs 4 copies. Measured here, mirror at seed 7, per COMMAND (the only figure that
+# is comparable across hosts):
+#
+#   deck                        before        after
+#   mihawk-green-proxy, 8 games   8.24 ms      5.51 ms
+#   ace-op16, 4 games           814.60 ms     14.12 ms
+#   ace / mihawk                  98.9x         2.56x
+#
+#
+# THE MECHANISM IS NOT WHAT THE CARD LOOKS LIKE. OP16-017's permanentEffect is a `modifyPower` on
+# itself, so the obvious suspect is power recursion -- and it is not. Instrumented call counts for a
+# single `getCardPower` on a board of N copies show `getPermanentModifierTotal:power` called exactly
+# ONCE at every N; it is the COST path that explodes:
+#
+#   copies                1     2      3        4          5
+#   getCardCost calls     2    52   2,034  126,224  11,450,650      before
+#   getCardCost calls     1     4       9       16          25      after  (exactly N^2)
+#
+# The cycle, from a captured stack:
+#
+#   getCardCost(C)
+#     -> getPermanentSetCost(C)
+#          -> evaluateConditions(source)          for EVERY permanentEffect of EVERY source in play
+#               -> candidatePoolForTarget -> matchesTargetFilter   `filter: "cost"`
+#                    -> getCardCost(C')           a DIFFERENT instance -> re-entry
+#
+# `getPermanentSetCost` evaluates each effect's `conditions` BEFORE checking whether that effect has
+# a `setCost` action at all. OP16-017 has none -- its only action is `modifyPower` -- but its
+# condition is a `notHasCard` scan carrying `{ filter: "cost", comparison: "gte", value: 8 }`, so the
+# cost path evaluates a condition that can never contribute, and that condition asks for the cost of
+# every sibling. The existing re-entrancy guard is keyed `${type}:${targetInstanceId}`, which breaks
+# the DIRECT self-cycle but permits re-entry along every distinct permutation of sibling instances:
+# with S copies of the source and T targets the branching is (S x T) per level, hence (S x T)^depth.
+#
+# The fix is the pre-filter, and `getPermanentModifierTotal` in this same file already does exactly
+# this (`relevantActions.length === 0 -> continue`). It is the only one of the file's 14
+# condition-evaluating functions that does; the other 13 share the compute-then-discard shape, and
+# `getPermanentSetCost` is the one measured to be in the cycle. See docs/upstream/README.md.
+#
+# WHY THIS CANNOT CHANGE RESULTS: for an effect with no `setCost` action the inner loop `continue`s
+# on every action, so the effect can never contribute a return value -- `evaluateConditions` was
+# computed and discarded. `evaluateConditions` is a pure read of state (no assignment to `state.*`
+# anywhere in conditions.ts), which is the same assumption `getPermanentModifierTotal` already
+# relies on. Verified empirically as well: a 4-game fixed-seed Ace mirror (seed 7) returns an
+# IDENTICAL winner sequence (LWWL), identical per-game command counts ([100, 95, 109, 111]),
+# identical per-game turns and termination, and identical aggregates (mean cmds 103.75, median
+# turns 9). Engine suite after the patch: 6078 passed / 0 failed / 10 skipped.
+
+SETCOST_PREFILTER_ANCHOR = """      const card = getCard(source.cardId);
+      for (const effect of card.effects?.permanentEffects ?? []) {
+        const conditions = evaluateConditions(
+          state,
+          source.controller,
+          source.instanceId,
+          effect.conditions,
+        );
+        if (!conditions.supported || !conditions.matches) {
+          continue;
+        }
+        for (const action of effect.actions) {
+          if (action.action !== "setCost") {
+            continue;
+          }"""
+
+SETCOST_PREFILTER_FIX = """      const card = getCard(source.cardId);
+      for (const effect of card.effects?.permanentEffects ?? []) {
+        // OPCG-Go patch: skip the effect before evaluating its conditions when it has no `setCost`
+        // action, exactly as getPermanentModifierTotal does with `relevantActions`. Without this,
+        // cost evaluation evaluates conditions it then discards -- and a discarded condition
+        // carrying a `cost` filter asks for the cost of every sibling, re-entering cost evaluation.
+        // The `${type}:${id}` guard at the top of this function stops the direct self-cycle but
+        // not re-entry across sibling instances, so N copies of OP16-017 cost (S x T)^depth:
+        // 11,450,650 getCardCost calls at N=5, versus 25 after this line. Result-preserving: an
+        // effect with no `setCost` action cannot return a value here, so the condition's result
+        // was computed and thrown away.
+        if (!effect.actions.some((action) => action.action === "setCost")) {
+          continue;
+        }
+        const conditions = evaluateConditions(
+          state,
+          source.controller,
+          source.instanceId,
+          effect.conditions,
+        );
+        if (!conditions.supported || !conditions.matches) {
+          continue;
+        }
+        for (const action of effect.actions) {
+          if (action.action !== "setCost") {
+            continue;
+          }"""
+
+
 PATCHES = [
     {
         "name": "bot-harness: resolve orderCards prompts",
@@ -308,6 +416,13 @@ PATCHES = [
         "apply": lambda s: s.replace(HIBARI_ANCHOR, HIBARI_FIX, 1)
         .replace("op11Franky012", "op11Helmeppo092")
         .replace("frankyId", "helmeppoId"),
+    },
+    {
+        "name": "permanent: getPermanentSetCost evaluates conditions it then discards",
+        "relpath": "src/effects/permanent.ts",
+        "anchor": SETCOST_PREFILTER_ANCHOR,
+        "already": "OPCG-Go patch: skip the effect before evaluating its conditions",
+        "apply": lambda s: s.replace(SETCOST_PREFILTER_ANCHOR, SETCOST_PREFILTER_FIX, 1),
     },
 ]
 

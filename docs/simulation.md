@@ -638,6 +638,126 @@ Attack target selection therefore joins counter play and blocker use (owned by
 policy decisions and are not. What remains genuinely policy-attributable: which attacker to attack
 with, DON!! attachment, and the order of commands within a turn.
 
+## Phase 0 — the primary deck was 99x more expensive per command, and is not any more
+
+Measured 2026-08-19. `OP16-017` LittleOars Jr. made `sim/decks/ace-op16.json` unaffordable to batch,
+with a cost **super-exponential in the number of copies in play**. Fixed as patch 8 in
+`tools/patch_engine.py`.
+
+### The mechanism was not the one the plan predicted
+
+`docs/plans/engine-fidelity-and-derived-counter-policy.md` and `CLAUDE.md` both recorded this as
+**power** recursion, reasoning from the card's `modifyPower -4000 … self: true`. That reasoning was
+structural, not measured, and it was wrong. Instrumented call counts for a single `getCardPower` on a
+board of N copies show `getPermanentModifierTotal:power` called **exactly once at every N**, before
+and after the fix. The blowup is entirely on the **cost** path:
+
+```
+getCardCost(C)
+  -> getPermanentSetCost(C)
+       -> evaluateConditions(source)      for EVERY permanentEffect of EVERY source in play,
+                                          including ones with no setCost action at all
+            -> candidatePoolForTarget -> matchesTargetFilter   `filter: "cost"`
+                 -> getCardCost(C')       a DIFFERENT instance -> re-entry
+```
+
+`getPermanentSetCost` evaluates an effect's `conditions` **before** checking whether the effect has a
+`setCost` action. `OP16-017` has none — but its `notHasCard` condition carries
+`{ filter: "cost", comparison: "gte", value: 8 }`, so cost evaluation computes a condition it then
+throws away, and that condition asks for the cost of every sibling. The existing re-entrancy guard is
+keyed `` `${type}:${instanceId}` ``: it breaks the *direct* self-cycle but permits re-entry along
+every distinct permutation of siblings, so with S copies of the source and T targets the branching is
+(S x T) per level.
+
+**So the fix is neither a recursion guard nor a cache**, both of which the plan proposed. It is a
+three-line pre-filter that skips an effect before evaluating conditions whose result is discarded —
+exactly what `getPermanentModifierTotal` already does 40 lines above in the same file, and the only
+one of that file's 14 condition-evaluating functions that did.
+
+### Before / after
+
+`getCardCost` calls for ONE `getCardPower`, instrumented:
+
+| copies of OP16-017 | 1 | 2 | 3 | 4 | 5 |
+|---|---|---|---|---|---|
+| before | 2 | 52 | 2,034 | 126,224 | 11,450,650 |
+| after | 1 | 4 | 9 | 16 | 25 |
+
+After is exactly N². One `getCardPower` on a constructed board, wall clock:
+
+| copies | 1 | 2 | 3 | 4 | 5 |
+|---|---|---|---|---|---|
+| before | 0.09 ms | 0.62 ms | 22.58 ms | 1,558.71 ms | *not reached* |
+| after | 0.08 ms | 0.11 ms | 0.19 ms | 0.39 ms | 0.71 ms |
+
+Deck-level, 1 game at `--turn-budget 6`, seed 7 (`matchup` wall clock, N copies + vanilla filler):
+
+| copies | 1 | 2 | 3 | 4 |
+|---|---|---|---|---|
+| before | 350 ms | 1,499 ms | 16,789 ms | **228,271 ms** |
+| after | 287 ms | 600 ms | 940 ms | **1,057 ms** |
+
+216x at 4 copies, and the ×10-per-copy curve is gone. Per-command cost, mirrors at seed 7 — the only
+figure comparable across hosts:
+
+| deck | before | after |
+|---|---|---|
+| `mihawk-green-proxy`, 8 games | 8.24 ms | 5.51 ms |
+| `ace-op16`, 4 games | 814.60 ms | 14.12 ms |
+| **ace ÷ mihawk** | **98.9x** | **2.56x** |
+
+**Read the 2.56x honestly: the Task 0.1 criterion was "within ~2x" and this is 2.56x, so it misses
+the stated target.** The pathology is gone — 98.9x to 2.56x — but `ace-op16` is still measurably more
+expensive per command than the Mihawk proxy, which is unsurprising given it is the more
+effect-dense list. Do not quote it as "within 2x".
+
+### The fix changes speed and nothing else
+
+`ace-op16` mirror, 4 games, seed 7, turn budget 40, before vs after:
+
+| | before | after |
+|---|---|---|
+| winner sequence | `L W W L` | `L W W L` |
+| per-game commands | `[100, 95, 109, 111]` | `[100, 95, 109, 111]` |
+| per-game turns | `[8, 8, 9, 9]` | `[8, 8, 9, 9]` |
+| mean cmds / median turns | 103.75 / 9 | 103.75 / 9 |
+
+Identical, including termination reason per game. Engine suite **6078 passed / 0 failed / 10
+skipped**; puzzle suite 5/5 across 14 positions. The scaling probe also asserts `power === 4000` at
+every board size, so a future "optimisation" that changed the answer would fail rather than pass
+quietly.
+
+Why it cannot change results, independent of the measurements: for an effect with no `setCost`
+action the inner loop `continue`s on every action, so the effect could never contribute a return
+value — the condition's result was computed and discarded. `evaluateConditions` is a pure read
+(no assignment to `state.*` anywhere in `conditions.ts`, `targeting.ts` or `permanent.ts`), which is
+the same assumption `getPermanentModifierTotal` already relies on.
+
+### Catalog exposure after the fix
+
+Across all 2,537 cards, 12 permanent effects carry a `cost` filter. **No multi-copy character** pairs
+one with a cost-path action (`setCost`/`modifyCost`), so the copies term that drives the blowup is
+gone. Two single-copy sources remain — `OP05-097` (stage) and `OP10-042` (leader) — and both are
+structurally bounded: one source plus the 5-slot character area caps the permutations at
+Σ P(5,k) = 325.
+
+### The regression guard is a constructed board, because a deck did not work
+
+`bench/throughput.test.ts` benchmarked only a 4-card synthetic deck and ST01, both effect-light,
+which is why this went unnoticed. The first attempt at a guard was a per-command ratio on a deck
+running 4 copies of `OP16-017` — and **it passed on the unpatched engine**, at 1.55x ST01. Whether
+the blowup happens depends on how many copies are *simultaneously on the board*, and that is decided
+by the shuffle: the bench seeds (1000+i) never stacked them, while the sim harness at seed 7 did and
+cost 3,682 ms/command on the same 50 cards. The guard even had a non-vacuity check, and the check
+passed while the measurement meant nothing — the vacuous-test failure mode one level down.
+
+The guard now **constructs** the board via `OnePieceTestEngine.create` and times one `getCardPower`
+at 1–5 copies, ascending, throwing on the first result over `PERMANENT_EFFECT_MS_LIMIT`. That
+threshold is a **knob**, in the same category as `SIM_TURN_BUDGET`, and is not a measured result:
+250 ms sits ~50x above the worst post-fix value (0.71 ms) and ~6x below the first pre-fix violation
+(1,558 ms). Red-green verified: reverting patch 8 alone fails at 4 copies in ~1.6 s, restoring it
+passes. Checking ascending is what keeps a broken engine from grinding 154 s through 5 copies.
+
 ## What is not done
 
 - **No *meta* matchup yet — but the blocker is gone.** This used to read "every deck in the current
