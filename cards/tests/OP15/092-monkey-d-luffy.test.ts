@@ -1,14 +1,17 @@
 import { describe, expect, test } from "vite-plus/test";
-import { op06GeckoMoria080, op15MonkeyDLuffy092 } from "@tcg/op-cards";
+import {
+  op03Namule007,
+  op06GeckoMoria080,
+  op14eb04Vista053,
+  op15MonkeyDLuffy092,
+} from "@tcg/op-cards";
 
 import { OnePieceTestEngine } from "../../../src/index.ts";
 
-// Two of this card's three printed bullets are PARKED on `setBasePowerLiteral` (see the card's
-// own comment and data/parked-clauses.json), so the numbers asserted here are 7000/8000 -- the
-// printed base plus the encoded modifiers -- not the 9000/10000 a fully-encoded card would show.
-// Ruling #927 (at 30 cards in the trash all three bullets apply) is what makes those two clauses
-// unencodable rather than merely awkward: bullet 1 and bullet 3 must STACK, and `setPower` is a
-// total-power set that would clamp them.
+// Three independent thresholds over the trash, all cumulative once passed (ruling #927,
+// 三条效果全部适用). op06GeckoMoria080 is a 5000-power Leader whose own ability is a
+// [DON!!x1] [When Attacking] trigger, so it stays power-inert on a board with no DON!! and no
+// attack -- which matters here because bullet 2 targets the Leader.
 function luffyWithTrash(trash: number) {
   const engine = OnePieceTestEngine.create(
     { leaderCardId: op06GeckoMoria080, character: [op15MonkeyDLuffy092], trash, deck: 10 },
@@ -22,31 +25,138 @@ function luffyWithTrash(trash: number) {
   return { power: luffy.power, cost: luffy.cost };
 }
 
+// Bullet 2 is gated on the OPPONENT's turn as well as on the trash count, so it needs its own
+// fixture. Both readings are returned together: the Leader is what bullet 2 moves, and the
+// Character is here to show bullets 1 and 3 do NOT pick up bullet 2's turn gate.
+function onOpponentTurnWithTrash(trash: number) {
+  const engine = OnePieceTestEngine.create(
+    {
+      leaderCardId: op06GeckoMoria080,
+      // op03Namule007 is a vanilla 5000 body and it is load-bearing: bullet 2's target is
+      // `zones: ["leader"]`, and NARROWING that is caught by the leader assertions while WIDENING
+      // it to include characters was not. getPermanentSetBasePower returns the FIRST match, and
+      // bullet 1 (self, 9000) is the earlier block, so a widened bullet 2 would be masked on Luffy
+      // itself. A second, non-Luffy body is the only thing that sees it.
+      character: [op15MonkeyDLuffy092, op03Namule007],
+      trash,
+      deck: 10,
+    },
+    {},
+    { firstPlayer: "south", activeSeat: "north" },
+  );
+  const view = engine.getView("south");
+  const luffyId = engine.findCardInZone("south", "character", op15MonkeyDLuffy092);
+  const namuleId = engine.findCardInZone("south", "character", op03Namule007);
+  return {
+    leader: view.players.south.leader.power,
+    character: view.players.south.characters.find((c) => c?.instanceId === luffyId)?.power,
+    bystander: view.players.south.characters.find((c) => c?.instanceId === namuleId)?.power,
+  };
+}
+
 describe("OP15-092 Monkey.D.Luffy", () => {
   test("at 9 cards in the trash neither threshold has been crossed", () => {
     // The negative control for BOTH blocks at once, and the only thing that kills either
-    // `comparison gte -> lte` mutant: under `lte 10` the cost would jump here, and under
-    // `lte 30` the power would.
+    // `comparison gte -> lte` mutant: under `lte 10` the cost and the base power would jump here,
+    // and under `lte 30` the +1000 would.
     expect(luffyWithTrash(9)).toEqual({ power: 7000, cost: 7 });
   });
 
-  test("at exactly 10 cards in the trash it gains +10 cost and nothing else", () => {
+  test("at exactly 10 cards in the trash the base power becomes 9000 and the cost +10", () => {
     // 10 is ON the line, and `value: 10` is two digits so mutation_check.py generates no mutant
     // for it -- 9-vs-10 here is the whole of the threshold's coverage.
-    // Cost 7 printed + 10 = 17. The base-power half of this same bullet is parked, which is why
-    // the power is still 7000 rather than 9000.
-    expect(luffyWithTrash(10)).toEqual({ power: 7000, cost: 17 });
+    // Cost 7 printed + 10 = 17; power 7000 printed, REPLACED by the literal 9000. The exact 9000
+    // is what kills `value: 9000 -> 8000`.
+    expect(luffyWithTrash(10)).toEqual({ power: 9000, cost: 17 });
   });
 
   test("at 29 cards the +1000 has still not switched on", () => {
-    expect(luffyWithTrash(29)).toEqual({ power: 7000, cost: 17 });
+    expect(luffyWithTrash(29)).toEqual({ power: 9000, cost: 17 });
   });
 
-  test("at exactly 30 cards both encoded bullets apply together -- ruling #927", () => {
-    // 三条效果全部适用: the bullets are independent thresholds, not exclusive tiers, so the
-    // cost bonus from the 10-card bullet is still there alongside the 30-card power bonus.
-    // Two separate `permanentEffects` blocks is what expresses that; one block with two actions
-    // would tie the +1000 to the 10-card threshold.
-    expect(luffyWithTrash(30)).toEqual({ power: 8000, cost: 17 });
+  test("at exactly 30 cards all three bullets apply together -- ruling #927", () => {
+    // 三条效果全部适用: the bullets are independent thresholds, not exclusive tiers. So bullet 1's
+    // base 9000 and bullet 3's +1000 must STACK to 10000, alongside bullet 1's cost bonus.
+    //
+    // This is the assertion that makes `setBasePower` load-bearing rather than a stylistic choice.
+    // `setPower` sets TOTAL power by subtracting getCardPower at resolution, so it would clamp
+    // this back to 9000; a bare `modifyPower: +2000` would read 10000 here but would be wrong at
+    // every other printed base. Only a base-power REPLACEMENT gives 9000 alone at 10 cards and
+    // 10000 at 30.
+    expect(luffyWithTrash(30)).toEqual({ power: 10000, cost: 17 });
+  });
+
+  test("at 19 cards the Leader clause has not switched on, even on the opponent's turn", () => {
+    // The negative control for bullet 2's own threshold, and what kills its
+    // `comparison gte -> lte`: under `lte 20` this fires and the Leader reads 7000.
+    // The Character is 9000 here, not 7000: bullet 1 crossed at 10 cards and stays on.
+    expect(onOpponentTurnWithTrash(19)).toEqual({ leader: 5000, character: 9000, bystander: 5000 });
+  });
+
+  test("at exactly 20 cards the Leader's base power becomes 7000 on the opponent's turn", () => {
+    // 5000 printed -> 7000. The exact number kills `value: 7000 -> 6000`, which would otherwise
+    // read as a plausible +1000 on a 5000 Leader.
+    expect(onOpponentTurnWithTrash(20)).toEqual({ leader: 7000, character: 9000, bystander: 5000 });
+  });
+
+  test("at 30 cards the Leader clause is still on and the other two bullets keep their turn-blindness", () => {
+    // The other half of bullet 2's `gte` coverage: under `lte 20` the Leader falls back to 5000
+    // here. And the Character reads 10000 on the OPPONENT's turn too, which is what shows the
+    // turn gate belongs to bullet 2 alone rather than to the whole card.
+    expect(onOpponentTurnWithTrash(30)).toEqual({
+      leader: 7000,
+      character: 10000,
+      bystander: 5000,
+    });
+  });
+
+  test("a permanent base-power COPY reads bullet 2's set base power, not the printed one", () => {
+    // OP14EB04-053 Vista is the only card in the catalog whose `setBasePowerFrom` sits in
+    // permanentEffects: "[Opponent's Turn] If you have 7 or less cards in your hand, this
+    // Character's base power becomes the same as your Leader's base power." Its target is itself and
+    // its SOURCE is the Leader — the card bullet 2 sets to 7000. So the printed answer is that Vista
+    // becomes 7000, which is also what SC ruling #762 requires: a base power changed by an effect IS
+    // that card's base power for every later read.
+    //
+    // Both halves of this were wrong before. `setBasePowerFrom` was applied in
+    // getPermanentModifierTotal as a delta of `sourceBase - printedTargetBase` measured off the
+    // PRINTED source, so Vista read 5000 while the Leader read 7000; and as a delta it would ADD to
+    // a literal on its own target instead of replacing it. It now resolves on
+    // getPermanentSetBasePower's path, where two replacements select rather than accumulate.
+    const board = (trash: number) => {
+      const engine = OnePieceTestEngine.create(
+        {
+          leaderCardId: op06GeckoMoria080,
+          character: [op15MonkeyDLuffy092, op14eb04Vista053],
+          trash,
+          deck: 10,
+          hand: 3,
+        },
+        {},
+        { firstPlayer: "south", activeSeat: "north" },
+      );
+      const view = engine.getView("south").players.south;
+      const vistaId = engine.findCardInZone("south", "character", op14eb04Vista053);
+      return {
+        leader: view.leader.power,
+        vista: view.characters.find((c) => c?.instanceId === vistaId)?.power,
+      };
+    };
+
+    // 19 cards: bullet 2 is off, so Vista copies a plain 5000 Leader. Vista is printed 4000, and
+    // this is the pre-existing behaviour of the only user of that code path — it must not move.
+    expect(board(19)).toEqual({ leader: 5000, vista: 5000 });
+    // 20 cards: the Leader's base IS 7000, so Vista's copy is 7000.
+    expect(board(20)).toEqual({ leader: 7000, vista: 7000 });
+  });
+
+  test("on YOUR own turn the Leader clause is off however full the trash is", () => {
+    // `condition: "turn"` has no mutation operator, so this is the only thing separating
+    // "during your opponent's turn" from "always".
+    const engine = OnePieceTestEngine.create(
+      { leaderCardId: op06GeckoMoria080, character: [op15MonkeyDLuffy092], trash: 30, deck: 10 },
+      {},
+    );
+    expect(engine.getView("south").players.south.leader.power).toBe(5000);
   });
 });

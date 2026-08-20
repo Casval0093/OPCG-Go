@@ -33,8 +33,16 @@ def run(*argv: str) -> tuple[int, str]:
 
 class PatchEngineTest(unittest.TestCase):
     def setUp(self) -> None:
-        self.engine = tempfile.mkdtemp(prefix="patch-engine-test-")
-        self.addCleanup(shutil.rmtree, self.engine, ignore_errors=True)
+        # The engine dir is one level DOWN inside the temp dir, not the temp dir itself, because one
+        # patch's relpath is `../types/src/effect/action.ts` -- it deliberately escapes the engine
+        # root, since packages/types is a sibling of packages/engine. With the engine AT the temp
+        # root that path resolved outside mkdtemp, so the fixture wrote into $TMPDIR/types/... : it
+        # survived cleanup and, worse, was a single shared path that concurrent runs of this suite
+        # would fight over. This repo runs tools concurrently on purpose.
+        self.root = tempfile.mkdtemp(prefix="patch-engine-test-")
+        self.addCleanup(shutil.rmtree, self.root, ignore_errors=True)
+        self.engine = os.path.join(self.root, "engine")
+        os.makedirs(self.engine, exist_ok=True)
 
     def read(self, relpath: str) -> str:
         with open(os.path.join(self.engine, relpath), encoding="utf-8") as fh:
@@ -58,14 +66,28 @@ class PatchEngineTest(unittest.TestCase):
     def seed_stock(self) -> None:
         """An engine with every anchor present and no patch applied.
 
-        A CREATE patch is seeded by NOT writing its file: absent is its unpatched state, and
-        writing a stub there would make the tool refuse to overwrite it (which is the point of
+        Two independent reasons the naive "one file per patch, write its anchor" loop is wrong, and
+        both are load-bearing.
+
+        A CREATE patch is seeded by NOT writing its file: absent is its unpatched state, and writing
+        a stub there would make the tool refuse to overwrite it (which is the point of
         test_create_refuses_to_overwrite_a_foreign_file).
+
+        Anchors are GROUPED BY FILE. Several files now carry more than one patch --
+        `src/effects/actions.ts` carries three and `src/shared.ts`, `src/effects/permanent.ts`,
+        `../types/src/effect/action.ts` and `src/automation/bot-harness.ts` two apiece. Writing one
+        file per patch let the last one win and silently deleted the earlier anchor, so those patches
+        reported FAILED and three tests here went red the moment a second patch landed on a file that
+        already had one.
         """
+        anchors: dict[str, list[str]] = {}
         for patch in patch_engine.PATCHES:
             if "create" in patch:
                 continue
-            self.write(patch["relpath"], f"before\n{patch['anchor']}\nafter\n")
+            anchors.setdefault(patch["relpath"], []).append(patch["anchor"])
+        for relpath, texts in anchors.items():
+            body = "\n".join(f"{text}\nafter\n" for text in texts)
+            self.write(relpath, f"before\n{body}")
 
     def create_patches(self) -> list[dict]:
         return [p for p in patch_engine.PATCHES if "create" in p]
@@ -78,6 +100,14 @@ class PatchEngineTest(unittest.TestCase):
         self.assertIn("PENDING", text)
         # This is the bug: it used to be 0, so CI would have accepted an unpatched engine.
         self.assertEqual(code, 1)
+        # EVERY patch has to be PENDING, and none FAILED or MISSING. Asserting only that the word
+        # PENDING appears somewhere is what let a broken fixture pass: a `seed_stock` that clobbers
+        # one anchor per shared file still reports PENDING for the survivors, so the two failures
+        # it caused showed up two tests later and looked like a patch_engine bug rather than a
+        # fixture bug.
+        self.assertEqual(text.count("PENDING"), len(patch_engine.PATCHES), text)
+        self.assertNotIn("FAILED", text)
+        self.assertNotIn("MISSING", text)
 
     def test_check_exits_zero_only_once_every_patch_is_applied(self) -> None:
         self.seed_stock()

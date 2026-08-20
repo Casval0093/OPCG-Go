@@ -1020,6 +1020,566 @@ FIRST_TURN_ATTACK_FIXTURE_FIX = """    skipFirstTurnDraw: true,
     allowFirstTurnAttacks: true,
     maxCharacterSlots: options.maxCharacterSlots,"""
 
+# --- Patches 15-23: setBasePower, a literal base-power setter -------------------------------
+#
+# The DSL had no verb for "base power becomes <literal>", and three near-misses that each fail in
+# a different way:
+#   * `setPower` is the only literal-valued power setter, but it adds
+#     `action.value - getCardPower(target)` (effects/actions.ts) -- a TOTAL-power set measured at
+#     resolution, so it ABSORBS modifiers already on the target instead of letting them stack on
+#     the new base. It is also invisible inside `permanentEffects`, because the permanent path
+#     reads only `modifyPower`/`setBasePowerFrom`.
+#   * `setBasePowerFrom` has the right arithmetic but requires a source CARD on the field to copy.
+#   * `copyPower` only ever retargets the effect's own card.
+#
+# Six printed clauses across OP15/OP16 needed it and are now encoded against it -- they were
+# parked in data/parked-clauses.json as `setBasePowerLiteral` until 2026-08-20: OP15-070 Fuza,
+# OP15-071 Holly and OP15-092 Monkey.D.Luffy as permanent effects; OP16-015 Monkey.D.Luffy,
+# OP16-058 The Prisoners Are Rioting!! and OP16-106 Sanjuan.Wolf as timed ones. It was also OP17's
+# critical path: OP17-005's [On Play] takes a monocolored Leader's base power to 8000, which is the
+# whole OP17 Ace thesis.
+#
+# NOTE ON NUMBERING. "Patch N" in this project means the Nth entry of PATCHES below, and the list
+# has been inserted into before: CLAUDE.md calls the getPermanentSetCost prefilter "patch 8" from
+# when it was 8th, and it is now 9th. Prefer the patch NAME when writing anything durable.
+#
+# THE DESIGN DECISION, and why a delta modifier is not good enough. A `setBasePower` modifier
+# stores the LITERAL in `value` and `getCardPower` substitutes it for the printed base, rather than
+# storing `literal - printedBase` as a `type: "power"` delta. Three consequences, all wanted:
+#   1. +power modifiers stack on top, because the substitution happens before the sum. Ruling #927
+#      makes that observable rather than theoretical -- at 30 cards in the trash all three of
+#      OP15-092's bullets apply at once, so base-9000 and +1000 must reach 10000.
+#   2. Applying it twice is idempotent. Two OP15-070 Fuza in play both say 6000 about a shared
+#      [Shura] body; two deltas would say 8000.
+#   3. It cannot be double-counted against attached DON!!, which a `getCardPower`-relative delta
+#      would be whenever the DON!! is attached after the effect resolves.
+# The cost of the choice is a new ModifierState["type"]. That is cheap for a narrower reason than
+# "every read is type-filtered", which is FALSE -- state.ts's expiry sweeps
+# (cleanupTurnEndModifiers, cleanupBattleModifiers, cleanupTurnStartModifiers) deliberately iterate
+# every modifier regardless of type, and that is exactly what makes the new type expire for free.
+# The load-bearing claim is narrower and true: every read that SUMS or INTERPRETS a modifier filters
+# on `type` first, so nothing can mistake a literal base power for a power bonus, and no cleanup
+# path selects by type, so nothing drops the new type on the floor.
+#
+# Rulings #909 (OP15-070), #910 (OP15-071) and #994 (OP16-058) all answer 是的 to the same
+# question -- a Leader carrying "has every card's name" DOES reach the literal -- so the action's
+# target has to span `zones: ["leader", "character"]`, not just characters. That is a card-encoding
+# consequence rather than an engine one, but it is the reason the engine half must not assume the
+# character zone anywhere.
+
+SETBASEPOWER_UNION_ANCHOR = """  | SetPowerAction
+  | SetBasePowerFromAction"""
+
+SETBASEPOWER_UNION_FIX = """  | SetPowerAction
+  | SetBasePowerAction
+  | SetBasePowerFromAction"""
+
+SETBASEPOWER_TYPE_ANCHOR = """/** Set a card's base power from another card while preserving other modifiers. */
+export interface SetBasePowerFromAction {"""
+
+SETBASEPOWER_TYPE_FIX = """/**
+ * OPCG-Go patch: set a card's base power to a LITERAL value, preserving other modifiers.
+ *
+ * The sibling of `setBasePowerFrom` for the far commoner printed wording "base power becomes N".
+ * Not `setPower`: that one sets TOTAL power, computing its delta from `getCardPower` at resolution
+ * and so swallowing modifiers the card already carries. Six OP15/OP16 clauses print this, and
+ * OP17-005 needs it.
+ */
+export interface SetBasePowerAction {
+  action: "setBasePower";
+  target: Target;
+  value: number;
+  duration: Duration;
+  condition?: Condition;
+}
+
+/** Set a card's base power from another card while preserving other modifiers. */
+export interface SetBasePowerFromAction {"""
+
+SETBASEPOWER_MODIFIER_ANCHOR = """  type: "power" | "cost" | "keyword" | "flag" | "attackRestriction";"""
+
+SETBASEPOWER_MODIFIER_FIX = """  // OPCG-Go patch: `setBasePower` carries a LITERAL base power in `value`, not a delta, and is
+  // deliberately a separate type from "power". getPowerModifierTotal sums only "power", so a
+  // literal can never be added as though it were a bonus; getCardPower substitutes it for the
+  // printed base before that sum. Widening this union is safe because of two DIFFERENT properties:
+  // every read that sums or interprets a modifier filters on `type` first, and no expiry sweep does
+  // -- state.ts walks every modifier by duration, which is what makes the new type expire for free.
+  type: "power" | "setBasePower" | "cost" | "keyword" | "flag" | "attackRestriction";"""
+
+SETBASEPOWER_IMPORT_ANCHOR = """import {
+  arePlayerEffectsNegatedByPermanentEffect,
+  getPermanentKeywords,
+  getPermanentModifierTotal,
+  getPermanentSetCost,
+  isRefreshPreventedByPermanentEffect,
+} from "./effects/permanent.ts";"""
+
+SETBASEPOWER_IMPORT_FIX = """import {
+  arePlayerEffectsNegatedByPermanentEffect,
+  getPermanentKeywords,
+  getPermanentModifierTotal,
+  // OPCG-Go patch: the setBasePower primitive's two lookups. Both live in effects/permanent.ts --
+  // getSetBasePowerModifier only reads state.modifiers, but permanent.ts needs it too and THIS
+  // module is the one permanent.ts must not import, so the single definition lives there.
+  getPermanentSetBasePower,
+  getSetBasePowerModifier,
+  getPermanentSetCost,
+  isRefreshPreventedByPermanentEffect,
+} from "./effects/permanent.ts";"""
+
+SETBASEPOWER_GETCARDPOWER_ANCHOR = """export function getCardPower(state: MatchState, instanceId: string): number {
+  const instance = getInstance(state, instanceId);
+  const card = getCard(instance.cardId);
+  return (
+    basePower(card) +
+    (state.activeSeat === instance.controller ? instance.attachedDon * 1000 : 0) +
+    getPowerModifierTotal(state, instanceId) +
+    getPermanentModifierTotal(state, instanceId, "power")
+  );
+}"""
+
+SETBASEPOWER_GETCARDPOWER_FIX = """/**
+ * OPCG-Go patch: a card's base power after any "base power becomes N" effect, and its printed base
+ * otherwise.
+ *
+ * A timed modifier wins over a permanent effect, unconditionally. Do not read that as "because it
+ * was applied later" -- a continuous ability has no application instant this engine records, so
+ * that justification is not something the code can check. What the code does is: timed first,
+ * then permanent, then printed; among timed modifiers the highest id (= latest applied) wins; and
+ * two competing permanent literals resolve to whichever source is scanned first, the same contract
+ * getPermanentSetCost already has.
+ */
+export function getEffectiveBasePower(state: MatchState, instanceId: string): number {
+  return (
+    getSetBasePowerModifier(state, instanceId) ??
+    getPermanentSetBasePower(state, instanceId) ??
+    basePower(getCard(getInstance(state, instanceId).cardId))
+  );
+}
+
+export function getCardPower(state: MatchState, instanceId: string): number {
+  const instance = getInstance(state, instanceId);
+  return (
+    // OPCG-Go patch: was `basePower(card)`. A "base power becomes N" effect substitutes the base
+    // right here, which is the whole point of the primitive -- attached DON!! and every +/-power
+    // modifier then stack on top of N instead of being swallowed by it.
+    getEffectiveBasePower(state, instanceId) +
+    (state.activeSeat === instance.controller ? instance.attachedDon * 1000 : 0) +
+    getPowerModifierTotal(state, instanceId) +
+    getPermanentModifierTotal(state, instanceId, "power")
+  );
+}"""
+
+SETBASEPOWER_PERMANENT_ANCHOR = """export function getPermanentSetCost(state: MatchState, targetInstanceId: string): number | null {"""
+
+SETBASEPOWER_PERMANENT_FIX = """/**
+ * OPCG-Go patch: the two actions that REPLACE a card's base power rather than adjusting it.
+ * `setBasePower` names a literal; `setBasePowerFrom` copies another card's base power. Both are
+ * replacements, so they belong on the base-power path and not in the additive modifier total.
+ */
+function isBasePowerReplacement(
+  action: Action,
+): action is Extract<Action, { action: "setBasePower" | "setBasePowerFrom" }> {
+  return action.action === "setBasePower" || action.action === "setBasePowerFrom";
+}
+
+/**
+ * OPCG-Go patch: the literal base power a timed `setBasePower` modifier currently imposes, or null.
+ * Defined HERE rather than in shared.ts so that this module -- which shared.ts imports -- can reach
+ * it without a circular import. shared.ts re-exports it for getEffectiveBasePower.
+ *
+ * "Base power becomes N" REPLACES the printed base, so the modifier stores N itself rather than a
+ * delta. Where two overlap the most recently applied wins: `nextIdentifier` zero-pads to six
+ * digits, so lexicographic order over modifier ids IS application order.
+ */
+export function getSetBasePowerModifier(state: MatchState, instanceId: string): number | null {
+  let latest: { id: string; value?: number } | null = null;
+  for (const modifier of Object.values(state.modifiers)) {
+    if (modifier.targetId !== instanceId || modifier.type !== "setBasePower") {
+      continue;
+    }
+    if (!latest || modifier.id > latest.id) {
+      latest = modifier;
+    }
+  }
+  return latest?.value ?? null;
+}
+
+/**
+ * OPCG-Go patch: the base power a permanent replacement imposes on a card, or
+ * null when none applies. The twin of `getPermanentSetCost` -- and the function whose absence is
+ * why a `setPower` written inside `permanentEffects` was never read at all, since the permanent
+ * power path recognises only `modifyPower` and `setBasePowerFrom`.
+ *
+ * Returns the FIRST match, exactly as getPermanentSetCost does. Two sources naming the same
+ * literal are therefore idempotent -- two OP15-070 Fuza both say 6000 about a shared [Shura] body
+ * -- and two naming different literals resolve deterministically to whichever is scanned first.
+ * Nothing in OP15/OP16 creates the second case: every permanent user of this action names 6000
+ * except OP15-092, whose two literals land on a Character and on a Leader respectively.
+ *
+ * The prefilter ahead of evaluateConditions is not an optimisation, it is the same fix as the
+ * getPermanentSetCost patch below: evaluating a condition this function then discards can
+ * re-enter power evaluation across sibling instances, and the `${key}:${id}` guard stops only the
+ * direct self-cycle.
+ */
+export function getPermanentSetBasePower(
+  state: MatchState,
+  targetInstanceId: string,
+): number | null {
+  const evaluationKey = `setBasePower:${targetInstanceId}`;
+  const active = activeEvaluations.get(state) ?? new Set<string>();
+  if (active.has(evaluationKey)) {
+    return null;
+  }
+  activeEvaluations.set(state, active);
+  active.add(evaluationKey);
+
+  try {
+    // The loop shape here is MEASURED, not stylistic, and two things about it are load-bearing.
+    // getCardPower is the hottest read in the engine, so a second full pass over the match would
+    // roughly halve engine throughput.
+    //
+    // 1. `inPlaySources`, not `Object.values(state.cards)`: at most 14 slots instead of every card
+    //    in both decks, hands, trashes and Life. `sourceIsInPlay` is still checked below so the two
+    //    source sets are provably identical -- inPlaySources reads the area lists, sourceIsInPlay
+    //    cross-checks the card's own zone field, and a disagreement must exclude the card either way.
+    // 2. The STRUCTURAL prefilter runs before `sourceEffectsAreNegated` and before any condition.
+    //    That is the getPermanentSetCost prefilter's lesson one level deeper: the negation check
+    //    is the expensive guard, and
+    //    on a board where nothing prints "base power becomes N" -- which is almost every board,
+    //    since 6 cards in a 2,537-card catalog use the action -- paying it per source bought
+    //    nothing. Measured on a vanilla 10-body board, 200k calls: 18.13us/call with the checks in
+    //    the other order, 1.35us with them this way round, against ~25us for
+    //    getPermanentModifierTotal measured alongside it in the same process.
+    //
+    // Result-preserving by construction: all three guards are conjunctive on reaching the return.
+    for (const source of inPlaySources(state)) {
+      const effects = getCard(source.cardId).effects?.permanentEffects;
+      if (!effects?.some((effect) => effect.actions.some((a) => isBasePowerReplacement(a)))) {
+        continue;
+      }
+      if (
+        !sourceIsInPlay(state, source.instanceId) ||
+        sourceEffectsAreNegated(state, source.instanceId)
+      ) {
+        continue;
+      }
+      for (const effect of effects) {
+        if (!effect.actions.some((action) => isBasePowerReplacement(action))) {
+          continue;
+        }
+        const conditions = evaluateConditions(
+          state,
+          source.controller,
+          source.instanceId,
+          effect.conditions,
+        );
+        if (!conditions.supported || !conditions.matches) {
+          continue;
+        }
+        for (const action of effect.actions) {
+          if (!isBasePowerReplacement(action)) {
+            continue;
+          }
+          // The ACTION-level condition, which SetBasePowerAction declares and this function used to
+          // ignore. Omitting it fails OPEN -- the effect applies when it should not, with no
+          // capability issue and no judge prompt to show it. The timed path honours it generically
+          // in effects/resolution.ts; the permanent path has to do it by hand, exactly as
+          // getPermanentModifierTotal does.
+          if (action.condition) {
+            const actionCondition = evaluateConditions(
+              state,
+              source.controller,
+              source.instanceId,
+              [action.condition],
+            );
+            if (!actionCondition.supported || !actionCondition.matches) {
+              continue;
+            }
+          }
+          // The same guard getPermanentModifierTotal applies to a dynamic modifier: a permanent
+          // effect cannot make a CHOICE, so a target that is not `self` must be written
+          // `count.amount: "all"` or a `{ amount: 1 }` target would silently reach every
+          // candidate its filters matched.
+          if (action.target.count.amount !== "all" && !action.target.self) {
+            continue;
+          }
+          const pool = candidatePoolForTarget(
+            state,
+            source.controller,
+            source.instanceId,
+            action.target,
+          );
+          if (!pool.supported || !pool.candidateIds.includes(targetInstanceId)) {
+            continue;
+          }
+          if (action.action === "setBasePower") {
+            return action.value;
+          }
+          // `setBasePowerFrom` -- "base power becomes the same as X's base power". It lives here
+          // and NOT in getPermanentModifierTotal because it is a REPLACEMENT, not a bonus. As a
+          // delta of `sourceBase - printedTargetBase` it was self-consistent only while
+          // getCardPower started from the printed base; once a literal can replace that base, a
+          // card carrying both read `literal + (sourceBase - printed)` -- two mutually exclusive
+          // replacements added together. Handling it here makes the two SELECT (first match wins,
+          // the same contract getPermanentSetCost has) instead of accumulating.
+          const sourcePool = candidatePoolForTarget(
+            state,
+            source.controller,
+            source.instanceId,
+            action.source,
+          );
+          if (!sourcePool.supported || sourcePool.candidateIds.length !== 1) {
+            continue;
+          }
+          // The SOURCE's own effective base, not its printed one: SC ruling #762 settles that a
+          // base power changed by an effect IS that card's base power for every later read, so
+          // "the same as your Leader's base power" must see a Leader whose base was set to 7000.
+          // Recursion is bounded and cannot loop: this function's own `setBasePower:${id}` guard
+          // returns null on re-entry, so a card copying from a card that copies back terminates.
+          return effectivePermanentBasePower(state, sourcePool.candidateIds[0]!);
+        }
+      }
+    }
+    return null;
+  } finally {
+    active.delete(evaluationKey);
+    if (active.size === 0) {
+      activeEvaluations.delete(state);
+    }
+  }
+}
+
+/**
+ * OPCG-Go patch: the base power a card presents to another card's base-power COPY -- a timed
+ * literal first, then a permanent replacement, then the printed value. Deliberately not
+ * getEffectiveBasePower: that lives in shared.ts, which imports THIS module, so calling it here
+ * would be a cycle.
+ */
+function effectivePermanentBasePower(state: MatchState, instanceId: string): number {
+  const timed = getSetBasePowerModifier(state, instanceId);
+  if (timed !== null) {
+    return timed;
+  }
+  const permanent = getPermanentSetBasePower(state, instanceId);
+  if (permanent !== null) {
+    return permanent;
+  }
+  const card = getCard(state.cards[instanceId]!.cardId);
+  return card.cardType === "leader" || card.cardType === "character" ? (card.power ?? 0) : 0;
+}
+
+export function getPermanentSetCost(state: MatchState, targetInstanceId: string): number | null {"""
+
+SETBASEPOWER_ACTION_ANCHOR = """    case "setBasePowerFrom": {"""
+
+SETBASEPOWER_ACTION_FIX = """    case "setBasePower": {
+      // OPCG-Go patch: "base power becomes <literal>". Contrast `setPower` below, which sets TOTAL
+      // power by subtracting getCardPower at resolution; this one hands the literal to
+      // getEffectiveBasePower so DON!! and +/-power modifiers stack on top of it.
+      const targetIds = resolveActionTargets(
+        state,
+        controller,
+        sourceInstanceId,
+        action,
+        selectedTargetIds,
+        previousActionTargetIds,
+      );
+      if (targetIds === "prompt" || !targetIds) {
+        return false;
+      }
+      for (const targetId of targetIds) {
+        addModifier(state, sourceInstanceId, targetId, {
+          type: "setBasePower",
+          value: action.value,
+          duration: action.duration,
+          // The duration mapping is copied from `modifyPower`, which is the only COMPLETE one in
+          // this file. An unmapped duration falls through to `expiresAtTurn: null` and the modifier
+          // then NEVER EXPIRES, so every member of the Duration union has to appear here.
+          // `setPower`'s map -- which this originally copied -- omits `untilEndOfYourNextTurn` and
+          // has that bug; do not use it as the model. `untilEndOfOpponentNextEndPhase` matters
+          // separately because it is the duration OP17-005 prints.
+          expiresAtTurn:
+            action.duration === "thisTurn"
+              ? state.turnNumber
+              : action.duration === "untilEndOfYourNextTurn" ||
+                  action.duration === "untilEndOfOpponentNextTurn" ||
+                  action.duration === "untilEndOfOpponentNextEndPhase"
+                ? state.turnNumber + 1
+                : null,
+          expiresAtBattleId: action.duration === "thisBattle" ? (state.battle?.id ?? null) : null,
+          expiresOnTurnStartOfSeat: action.duration === "untilStartOfNextTurn" ? controller : null,
+        });
+      }
+      emitLog(
+        state,
+        controller,
+        `${effectSourceName(state, sourceInstanceId)} sets the base power of ${targetNames(state, targetIds)} to ${action.value} ${durationLabel(action.duration)}.`,
+        {
+          sourceCardId: getInstance(state, sourceInstanceId).cardId,
+          sourceInstanceId,
+          targetIds,
+          visibility: "public",
+        },
+      );
+      return true;
+    }
+    case "setBasePowerFrom": {"""
+
+
+# --- Patches 22-23: the older base-power setters must measure from the EFFECTIVE base ---------
+#
+# REGRESSION INTRODUCED BY the getCardPower patch above, found by review and reproduced before fixing. `copyPower`,
+# `setBasePowerFrom` and `swapBasePower` each emit a `type: "power"` delta of
+# `desired - basePower(card)`. That was self-consistent while getCardPower started from the printed
+# base -- `printed + (desired - printed) == desired`. Patch 14 made getCardPower start from
+# getEffectiveBasePower, so a card carrying BOTH a setBasePower literal and one of those deltas
+# reads `literal + (desired - printed)`: two mutually exclusive REPLACEMENTS combined additively.
+#
+# Measured, not argued. OP16-106 Sanjuan.Wolf sets OP16-104 Catarina Devon (printed 3000) to base
+# 7000; Devon's [When Attacking] copyPower off a 10000 body then adds +7000. Before this patch the
+# engine read 14000 where the printed text says 10000 -- on the attacking body, deciding a battle.
+# Both cards are real, yellow, and legal together. tests/cards/OP16/zz-compose.test.ts pins it.
+#
+# The fix is result-preserving for every card that does NOT carry a literal, because
+# getEffectiveBasePower falls through to `basePower(card)` when no setBasePower applies. That is why
+# it is safe to apply to three verbs used by 20+ existing cards: the 6106-test suite does not move.
+#
+# NOT touched: the PERMANENT `setBasePowerFrom` branch in getPermanentModifierTotal. It runs INSIDE
+# a power computation, so calling getEffectiveBasePower there re-enters getPermanentSetBasePower
+# across sibling instances -- the OP16-017 blowup shape. Exactly one card uses that branch
+# (OP14EB04-053 Vista, blue), and reaching it needs Vista plus a permanent literal on the same
+# Leader, i.e. a black/blue deck pairing Vista with OP15-092. Recorded in CLAUDE.md as a known,
+# bounded gap rather than fixed blind.
+
+SETTERS_EFFECTIVE_SWAP_ANCHOR = """      const [firstId, secondId] = targetIds;
+      const firstPower = basePower(getCardForInstance(state, firstId!));
+      const secondPower = basePower(getCardForInstance(state, secondId!));"""
+
+SETTERS_EFFECTIVE_SWAP_FIX = """      const [firstId, secondId] = targetIds;
+      // OPCG-Go patch: EFFECTIVE base, not printed. Swapping base powers has to exchange what the
+      // two cards' base powers CURRENTLY are; a card whose base was set to a literal must swap
+      // that literal away, not its printed value. Identical to basePower() when no literal applies.
+      const firstPower = getEffectiveBasePower(state, firstId!);
+      const secondPower = getEffectiveBasePower(state, secondId!);"""
+
+SETTERS_EFFECTIVE_FROM_ANCHOR = """      const copiedBasePower = basePower(getCardForInstance(state, sourceIds[0]!));
+      for (const targetId of targetIds) {
+        const printedBasePower = basePower(getCardForInstance(state, targetId));"""
+
+SETTERS_EFFECTIVE_FROM_FIX = """      // OPCG-Go patch: both sides read the EFFECTIVE base rather than the printed one. The source
+      // side is what SC ruling #762 requires -- when OP06-009 Shuraiya's 原本的力量 BECOMES 6000 by
+      // effect, that 6000 is its base power for every later test. The target side is what stops the
+      // delta double-applying over a setBasePower literal. Both are no-ops without a literal.
+      const copiedBasePower = getEffectiveBasePower(state, sourceIds[0]!);
+      for (const targetId of targetIds) {
+        const printedBasePower = getEffectiveBasePower(state, targetId);"""
+
+SETTERS_EFFECTIVE_COPY_ANCHOR = """      const copiedPower = getCardPower(state, copiedFromId);
+      const sourceBasePower = basePower(getCardForInstance(state, sourceInstanceId));"""
+
+SETTERS_EFFECTIVE_COPY_FIX = """      const copiedPower = getCardPower(state, copiedFromId);
+      // OPCG-Go patch: EFFECTIVE base. `copyPower` replaces the bearer's base power, so the delta
+      // has to be measured from whatever that base currently is.
+      const sourceBasePower = getEffectiveBasePower(state, sourceInstanceId);"""
+
+# `basePower` becomes UNUSED in actions.ts once the four reads above are converted, and
+# `noUnusedLocals` makes that a type error rather than a warning. That is a useful signal, not an
+# annoyance: it proves the patch converted EVERY printed-base read in the file, so the import is
+# dropped in the same patch.
+SETTERS_EFFECTIVE_IMPORT_ANCHOR = """import {
+  basePower,
+  cardName,"""
+
+SETTERS_EFFECTIVE_IMPORT_FIX = """import {
+  // OPCG-Go patch: `basePower` is gone from this file -- every base-power setter here now measures
+  // its delta from getEffectiveBasePower instead, so a setBasePower literal is replaced rather than
+  // stacked on. noUnusedLocals is what keeps that claim honest.
+  cardName,"""
+
+SETTERS_EFFECTIVE_ADD_ANCHOR = """  getCardPower,
+  getInstance,"""
+
+SETTERS_EFFECTIVE_ADD_FIX = """  getCardPower,
+  getEffectiveBasePower,
+  getInstance,"""
+
+# --- Patch 24: getPermanentModifierTotal must not ALSO apply setBasePowerFrom ------------------
+#
+# Found by Codex review on PR #26. `setBasePowerFrom` in `permanentEffects` was handled here as a
+# `type: "power"` delta of `sourceBase - printedTargetBase`, which was self-consistent only while
+# getCardPower started from the printed base. Once a literal can replace that base, a card in reach
+# of both read `literal + (sourceBase - printed)` -- two mutually exclusive REPLACEMENTS summed.
+#
+# The other half of the same defect is on the SOURCE side and is what the test actually caught:
+# this branch read `sourceCard.power`, the PRINTED value, so a copy could not see a base power that
+# had been set on the card it was copying FROM.
+#
+# Reachable, measured: OP14EB04-053 Vista is the only card in the catalog with `setBasePowerFrom`
+# inside permanentEffects -- "[Opponent's Turn] if you have 7 or less cards in hand, this
+# Character's base power becomes the same as your Leader's base power" -- and OP15-092's bullet 2
+# sets that Leader's base to 7000 on the opponent's turn at 20+ trash. Vista read 5000 while the
+# Leader read 7000. SC ruling #762 settles which is right: a base power changed by an effect IS
+# that card's base power for every later read.
+#
+# Both halves are fixed by moving the action onto the replacement path in
+# getPermanentSetBasePower, so it is SELECTED against a literal (first match wins, the contract
+# getPermanentSetCost already has) rather than added to one. This branch is therefore deleted, and
+# `actionIsDynamicModifier` alone decides what counts as a permanent modifier again.
+#
+# Behaviour-preserving for Vista alone, which is the only existing user: previously
+# `printed 4000 + (leader 5000 - 4000) = 5000`; now the effective base IS the leader's 5000. Pinned
+# from both sides by cards/tests/OP15/092-monkey-d-luffy.test.ts.
+
+PERM_SETBASEPOWERFROM_ANCHOR = """        const relevantActions = effect.actions.filter(
+          (action) =>
+            (type === "power" && action.action === "setBasePowerFrom") ||
+            actionIsDynamicModifier(action, type),
+        );"""
+
+PERM_SETBASEPOWERFROM_FIX = """        // OPCG-Go patch: `setBasePowerFrom` used to be folded in here as a power delta. It is a
+        // base-power REPLACEMENT, so it now lives on getPermanentSetBasePower's path instead --
+        // otherwise a card reachable by both it and a `setBasePower` literal sums two mutually
+        // exclusive replacements. `actionIsDynamicModifier` alone decides again.
+        const relevantActions = effect.actions.filter((action) =>
+          actionIsDynamicModifier(action, type),
+        );"""
+
+PERM_SETBASEPOWERFROM_BRANCH_ANCHOR = """          if (type === "power" && action.action === "setBasePowerFrom") {
+            const targetPool = candidatePoolForTarget(
+              state,
+              source.controller,
+              source.instanceId,
+              action.target,
+            );
+            if (!targetPool.supported || !targetPool.candidateIds.includes(targetInstanceId)) {
+              continue;
+            }
+            const sourcePool = candidatePoolForTarget(
+              state,
+              source.controller,
+              source.instanceId,
+              action.source,
+            );
+            if (!sourcePool.supported || sourcePool.candidateIds.length !== 1) {
+              continue;
+            }
+            const targetCard = getCard(state.cards[targetInstanceId]!.cardId);
+            const sourceCard = getCard(state.cards[sourcePool.candidateIds[0]!]!.cardId);
+            const targetBasePower =
+              targetCard.cardType === "leader" || targetCard.cardType === "character"
+                ? (targetCard.power ?? 0)
+                : 0;
+            const sourceBasePower =
+              sourceCard.cardType === "leader" || sourceCard.cardType === "character"
+                ? (sourceCard.power ?? 0)
+                : 0;
+            total += sourceBasePower - targetBasePower;
+            continue;
+          }"""
+
+PERM_SETBASEPOWERFROM_BRANCH_FIX = ""
+
 
 PATCHES = [
     {
@@ -1132,6 +1692,96 @@ PATCHES = [
         "already": "allowFirstTurnAttacks: true,",
         "apply": lambda s: s.replace(
             FIRST_TURN_ATTACK_FIXTURE_ANCHOR, FIRST_TURN_ATTACK_FIXTURE_FIX, 1
+        ),
+    },
+    {
+        # The one patch that reaches outside packages/engine: the Action union lives in
+        # packages/types, which is consumed from source (`main: ./src/index.ts`), so there is no
+        # build step to re-run.
+        "name": "types: setBasePower joins the Action union",
+        "relpath": "../types/src/effect/action.ts",
+        "anchor": SETBASEPOWER_UNION_ANCHOR,
+        "already": "  | SetBasePowerAction",
+        "apply": lambda s: s.replace(SETBASEPOWER_UNION_ANCHOR, SETBASEPOWER_UNION_FIX, 1),
+    },
+    {
+        "name": "types: SetBasePowerAction — set base power to a literal",
+        "relpath": "../types/src/effect/action.ts",
+        "anchor": SETBASEPOWER_TYPE_ANCHOR,
+        "already": "export interface SetBasePowerAction {",
+        "apply": lambda s: s.replace(SETBASEPOWER_TYPE_ANCHOR, SETBASEPOWER_TYPE_FIX, 1),
+    },
+    {
+        "name": "types: a modifier may carry a literal base power",
+        "relpath": "src/types.ts",
+        "anchor": SETBASEPOWER_MODIFIER_ANCHOR,
+        "already": '"power" | "setBasePower" | "cost"',
+        "apply": lambda s: s.replace(SETBASEPOWER_MODIFIER_ANCHOR, SETBASEPOWER_MODIFIER_FIX, 1),
+    },
+    {
+        "name": "shared: import the permanent half of setBasePower",
+        "relpath": "src/shared.ts",
+        "anchor": SETBASEPOWER_IMPORT_ANCHOR,
+        "already": "  getPermanentSetBasePower,",
+        "apply": lambda s: s.replace(SETBASEPOWER_IMPORT_ANCHOR, SETBASEPOWER_IMPORT_FIX, 1),
+    },
+    {
+        "name": "shared: getCardPower substitutes a set base power for the printed one",
+        "relpath": "src/shared.ts",
+        "anchor": SETBASEPOWER_GETCARDPOWER_ANCHOR,
+        "already": "export function getEffectiveBasePower(",
+        "apply": lambda s: s.replace(
+            SETBASEPOWER_GETCARDPOWER_ANCHOR, SETBASEPOWER_GETCARDPOWER_FIX, 1
+        ),
+    },
+    {
+        "name": "permanent: getPermanentSetBasePower, the setCost twin for base power",
+        "relpath": "src/effects/permanent.ts",
+        "anchor": SETBASEPOWER_PERMANENT_ANCHOR,
+        "already": "export function getPermanentSetBasePower(",
+        "apply": lambda s: s.replace(
+            SETBASEPOWER_PERMANENT_ANCHOR, SETBASEPOWER_PERMANENT_FIX, 1
+        ),
+    },
+    {
+        "name": "actions: resolve the setBasePower action",
+        "relpath": "src/effects/actions.ts",
+        "anchor": SETBASEPOWER_ACTION_ANCHOR,
+        "already": 'case "setBasePower": {',
+        "apply": lambda s: s.replace(SETBASEPOWER_ACTION_ANCHOR, SETBASEPOWER_ACTION_FIX, 1),
+    },
+    {
+        "name": "actions: swap the basePower import for getEffectiveBasePower",
+        "relpath": "src/effects/actions.ts",
+        "anchor": SETTERS_EFFECTIVE_IMPORT_ANCHOR,
+        "already": "OPCG-Go patch: `basePower` is gone from this file",
+        # Two edits, one patch: drop the now-unused `basePower` and add `getEffectiveBasePower`.
+        # Splitting them would leave the file un-typecheckable between the two.
+        "apply": lambda s: s.replace(
+            SETTERS_EFFECTIVE_IMPORT_ANCHOR, SETTERS_EFFECTIVE_IMPORT_FIX, 1
+        ).replace(SETTERS_EFFECTIVE_ADD_ANCHOR, SETTERS_EFFECTIVE_ADD_FIX, 1),
+    },
+    {
+        "name": "actions: setBasePowerFrom/copyPower/swapBasePower measure from the effective base",
+        "relpath": "src/effects/actions.ts",
+        "anchor": SETTERS_EFFECTIVE_SWAP_ANCHOR,
+        "already": "OPCG-Go patch: EFFECTIVE base, not printed. Swapping base powers",
+        "apply": lambda s: s.replace(SETTERS_EFFECTIVE_SWAP_ANCHOR, SETTERS_EFFECTIVE_SWAP_FIX, 1)
+        .replace(SETTERS_EFFECTIVE_FROM_ANCHOR, SETTERS_EFFECTIVE_FROM_FIX, 1)
+        .replace(SETTERS_EFFECTIVE_COPY_ANCHOR, SETTERS_EFFECTIVE_COPY_FIX, 1),
+    },
+    {
+        "name": "permanent: setBasePowerFrom is a replacement, not a power delta",
+        "relpath": "src/effects/permanent.ts",
+        "anchor": PERM_SETBASEPOWERFROM_ANCHOR,
+        "already": "OPCG-Go patch: `setBasePowerFrom` used to be folded in here as a power delta",
+        # Two edits, one patch: narrow relevantActions AND delete the branch it used to admit.
+        # Splitting them would leave either dead code or a filter with no handler.
+        "apply": lambda s: s.replace(PERM_SETBASEPOWERFROM_ANCHOR, PERM_SETBASEPOWERFROM_FIX, 1)
+        # `+ "\n"` so the deletion takes the branch's own trailing newline with it. Without that
+        # the closing brace's line break survives as a blank line and `vp check` fails on format.
+        .replace(
+            PERM_SETBASEPOWERFROM_BRANCH_ANCHOR + "\n", PERM_SETBASEPOWERFROM_BRANCH_FIX, 1
         ),
     },
 ]

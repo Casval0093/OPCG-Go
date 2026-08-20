@@ -27,17 +27,6 @@ export const op15Fuza070: CharacterCard = {
   attribute: "special",
   effect:
     "All of your [Shura] cards and this Character gain [Unblockable].\n(This card cannot be blocked.)\n[Opponent's Turn] All of your [Shura] cards' base power and this Character's base power become 6000.",
-  // PARKED -- "[Opponent's Turn] All of your [Shura] cards' base power and this Character's base
-  // power become 6000" is NOT encoded. It needs the same missing primitive as OP16-106/OP16-015/
-  // OP16-058/OP15-092 (`setBasePowerLiteral` in data/parked-clauses.json): no DSL verb sets a
-  // card's BASE power to a literal. `setPower` applies `value - getCardPower(target)`, a TOTAL
-  // power set measured at resolution, so it absorbs modifiers already on the target instead of
-  // letting them stack on 6000 -- and on this card that is the difference between a Shura holding
-  // a counter boost sitting at 6000 and at 6000+boost. `setBasePowerFrom` has the right arithmetic
-  // but copies another card on the field rather than a literal. Ruling #909 additionally pins
-  // where the clause has to reach: a Leader that has every card's name DOES get base power 6000
-  // (是的), so the primitive's target must span the Leader, not just the character zone -- the
-  // same breadth the [Unblockable] grant below already carries. The keyword half IS encoded.
   effects: {
     permanentEffects: [
       {
@@ -65,6 +54,46 @@ export const op15Fuza070: CharacterCard = {
             action: "grantKeyword",
             target: { player: "self", zones: ["character"], count: { amount: 1 }, self: true },
             keyword: "unblockable",
+            duration: "permanent",
+          },
+        ],
+      },
+      {
+        // "[Opponent's Turn] All of your [Shura] cards' base power and this Character's base power
+        // become 6000." A separate block because it is gated on the turn and the keyword grant is
+        // not; the two-action split is the same one the grant above needs, and for the same reason
+        // (no filter expresses "is the source card", so `self: true` has to be its own target).
+        //
+        // `setBasePower`, not `setPower`: `setPower` sets TOTAL power by subtracting
+        // `getCardPower` at resolution, so a [Shura] already holding a counter boost would be
+        // clamped back to 6000 instead of reaching 6000+boost. It is also unreadable from a
+        // permanent effect at all -- the permanent power path recognises only `modifyPower` and
+        // the two base-power setters.
+        //
+        // 6000 is a floor AND a ceiling, which is why the literal has to replace the base rather
+        // than add to it: every printed [Shura] body is 2000 base (OP15-067, OP05-106) and Fuza
+        // itself is 4000, so the clause is a large increase here and would be a decrease on a
+        // bigger body. A `modifyPower` of any fixed value cannot express either.
+        conditions: [{ condition: "turn", value: "opponent" }],
+        actions: [
+          {
+            // Ruling #909: a Leader whose own effect gives it every card name DOES reach base
+            // power 6000 through this clause (是的). So the zone list spans leader + character,
+            // matching the [Unblockable] grant above rather than narrowing to characters.
+            action: "setBasePower",
+            target: {
+              player: "self",
+              zones: ["leader", "character"],
+              count: { amount: "all" },
+              filters: [{ filter: "name", value: "Shura" }],
+            },
+            value: 6000,
+            duration: "permanent",
+          },
+          {
+            action: "setBasePower",
+            target: { player: "self", zones: ["character"], count: { amount: 1 }, self: true },
+            value: 6000,
             duration: "permanent",
           },
         ],

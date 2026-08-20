@@ -325,9 +325,14 @@ cards" to "Look at 5 cards from the top" is churn that changes nothing and burie
 **One Standard-legal text defect is knowingly left open: `OP13-084`.** Limitless prints
 *"[Your Turn] If you have 10 or more cards in your trash, set the base power of all of your
 {Five Elders} type Characters to 7000"*; the engine encodes a completely different `[On Play]` deck
-search. That is not a text fix — it needs the `setBasePowerLiteral` primitive, which
-`data/parked-clauses.json` already has parked with six OP15/OP16 instances and which `CLAUDE.md`
-lists as blocking the OP17 Ace list. It belongs in that work, not here.
+search. That is not a text fix — it needs a literal base-power setter.
+**That primitive now EXISTS — `setBasePower`, built 2026-08-20 (the `setBasePower` patches in
+`tools/patch_engine.py`), so this card is UNBLOCKED and still unfixed.** It is a bigger job than
+the 48 corrections were, because both halves are wrong: the printed `effect` string has to be
+corrected via `data/card-corrections.json` *and* the fabricated `[On Play]` encoding replaced, in
+the vendored tree, together — per §4's rule, landing one without the other is a regression rather
+than a partial fix. It also wants its own tests, since `docs/mutation-triage.md` records it as the
+one card where fixing the existing test would be wasted work.
 
 ### 6. Untested encodings — **the "70 Standard-legal" figure was wrong; the real number is 0**
 
@@ -338,13 +343,21 @@ whether there is anything a test could asserted:
 
 | | count | Standard | is it a finding? |
 |---|---|---|---|
-| vanilla — no printed effect text *and* no `effects:` block | 63 | 59 | **no.** Nothing to assert |
-| printed text but **no encoding** | 11 | 11 | an *encoding* gap, not a test gap — and all 11 are already in `data/parked-clauses.json` |
+| vanilla — no printed effect text *and* no `effects:` block | 62 | 58 | **no.** Nothing to assert |
+| printed text but **no encoding** | 9 | 9 | an *encoding* gap, not a test gap — and all are already in `data/parked-clauses.json` |
 | **has an `effects:` encoding and no test** | **0** | **0** | this was the claim, and it is empty |
 
-So **every card in the engine that carries an encoding is referenced by at least one test.** The 11
-are `OP15-010/015/018/027/028/031/058/059` and `OP16-015/060/079` — exactly the 8 OP15 + 3 OP16 split
-`CLAUDE.md` already banks as fully parked, so the old "explains only some of them" is withdrawn too.
+So **every card in the engine that carries an encoding is referenced by at least one test.** The 9
+are `OP15-010/015/018/027/028/031/058/059` and `OP16-079`, all of them in
+`data/parked-clauses.json`, so the old "explains only some of them" is withdrawn too.
+
+**Re-measured 2026-08-20** — the table above was 63 / 11 / 0 with `OP16-015/060/079` in the list.
+Two things moved. `OP16-015` gained an `effects:` block and a test when the `setBasePower` primitive
+was built, so it leaves this section entirely. And `OP16-060` is now *mentioned* by a test while
+still having no encoding, which is why this bucket reads **9** where
+`tools/coverage_report.py --exclude-promos` reports **10** encoding gaps: the two count different
+things, and both are right. This section counts ids **no test mentions**; the coverage report counts
+cards **with no encoding**. `OP16-060` is the one card in the difference.
 
 `section_tests` in `audit_encodings.py` now reports the three buckets separately so the aggregate
 cannot be quoted as a coverage gap again. This also drops the audit's Standard-legal finding count
@@ -454,8 +467,9 @@ ordinary red Event, `OP08-119` an ordinary Character (albeit with the dual
    defect.
 5. **`EB04`'s 31 missing cards** are the largest single competitive gap, and `EB04-028`'s Trigger is
    already on the list above.
-6. **`OP13-084`'s wrong ability**, once `setBasePowerLiteral` exists — see §5. Do not attempt it as a
-   text fix.
+6. **`OP13-084`'s wrong ability** — no longer blocked. The `setBasePower` primitive landed
+   2026-08-20, so §5's precondition is met; the work itself (correction + encoding + tests, in one
+   batch) has not been done. Do not attempt it as a text fix.
 
 `ST10`–`ST36` matter far less than their count suggests: starter-deck cards are
 mostly reprints or off-meta, and no current sim deck draws on them.
