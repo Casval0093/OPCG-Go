@@ -24,7 +24,7 @@ automates the per-card check this document previously did by hand.
 | numeric field disagreements | 13 (11 Standard) | **0** |
 | trait value disagreements | 29 (9 Standard) | **0** |
 | trait filter **missed** matches | 21 cards | **0** |
-| trait filter **false** matches | 250 cards (175 Standard) | 246 (170 Standard) |
+| trait filter **false** matches | 250 cards (175 Standard) | **0 — trait matching collapsed to whole-trait equality 2026-08-21 (§2 done: engine patches 9+10, joined storage split, "type including" sites enumerated per CR 2-4-3-1; suite 6079 → 6079 pass)** |
 | printed-text agreement, OP01–14 | 1607/1666 | **1609/1666 (96.6%)** |
 | engine test suite | 6078 pass / 0 fail | **6079 pass / 0 fail** |
 
@@ -51,9 +51,18 @@ Two things learned at the official source and worth keeping:
   0 — and ~90 base printings are Characters with `-` power. `CLAUDE.md`'s standing warning holds:
   never give any tool here a blanket `- → 0`, because a Character's counter is genuinely optional.
 
-**Two things deliberately NOT done, each for a reason recorded below:** the trait-matching change in
-§2 (an engine behaviour change that wants its own branch), and the ten missing `[Trigger]`
+**One thing deliberately NOT done, for the reason recorded below:** the ten missing `[Trigger]`
 abilities in §4 (text alone would make them worse, not better — see the code reading there).
+The §2 trait-matching change this line used to defer is DONE (2026-08-21): both halves landed —
+the 838 joined trait strings are split and both substring sites (`targeting.ts` filters and
+`conditions.ts` `leaderTrait`) are collapsed to whole-trait equality. One premise correction
+worth recording: the old note claimed the substring behaviour was "more generous than the card"
+on `OP16-001` Ace per ruling #961 — wrong on two counts. Ruling #961 is about the **power
+threshold** binding both clauses of Ace's text, and Ace's trait reference is the
+including-form ("a type including \"Whitebeard Pirates\""), which Comprehensive Rules 2-4-3-1
+and the GENERAL 包含 ruling make cover Former/Allies *by rule*. The fix therefore *preserves*
+Ace's coverage by enumeration; the real narrowing lands on brace-form references (`{Animal}`,
+`{Navy}`, `{Baroque Works}`, …), which 2-4-3 makes exact.
 
 ### The correction pass found two more defects of its own
 
@@ -155,6 +164,16 @@ it is the engine's own data that dropped the field.
 
 ### 2. Trait matching is structurally unsound — 170 Standard-legal false matches
 
+> **RESOLVED 2026-08-21.** Both halves below landed: the 838 joined strings are split
+> (`tools/split_traits.py` regenerates the 840 generated rows of `data/card-corrections.json`),
+> and the matcher collapsed to whole-trait equality at **both** substring sites —
+> `targeting.ts` trait filters (patch 9) and `conditions.ts` `leaderTrait`, where substring was
+> the default on all 292 conditions (patch 10). Printed "type including" sites enumerate their
+> closure per CR 2-4-3-1 (26 CP/GERMA rows + 64 Whitebeard/Baroque/Roger rows + the 5 OP16
+> source cards). Suite 6079 → 6079 pass / 0 fail; false matches 170 → 0. **One claim in the
+> analysis below is corrected: the Ace paragraph overstated the case** — see the note at the
+> end of this section. The rest stands as the diagnostic record.
+
 Upstream sets store a multi-trait card as **one space-joined string**:
 `OP01-003` Luffy has traits *Straw Hat Crew* and *Supernovas* and is stored
 `traits: ["Straw Hat Crew Supernovas"]`. This project's own OP15/OP16 encodings
@@ -230,8 +249,21 @@ resolved by the pair above: some are joined-store artifacts (`Merfolk` via
 which step 1 fixes; the rest are genuine trait-substring collisions
 (`Whitebeard Pirates`, `Navy`, `Animal`), which need step 2.
 
-This is an engine behaviour change, not a data correction, so it wants its own
-branch and a before/after run of the full 6078-test suite.
+This was an engine behaviour change, not a data correction, so it landed on its own
+footing with a before/after run of the full 6079-test suite: **6079 → 6079 pass / 0 fail**.
+
+> **Correction to the Ace paragraph above (2026-08-21).** Ruling #961 is about the **power
+> threshold** ("8000 power or more") binding both clauses of `OP16-001`'s text — it does not
+> narrow the trait. And Ace's trait reference is the including-form: "a type including
+> \"Whitebeard Pirates\"", which CR 2-4-3-1 plus the GENERAL 包含 ruling ("拥有的特征中包含'○○'"
+> does include 《原○○》/《○○旗下》) make cover `Former Whitebeard Pirates` and
+> `Whitebeard Pirates Allies` *by rule*. So on Ace specifically the old substring behaviour
+> happened to be right, and the fix *preserves* that coverage by enumerating the closure. The
+> genuine over-matching was on the brace-form references — `{Animal}` reaching all 84
+> `Animal Kingdom Pirates`, `{Navy}` reaching `Former Navy`/`Neo Navy`, `{Baroque Works}`
+> reaching `Former Baroque Works`, and the `leaderTrait` conditions reaching Former/Neo
+> leaders — which CR 2-4-3 makes exact. `projection.ts`'s `operator: "includes"` remains
+> display metadata, as noted above.
 
 ### 3. Wrong or missing trait values — 29 cards, 9 Standard-legal — **FIXED**
 

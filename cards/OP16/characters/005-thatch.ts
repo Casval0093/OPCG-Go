@@ -40,7 +40,7 @@ export const op16Thatch005: CharacterCard = {
             zone: "character",
             filters: [
               { filter: "power", comparison: "gte", value: 8000 },
-              { filter: "trait", value: "Whitebeard Pirates", match: "includes" },
+              { filter: "trait", value: ["Whitebeard Pirates", "Former Whitebeard Pirates", "Whitebeard Pirates Allies"], match: "includes" },
             ],
           },
         ],

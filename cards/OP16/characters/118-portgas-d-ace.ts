@@ -50,7 +50,7 @@ export const op16PortgasDAce118: CharacterCard = {
             // half says "1 card", so neither disjunct carries a card-type restriction.
             revealFilters: [
               { filter: "name", value: "Monkey.D.Luffy" },
-              { filter: "trait", value: "Whitebeard Pirates", match: "includes" },
+              { filter: "trait", value: ["Whitebeard Pirates", "Former Whitebeard Pirates", "Whitebeard Pirates Allies"], match: "includes" },
             ],
             revealFilterMode: "any",
             revealDestination: "hand",
@@ -69,7 +69,7 @@ export const op16PortgasDAce118: CharacterCard = {
             revealCount: { amount: 1, upTo: true },
             revealFilters: [
               { filter: "name", value: "Monkey.D.Luffy" },
-              { filter: "trait", value: "Whitebeard Pirates", match: "includes" },
+              { filter: "trait", value: ["Whitebeard Pirates", "Former Whitebeard Pirates", "Whitebeard Pirates Allies"], match: "includes" },
             ],
             revealFilterMode: "any",
             revealDestination: "hand",

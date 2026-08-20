@@ -35,7 +35,7 @@ export const op16LetSShowEmWhatWeReMadeOf019: EventCard = {
             source: { player: "self", zone: "hand" },
             count: { amount: 2, upTo: true },
             filters: [
-              { filter: "trait", value: "Whitebeard Pirates", match: "includes" },
+              { filter: "trait", value: ["Whitebeard Pirates", "Former Whitebeard Pirates", "Whitebeard Pirates Allies"], match: "includes" },
               // Ruling #974: "8000 power" is EXACTLY 8000 -- neither 7000-or-less nor
               // 9000-or-more qualifies (不, 是指力量刚好为8000的角色卡牌). Same reading as
               // #962/#963. There is deliberately no `cardCategory: "character"` filter: a Stage's

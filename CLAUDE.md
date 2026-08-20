@@ -76,9 +76,9 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   [Whitebeard Pirates] bodies and refused four. **The trait filter was never wrong** — the prompt's
   own `eligibleIds` was correct and every refused card was in it; all 104 trait/name filters across
   `cards/OP15` + `cards/OP16` resolve to real catalog values, so there is no
-  "Whitebeard Piratess"-class typo in the encodings. **That clears the filter *values* only —
-  the trait *matching semantics* are separately broken, and that is not this note. Do not read
-  this as "traits have been checked": see the trait-matching fact below.** Blast radius was **171 of the 185 encodings
+  "Whitebeard Piratess"-class typo in the encodings. **That clears the filter *values* only.
+  The trait *matching semantics* were a separate defect — fixed 2026-08-21 (whole-trait equality,
+  patches 9+10); see the trait-matching fact below.** Blast radius was **171 of the 185 encodings
   with a `search` action** (every one that reveals to hand), and only 19 are OP15/OP16 — the other
   152 are upstream's own cards. Fix is patch 2 in `tools/patch_engine.py`; A/B on the 10-game Ace
   mirror with the arena's masking retry disabled: **`illegal-command=1` → `rules-win=10`**. Engine
@@ -490,7 +490,7 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   series id — its cards live under `?series=569114` labelled `[OP14-EB04]`**, matching the engine's
   shared `OP14EB04` directory; and **the official EN site prints counter bare, not `+2000`** (the `+`
   is a Limitless/JP convention).
-  **Still open and deliberately so:** the trait-*matching* change (below), the **10 missing
+  **Still open and deliberately so:** the **10 missing
   `[Trigger]` abilities**, `OP13-084`'s wrong ability (needs `setBasePowerLiteral`), and the 445 absent
   card definitions.
   **The "70 Standard-legal encodings referenced by no test" figure is WITHDRAWN — the real number is
@@ -544,25 +544,36 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   `PRB01`/`PRB02` file. Both now covered by `tools/test_correct_cards.py`, which is
   mutation-verified: 16 mutants, 0 survivors.
 
-- **Trait matching is structurally unsound, and the fix is two halves that do not work alone.**
-  Upstream stores a multi-trait card as ONE space-joined string — `OP01-003` is
-  `traits: ["Straw Hat Crew Supernovas"]` — on **838 cards**. Our own OP15/OP16 store `["A","B"]`
-  correctly, so this is upstream's defect. `effects/targeting.ts` branches on `match: "includes"`
-  to a **substring** test, which is what makes the joined store work at all — and **597 of 599
-  trait filters set it**. It is also why **19 of the 164 official traits are proper substrings of
-  another official trait**, producing **170 Standard-legal false matches** (was 175; the trait-value corrections removed the `SWORD` and `The Vinsmoke Family` rows): `Animal` matches all 84
-  `Animal Kingdom Pirates`, `Navy` matches `Former Navy`/`Neo Navy`, and **`Whitebeard Pirates`
-  matches `Former Whitebeard Pirates`/`Whitebeard Pirates Allies` (10 Standard)** — which is
-  `OP16-001` Ace's key trait, so the engine is currently **more generous than the card in the
-  direction that flatters the Ace deck**, against ruling #961 which makes the grant narrower.
-  **Splitting the joined values is a precondition, not the fix**: with traits split and `includes`
-  kept, `"Former Whitebeard Pirates".includes("Whitebeard Pirates")` is still true. Both halves are
-  required — (1) split the 838 values, (2) collapse the `targeting.ts` branches to
-  `(card.traits ?? []).includes(expectedTrait)`. **Step 2 leaves all 597 `match: "includes"`
-  declarations untouched**, because once traits are split that is already what they mean; the only
-  casualties are the **21 filters with genuine prefix intent**, `CP` (14) and `GERMA` (7), neither
-  of which is an official trait. This is an engine behaviour change, so it wants its own branch and
-  a before/after 6078-test run — do not fold it in with the data corrections.
+- **Trait matching is FIXED — whole-trait equality on both sites, 2026-08-21. Do not re-litigate.**
+  Upstream stored a multi-trait card as ONE space-joined string — `OP01-003` was
+  `traits: ["Straw Hat Crew Supernovas"]` — on **838 cards**, and matched traits by SUBSTRING in
+  two places: `effects/targeting.ts` trait filters (**597 of 599** set `match: "includes"`) and
+  `effects/conditions.ts` `leaderTrait` (substring was the **default on all 292 conditions**).
+  Both are collapsed to `(card.traits ?? []).includes(expected)` (engine patches 9+10), and the
+  joined store is split into exact tokens (`tools/split_traits.py` regenerates the 840 generated
+  rows of `data/card-corrections.json`; 6 more were Limitless-adjudicated by hand).
+  **Premise correction vs the original note above the fold: the old substring behaviour was NOT
+  "more generous than the card" on `OP16-001` Ace.** Ace's printed text is the including-form —
+  "a type including \"Whitebeard Pirates\"" — which Comprehensive Rules 2-4-3-1 and the GENERAL
+  包含 ruling make cover `Former Whitebeard Pirates`/`Whitebeard Pirates Allies` *by rule*;
+  ruling #961 is about the **power threshold** binding both clauses, not about narrowing the
+  trait. So the fix *preserves* Ace's coverage by enumerating the closure. What genuinely
+  narrows is the **brace-form** cards — CR 2-4-3 makes `《X》` exact: `{Animal}` no longer reaches
+  all 84 `Animal Kingdom Pirates`, `{Navy}` no longer reaches `Former Navy`/`Neo Navy`, and the
+  leaderTrait collapse stops `"Roger Pirates"` conditions matching the Former Roger Pirates
+  leader `OP12-001` and `"Navy"` conditions matching the Neo Navy leader `OP02-072`.
+  Every printed "type including" site instead enumerates its closure over the official trait
+  list (2-4-3-1): **64 upstream rows** (Whitebeard/Baroque Works/Roger Pirates filters +
+  leaderTraits) on top of the **26 CP/GERMA rows**, plus the **5 OP16 source cards** edited in
+  `cards/OP16/`. `match: "includes"` strings remain in the data as intent documentation only.
+  **17 upstream tests pinned the defect** (slash/space-joined fixture traits, two shape
+  assertions, Former/Allies bodies cast as eligible for brace references) — fixed as
+  patch_engine.py entries; one of them exposed a real second bug: reprint name decorations
+  (`"Bartolomeo (P-029) (Jolly Roger Foil)"`) defeat exact name references like "other than
+  [Bartolomeo]", fixed for that card via `alternateNames` (the Sogeking/Usopp pattern); other
+  decorated reprints have the same latent gap until one is referenced.
+  Measured: suite **6079 → 6079 pass / 0 fail**, audit **false matches 170 → 0**, joined
+  storage **838 → 0**, `correct_cards.py --check` and `patch_engine.py --check` green.
 - **Variant printed text is not trustworthy; base text is.** 39 of 315 spread printings
   disagree with the base whose encoding they execute — 16 have lost the `−` from a debuff
   ("give 3000 power" for a card that gives −3000), 12 differ by a bracketed keyword.

@@ -455,15 +455,17 @@ def section_filters(dataset, engine, report) -> int:
     modes = collections.Counter(f["match"] for f in filters)
     counts = collections.Counter(v for f in filters for v in f["values"])
     print(f"trait filters: {len(filters)}   match modes: {dict(modes)}")
-    print("substring matching is what makes the space-joined store work at all, "
-          "and\nis also what makes these two error classes possible:\n")
+    print("trait matching is whole-trait equality now (engine patches 9+10): scalar values are\n"
+          "brace {X} references, exact by Comprehensive Rules 2-4-3; \"type including\" filters\n"
+          "carry the enumerated closure array per 2-4-3-1. So both error classes below should be\n"
+          "empty -- a non-empty row is a data gap, not an encoding style:\n")
     false_pos, false_neg = collections.defaultdict(list), collections.defaultdict(list)
     for value in sorted(counts):
         for cid, card in engine.items():
             official = dataset.get(cid, {}).get("traits") or []
             if not official:
                 continue
-            matched = any(value in t for t in (card["traits"] or []) if t)
+            matched = any(value == t for t in (card["traits"] or []) if t)
             if matched and value not in official:
                 false_pos[value].append(cid)
             elif not matched and value in official:
@@ -476,7 +478,7 @@ def section_filters(dataset, engine, report) -> int:
             cards = table[value]
             live = sum(1 for c in cards if not is_rotated(c.split("-")[0]))
             why = sorted({t for c in cards for t in (dataset[c]["traits"] or [])
-                          if value in t} or
+                          if value == t} or
                          {t for c in cards for t in (engine[c]["traits"] or []) if t})
             print(f"    {value!r:<24} {len(cards):>4} cards ({live} Standard) "
                   f"via {why[:3]}")
