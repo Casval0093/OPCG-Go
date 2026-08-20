@@ -10,6 +10,7 @@ Stdlib unittest only, matching the other tools' tests.
 
 from __future__ import annotations
 
+import ast
 import contextlib
 import io
 import os
@@ -85,6 +86,13 @@ class PatchEngineTest(unittest.TestCase):
         `str.replace` then found nothing and no-opped, the patch still wrote its marker, and these
         apply tests passed while the file was half-patched. The tests were resting on the bug
         `replace_once` now raises for. Codex flagged the production side of this on PR #28.
+
+        Anchors that CONTAIN one another are seeded once, longest first. Two real pairs do:
+        ORDERCARDS_ANCHOR (`if (prompt.choiceKind === "confirm") {`) is a substring of
+        COUNTER_CALL_ANCHOR, and `op11Franky012` is a substring of the Hibari import line. Writing
+        both members produced a file where the shorter anchor appeared TWICE, which the real engine
+        never does -- and `replace_once` rightly refused to guess which one to patch. Seeding the
+        longer one alone is the faithful fixture, since it already contains the shorter.
         """
         anchors: dict[str, list[str]] = {}
         for patch in patch_engine.PATCHES:
@@ -92,8 +100,23 @@ class PatchEngineTest(unittest.TestCase):
                 continue
             for anchor in patch_engine.patch_anchors(patch):
                 anchors.setdefault(patch["relpath"], []).append(anchor)
+        multi: dict[str, list[str]] = {}
+        for patch in patch_engine.PATCHES:
+            if "create" in patch:
+                continue
+            for anchor in patch_engine.anchors_every(patch):
+                multi.setdefault(patch["relpath"], []).append(anchor)
         for relpath, texts in anchors.items():
-            body = "\n".join(f"{text}\nafter\n" for text in texts)
+            body = ""
+            for text in sorted(set(texts), key=len, reverse=True):
+                if text in body:
+                    continue
+                body += f"{text}\nafter\n\n"
+            # A `replace_every` anchor gets EXTRA standalone occurrences. In the real tree these
+            # identifiers appear at every use site as well as inside the import line, so an edit
+            # that rewrites the import must not be able to remove the last of them.
+            for text in sorted(set(multi.get(relpath, []))):
+                body += f"use({text});\nuse({text});\n\n"
             self.write(relpath, f"before\n{body}")
 
     def create_patches(self) -> list[dict]:
@@ -230,22 +253,81 @@ class PatchEngineTest(unittest.TestCase):
                 return patch
         raise AssertionError("no multi-edit patch to test against")
 
-    def test_every_multi_edit_patch_declares_a_marker_per_anchor(self) -> None:
-        """The invariant that keeps the fix from rotting.
+    # The two invariants below are the ones that keep this fix from rotting, and the first version
+    # of the marker-count test WAS ITSELF the defect it exists to prevent. It compared markers
+    # against DECLARED anchors, so a patch making two edits while declaring one anchor passed --
+    # and one such patch was sitting in the list at the time (`bot-strategies: the policy compared
+    # PRINTED power`, which landed on main while this branch was open). Counting the edits in the
+    # apply lambda's own source is what actually closes it.
 
-        A future patch that adds a second anchor but keeps one `already` string would reintroduce
-        exactly the reported defect, and nothing else here would notice.
+    @staticmethod
+    def patches_source() -> str:
+        with open(os.path.join(os.path.dirname(patch_engine.__file__), "patch_engine.py")) as fh:
+            source = fh.read()
+        return source[source.index("PATCHES = [") : source.index("\ndef main(")]
+
+    def test_no_patch_uses_bare_str_replace(self) -> None:
+        """Bare `.replace(` in an apply lambda is the silent no-op Codex reported.
+
+        Asserted structurally over the PATCHES block rather than per patch, because the failure is
+        the ABSENCE of a guard and there is no way to observe that from a patch dict.
         """
+        tree = ast.parse(self.patches_source().replace("PATCHES = [", "PATCHES = [", 1))
+        offenders = [
+            node.func.attr
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "replace"
+        ]
+        self.assertEqual(
+            offenders,
+            [],
+            "an apply lambda calls str.replace directly — use replace_once/replace_every, which "
+            "raise instead of silently leaving the edit undone",
+        )
+
+    def test_every_patch_declares_a_marker_per_EDIT(self) -> None:
+        """Markers counted against the edits the lambda really makes, not the anchors it declares."""
+        tree = ast.parse(self.patches_source())
+        edits_by_name: dict[str, int] = {}
+        for entry in ast.walk(tree):
+            if not isinstance(entry, ast.Dict):
+                continue
+            name = None
+            for key, value in zip(entry.keys, entry.values):
+                if isinstance(key, ast.Constant) and key.value == "name":
+                    name = value.value
+            if name is None:
+                continue
+            edits_by_name[name] = sum(
+                1
+                for node in ast.walk(entry)
+                if isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id in {"replace_once", "replace_every"}
+            )
+
+        self.assertTrue(edits_by_name, "could not parse any patch entry — the test is vacuous")
         for patch in patch_engine.PATCHES:
-            anchors = len(patch_engine.patch_anchors(patch))
+            edits = edits_by_name.get(patch["name"], 0)
+            if "create" in patch:
+                continue
             markers = len(patch_engine.applied_markers(patch)) + len(
                 patch_engine.absent_markers(patch)
             )
             self.assertGreaterEqual(
                 markers,
+                max(edits, 1),
+                f"{patch['name']}: {edits} edit(s) but only {markers} marker(s) — a half-applied "
+                f"file would report ok",
+            )
+            anchors = len(patch_engine.patch_anchors(patch))
+            self.assertGreaterEqual(
                 anchors,
-                f"{patch['name']}: {anchors} anchor(s) but only {markers} marker(s) — a "
-                f"half-applied file would report ok",
+                max(edits, 1),
+                f"{patch['name']}: {edits} edit(s) but only {anchors} declared anchor(s) — a moved "
+                f"secondary anchor would not be reported by --check",
             )
 
     def test_moved_secondary_anchor_fails_and_writes_nothing(self) -> None:

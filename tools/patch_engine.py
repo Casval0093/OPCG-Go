@@ -116,9 +116,24 @@ def patch_anchors(patch: dict) -> list[str]:
     """
     declared = patch.get("anchors")
     if declared:
-        return list(declared)
+        return list(declared) + anchors_every(patch)
     # A CREATE patch has no anchor -- there is nothing in the tree to anchor to.
-    return [patch["anchor"]] if "anchor" in patch else []
+    return ([patch["anchor"]] if "anchor" in patch else []) + anchors_every(patch)
+
+
+def anchors_every(patch: dict) -> list[str]:
+    """Anchors consumed by `replace_every`, i.e. expected MANY times rather than exactly once.
+
+    Kept separate from `anchors` because the two carry different contracts and the difference is
+    load-bearing for anything that reasons about the file: a `replace_once` anchor appearing twice
+    is an error, while a `replace_every` anchor appearing twice is the normal case. Only the Hibari
+    identifier swaps are of this kind today (`op11Franky012` occurs in the import line and at every
+    use site), and conflating them made tools/test_patch_engine.py build an unfaithful fixture --
+    one where the identifier existed ONLY inside the import line, so replacing the import removed
+    the very text the next edit was looking for.
+    """
+    declared = patch.get("anchors_multi", [])
+    return [declared] if isinstance(declared, str) else list(declared)
 
 
 def applied_markers(patch: dict) -> list[str]:
@@ -2093,28 +2108,28 @@ PATCHES = [
         "relpath": "src/automation/bot-harness.ts",
         "anchor": ORDERCARDS_ANCHOR,
         "already": 'prompt.choiceKind === "orderCards"',
-        "apply": lambda s: s.replace(ORDERCARDS_ANCHOR, ORDERCARDS_FIX, 1),
+        "apply": lambda s: replace_once(s, ORDERCARDS_ANCHOR, ORDERCARDS_FIX),
     },
     {
         "name": "resolution: search-to-hand must not require open character slots",
         "relpath": "src/effects/resolution.ts",
         "anchor": SEARCH_SLOTS_ANCHOR,
         "already": 'OPCG-Go patch: only a search that PLAYS what it reveals',
-        "apply": lambda s: s.replace(SEARCH_SLOTS_ANCHOR, SEARCH_SLOTS_FIX, 1),
+        "apply": lambda s: replace_once(s, SEARCH_SLOTS_ANCHOR, SEARCH_SLOTS_FIX),
     },
     {
         "name": "vite.config: run the per-card tests under src/cards",
         "relpath": "vite.config.ts",
         "anchor": SRC_CARDS_TESTS_ANCHOR,
         "already": '"src/cards/**/*.test.ts"',
-        "apply": lambda s: s.replace(SRC_CARDS_TESTS_ANCHOR, SRC_CARDS_TESTS_FIX, 1),
+        "apply": lambda s: replace_once(s, SRC_CARDS_TESTS_ANCHOR, SRC_CARDS_TESTS_FIX),
     },
     {
         "name": "state: first player places 1 DON!! on their first turn, not 2",
         "relpath": "src/state.ts",
         "anchor": FIRST_TURN_DON_ANCHOR,
         "already": "isFirstPlayersFirstTurn",
-        "apply": lambda s: s.replace(FIRST_TURN_DON_ANCHOR, FIRST_TURN_DON_FIX, 1),
+        "apply": lambda s: replace_once(s, FIRST_TURN_DON_ANCHOR, FIRST_TURN_DON_FIX),
     },
     {
         "name": "tests: two upstream cases assert the pre-fix first-turn DON!! count",
@@ -2135,20 +2150,22 @@ PATCHES = [
         "relpath": "tests/cards/characters/op06-054-borsalino.test.ts",
         "anchor": BORSALINO_ANCHOR,
         "already": 'test("does not gain Blocker with six cards in hand"',
-        "apply": lambda s: s.replace(BORSALINO_ANCHOR, BORSALINO_FIX, 1),
+        "apply": lambda s: replace_once(s, BORSALINO_ANCHOR, BORSALINO_FIX),
     },
     {
         "name": "tests: OP07-030 Pappag asserted a condition that is always true",
         "relpath": "tests/cards/characters/op07-030-pappag.test.ts",
         "anchor": PAPPAG_ANCHOR,
         "already": 'expect(() => withoutCamie.pendingDecision("battleBlocker", "south")).toThrow();',
-        "apply": lambda s: s.replace(PAPPAG_ANCHOR, PAPPAG_FIX, 1),
+        "apply": lambda s: replace_once(s, PAPPAG_ANCHOR, PAPPAG_FIX),
     },
     {
         "name": "tests: EB03-008 Hibari used a non-SWORD card as its SWORD body",
         "relpath": "tests/cards/characters/eb03-008-hibari.test.ts",
         "anchor": HIBARI_ANCHOR,
-        "anchors": [HIBARI_ANCHOR, "op11Franky012", "frankyId"],
+        "anchors": [HIBARI_ANCHOR],
+        # Identifier swaps: many occurrences each, so replace_EVERY rather than replace_once.
+        "anchors_multi": ["op11Franky012", "frankyId"],
         "already": [
             "OP11-092 Helmeppo is really Navy/SWORD",
             "op11Helmeppo092",
@@ -2168,14 +2185,14 @@ PATCHES = [
         "relpath": "src/effects/permanent.ts",
         "anchor": SETCOST_PREFILTER_ANCHOR,
         "already": "OPCG-Go patch: skip the effect before evaluating its conditions",
-        "apply": lambda s: s.replace(SETCOST_PREFILTER_ANCHOR, SETCOST_PREFILTER_FIX, 1),
+        "apply": lambda s: replace_once(s, SETCOST_PREFILTER_ANCHOR, SETCOST_PREFILTER_FIX),
     },
     {
         "name": "battle: neither player may attack on their own first turn",
         "relpath": "src/battle.ts",
         "anchor": FIRST_TURN_ATTACK_ANCHOR,
         "already": "OPCG-Go patch: NEITHER player may attack on their own first turn",
-        "apply": lambda s: s.replace(FIRST_TURN_ATTACK_ANCHOR, FIRST_TURN_ATTACK_FIX, 1),
+        "apply": lambda s: replace_once(s, FIRST_TURN_ATTACK_ANCHOR, FIRST_TURN_ATTACK_FIX),
     },
     {
         "name": "counter-policy: the defender's counter step, with every knob in a config object",
@@ -2223,12 +2240,19 @@ PATCHES = [
         "name": "bot-strategies: the policy compared PRINTED power, not the power a card plays at",
         "relpath": "src/automation/bot-strategies.ts",
         "anchor": BOT_POWER_ANCHOR,
-        "already": "OPCG-Go patch: the policy must compare the power a card PLAYS at",
+        "anchors": [BOT_POWER_ANCHOR, BOT_POWER_IMPORT_ANCHOR],
+        "already": [
+            "OPCG-Go patch: the policy must compare the power a card PLAYS at",
+            # The import edit adds no comment, so its own text is the marker.
+            'import { getCardForInstance, getCardPower, getPlayer } from "../shared.ts";',
+        ],
         # Import first, same reasoning as the counter-step patch: neither replacement contains the
         # other's anchor, so order is not load-bearing, but a half-applied patch then names the
         # missing symbol's module instead of failing on an unresolved identifier.
-        "apply": lambda s: s.replace(BOT_POWER_IMPORT_ANCHOR, BOT_POWER_IMPORT_FIX, 1).replace(
-            BOT_POWER_ANCHOR, BOT_POWER_FIX, 1
+        "apply": lambda s: replace_once(
+            replace_once(s, BOT_POWER_IMPORT_ANCHOR, BOT_POWER_IMPORT_FIX),
+            BOT_POWER_ANCHOR,
+            BOT_POWER_FIX,
         ),
     },
     {
@@ -2236,9 +2260,7 @@ PATCHES = [
         "relpath": "src/testing/test-fixtures.ts",
         "anchor": FIRST_TURN_ATTACK_FIXTURE_ANCHOR,
         "already": "allowFirstTurnAttacks: true,",
-        "apply": lambda s: s.replace(
-            FIRST_TURN_ATTACK_FIXTURE_ANCHOR, FIRST_TURN_ATTACK_FIXTURE_FIX, 1
-        ),
+        "apply": lambda s: replace_once(s, FIRST_TURN_ATTACK_FIXTURE_ANCHOR, FIRST_TURN_ATTACK_FIXTURE_FIX),
     },
     {
         # The one patch that reaches outside packages/engine: the Action union lives in
@@ -2248,53 +2270,49 @@ PATCHES = [
         "relpath": "../types/src/effect/action.ts",
         "anchor": SETBASEPOWER_UNION_ANCHOR,
         "already": "  | SetBasePowerAction",
-        "apply": lambda s: s.replace(SETBASEPOWER_UNION_ANCHOR, SETBASEPOWER_UNION_FIX, 1),
+        "apply": lambda s: replace_once(s, SETBASEPOWER_UNION_ANCHOR, SETBASEPOWER_UNION_FIX),
     },
     {
         "name": "types: SetBasePowerAction — set base power to a literal",
         "relpath": "../types/src/effect/action.ts",
         "anchor": SETBASEPOWER_TYPE_ANCHOR,
         "already": "export interface SetBasePowerAction {",
-        "apply": lambda s: s.replace(SETBASEPOWER_TYPE_ANCHOR, SETBASEPOWER_TYPE_FIX, 1),
+        "apply": lambda s: replace_once(s, SETBASEPOWER_TYPE_ANCHOR, SETBASEPOWER_TYPE_FIX),
     },
     {
         "name": "types: a modifier may carry a literal base power",
         "relpath": "src/types.ts",
         "anchor": SETBASEPOWER_MODIFIER_ANCHOR,
         "already": '"power" | "setBasePower" | "cost"',
-        "apply": lambda s: s.replace(SETBASEPOWER_MODIFIER_ANCHOR, SETBASEPOWER_MODIFIER_FIX, 1),
+        "apply": lambda s: replace_once(s, SETBASEPOWER_MODIFIER_ANCHOR, SETBASEPOWER_MODIFIER_FIX),
     },
     {
         "name": "shared: import the permanent half of setBasePower",
         "relpath": "src/shared.ts",
         "anchor": SETBASEPOWER_IMPORT_ANCHOR,
         "already": "  getPermanentSetBasePower,",
-        "apply": lambda s: s.replace(SETBASEPOWER_IMPORT_ANCHOR, SETBASEPOWER_IMPORT_FIX, 1),
+        "apply": lambda s: replace_once(s, SETBASEPOWER_IMPORT_ANCHOR, SETBASEPOWER_IMPORT_FIX),
     },
     {
         "name": "shared: getCardPower substitutes a set base power for the printed one",
         "relpath": "src/shared.ts",
         "anchor": SETBASEPOWER_GETCARDPOWER_ANCHOR,
         "already": "export function getEffectiveBasePower(",
-        "apply": lambda s: s.replace(
-            SETBASEPOWER_GETCARDPOWER_ANCHOR, SETBASEPOWER_GETCARDPOWER_FIX, 1
-        ),
+        "apply": lambda s: replace_once(s, SETBASEPOWER_GETCARDPOWER_ANCHOR, SETBASEPOWER_GETCARDPOWER_FIX),
     },
     {
         "name": "permanent: getPermanentSetBasePower, the setCost twin for base power",
         "relpath": "src/effects/permanent.ts",
         "anchor": SETBASEPOWER_PERMANENT_ANCHOR,
         "already": "export function getPermanentSetBasePower(",
-        "apply": lambda s: s.replace(
-            SETBASEPOWER_PERMANENT_ANCHOR, SETBASEPOWER_PERMANENT_FIX, 1
-        ),
+        "apply": lambda s: replace_once(s, SETBASEPOWER_PERMANENT_ANCHOR, SETBASEPOWER_PERMANENT_FIX),
     },
     {
         "name": "actions: resolve the setBasePower action",
         "relpath": "src/effects/actions.ts",
         "anchor": SETBASEPOWER_ACTION_ANCHOR,
         "already": 'case "setBasePower": {',
-        "apply": lambda s: s.replace(SETBASEPOWER_ACTION_ANCHOR, SETBASEPOWER_ACTION_FIX, 1),
+        "apply": lambda s: replace_once(s, SETBASEPOWER_ACTION_ANCHOR, SETBASEPOWER_ACTION_FIX),
     },
     {
         "name": "actions: swap the basePower import for getEffectiveBasePower",

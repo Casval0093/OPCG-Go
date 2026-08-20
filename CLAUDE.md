@@ -422,8 +422,14 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   test (a timeout under full-suite parallelism on a cold tree; passes in isolation at ~20s and
   passed in the final run — pre-existing and unrelated);
   `patch_engine.py --check` exit 0 with every patch applied; `correct_cards.py --check` 48/48;
-  `tools/` unittests 76 OK; and `./scripts/simulate.sh --puzzles` reproduces **valueRanked 8/11,
-  greedy 10/11, firstLegal 5/11, random 0/11, passOnly 0/11** — play is unchanged end to end.
+  `tools/` unittests **83 OK**; and `./scripts/simulate.sh --puzzles` reproduces **valueRanked
+  9/12, greedy 11/12, firstLegal 5/12, random 0/12, passOnly 0/12** — play is unchanged end to end.
+  **Those tallies are NOT the 8/11 · 10/11 · 5/11 recorded below, and the difference is not this
+  patch.** Re-measured after rebasing onto the merge of the printed-power policy branch, which added
+  a twelfth puzzle (`lethal-effective-power-attacker`); `valueRanked` and `greedy` pass it and
+  `firstLegal` does not, so the top two rungs each gain one and `firstLegal` holds at 5. Both
+  readings are correct for their own tree — quote the puzzle COUNT alongside the tally, or the
+  numbers look like a policy change when the instrument grew.
   **The 1.35µs the sibling reports is NOT this function's target and never was**: the sibling's probe
   board short-circuits structurally on every source, while this one deliberately keeps one live
   modifier (`OP09-004` Shanks, the catalog's only unconditional permanent `modifyPower` reaching the
