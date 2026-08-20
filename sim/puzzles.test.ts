@@ -387,6 +387,7 @@ function board(
     { leaderCardId: opts.northLeader ?? LEADER, deck: 20, ...north },
     { activeSeat: SEAT, firstPlayer: "north" },
   );
+  advancePastFirstTurn(engine);
   if (opts.restLeader) {
     // The acting leader is a legal attacker in its own right, so resting it is how a puzzle isolates
     // a choice among CHARACTERS. Found the hard way: a puzzle meant to force the 8000 body was also
@@ -396,6 +397,33 @@ function board(
     if (inst) inst.rested = true;
   }
   return engine;
+}
+
+/**
+ * PHASE 2 TASK 2.3 -- move a fixture off turn 1.
+ *
+ * A fixture materialises a mid-game board and leaves `turnNumber` at 1 whatever position it
+ * describes, so `test-fixtures.ts` sets `allowFirstTurnAttacks: true` to keep the first-turn attack
+ * ban from refusing its attacks (39 card tests in 31 files depend on that). These puzzles do not
+ * need the exemption: their positions are mid-game by construction, so they are placed on a turn
+ * that is genuinely past the acting seat's own first turn and stop depending on the flag at all.
+ *
+ * WHY 4. Turns alternate from the first player, so the first player owns the odd turns and the
+ * second player the even ones. Every fixture here seats the ACTING player as the SECOND player, so
+ * its own turns are the even ones and its FIRST is turn 2 -- turn 4 is its second turn. Setting it
+ * on the state rather than through `endTurn` is deliberate: a real `endTurn` would run a refresh, a
+ * DON!! phase and a draw, which would rewrite the exact hand and DON!! counts every puzzle depends
+ * on.
+ *
+ * Safe against the fixture traps this suite already documents: bodies use `playedOnTurn: 0`, so
+ * `playedOnTurn === turnNumber` summoning sickness stays false; the first-turn DON!! rule is
+ * `turnNumber === 1` only; and no fixture sets a turn-scoped modifier.
+ */
+function advancePastFirstTurn(engine: OnePieceTestEngine): void {
+  const state = engine.getState();
+  const acting = state.activeSeat;
+  const ownFirstTurn = acting === state.config.firstPlayer ? 1 : 2;
+  state.turnNumber = ownFirstTurn + 2;
 }
 
 /** The concrete commands a seat could actually submit, expanded from the legal descriptors.
@@ -1378,11 +1406,13 @@ const COUNTER_PUZZLES: CounterPuzzle[] = [
  * another prompt, which would fold a second resolver decision into a counter measurement.
  */
 function counterBoard(south: object, north: object): OnePieceTestEngine {
-  return OnePieceTestEngine.create(
+  const engine = OnePieceTestEngine.create(
     { leaderCardId: LEAD_INERT_5000, deck: 20, life: [V5000, V5000, V5000, V5000], ...south },
     { leaderCardId: LEAD_INERT_5000B, deck: 20, hand: 0, life: 4, ...north },
     { activeSeat: OPP, firstPlayer: SEAT },
   );
+  advancePastFirstTurn(engine);
+  return engine;
 }
 
 run(

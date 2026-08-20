@@ -133,6 +133,9 @@ sort puts `attachDon` first because `legal.ts` emits those descriptors earlier. 
 `seq-attach-then-swing-for-lethal` that costs `valueRanked` the game.
 
 This does not overturn the step-1 ladder, where `valueRanked` beat `greedy` 76.0% over whole games.
+(**That 76.0% was retired by Phase 2 on 2026-08-20** — post-Phase-1 the same pair is 56.50%
+[52.50, 60.41] over 600 games. The conclusion in this paragraph is unaffected: the pair still goes
+`valueRanked`'s way, by less.)
 Both stand. What it establishes is that **the ladder gap does not come from DON!! sequencing**, and
 that the policy every simulation uses is the worse of the two in that dimension.
 
