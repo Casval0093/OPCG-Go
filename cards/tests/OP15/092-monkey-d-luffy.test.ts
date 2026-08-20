@@ -1,5 +1,10 @@
 import { describe, expect, test } from "vite-plus/test";
-import { op03Namule007, op06GeckoMoria080, op15MonkeyDLuffy092 } from "@tcg/op-cards";
+import {
+  op03Namule007,
+  op06GeckoMoria080,
+  op14eb04Vista053,
+  op15MonkeyDLuffy092,
+} from "@tcg/op-cards";
 
 import { OnePieceTestEngine } from "../../../src/index.ts";
 
@@ -103,6 +108,46 @@ describe("OP15-092 Monkey.D.Luffy", () => {
       character: 10000,
       bystander: 5000,
     });
+  });
+
+  test("a permanent base-power COPY reads bullet 2's set base power, not the printed one", () => {
+    // OP14EB04-053 Vista is the only card in the catalog whose `setBasePowerFrom` sits in
+    // permanentEffects: "[Opponent's Turn] If you have 7 or less cards in your hand, this
+    // Character's base power becomes the same as your Leader's base power." Its target is itself and
+    // its SOURCE is the Leader — the card bullet 2 sets to 7000. So the printed answer is that Vista
+    // becomes 7000, which is also what SC ruling #762 requires: a base power changed by an effect IS
+    // that card's base power for every later read.
+    //
+    // Both halves of this were wrong before. `setBasePowerFrom` was applied in
+    // getPermanentModifierTotal as a delta of `sourceBase - printedTargetBase` measured off the
+    // PRINTED source, so Vista read 5000 while the Leader read 7000; and as a delta it would ADD to
+    // a literal on its own target instead of replacing it. It now resolves on
+    // getPermanentSetBasePower's path, where two replacements select rather than accumulate.
+    const board = (trash: number) => {
+      const engine = OnePieceTestEngine.create(
+        {
+          leaderCardId: op06GeckoMoria080,
+          character: [op15MonkeyDLuffy092, op14eb04Vista053],
+          trash,
+          deck: 10,
+          hand: 3,
+        },
+        {},
+        { firstPlayer: "south", activeSeat: "north" },
+      );
+      const view = engine.getView("south").players.south;
+      const vistaId = engine.findCardInZone("south", "character", op14eb04Vista053);
+      return {
+        leader: view.leader.power,
+        vista: view.characters.find((c) => c?.instanceId === vistaId)?.power,
+      };
+    };
+
+    // 19 cards: bullet 2 is off, so Vista copies a plain 5000 Leader. Vista is printed 4000, and
+    // this is the pre-existing behaviour of the only user of that code path — it must not move.
+    expect(board(19)).toEqual({ leader: 5000, vista: 5000 });
+    // 20 cards: the Leader's base IS 7000, so Vista's copy is 7000.
+    expect(board(20)).toEqual({ leader: 7000, vista: 7000 });
   });
 
   test("on YOUR own turn the Leader clause is off however full the trash is", () => {

@@ -86,19 +86,23 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   <https://github.com/TheCardGoat/tcg-engines/pull/216>. That does not reopen the `orderCards`
   decision: Ping's 2026-08-17 "stays local" call stands for that one, and `patch_engine.py` remains
   permanent regardless of whether #216 merges.
-- **The suite is 6110 pass / 0 fail / 10 skipped as of 2026-08-20, and every older figure in this
+- **The suite is 6111 pass / 0 fail as of 2026-08-20, and every older figure in this
   file differs for a knowable reason. Re-derive rather than quoting.** On the tree that merges
-  Phase 1 + Phase 2 + `setBasePower`: **6078 → 6110, +32**, all of it OP15/OP16, which alone went
-  **738 → 770** (measured, not inferred). Phase 1 added NO vitest tests — its counter-policy
+  Phase 1 + Phase 2 + `setBasePower`: **6078 → 6111, +33**, all of it OP15/OP16, which alone went
+  **738 → 771** (measured, not inferred). Phase 1 added NO vitest tests — its counter-policy
   coverage lives in `tools/mutation_check_engine.py` — so the suite was 6078 both before and after
   it, and 3666 files throughout.
   **The recurring off-by-one is `bench/throughput.test.ts`.** It is not in the suite; copying it
   into `tests/cards/` as this file's own command does adds exactly one test. That is where the
   **6079** in Phase 1's note and in the old `scripts/bootstrap.sh` comment comes from: 6078 card
-  tests plus the bench. So **6110 without the bench, 6111 with it** — check which tree you are
+  tests plus the bench. So **6111 without the bench, 6112 with it** — check which tree you are
   looking at before treating a one-test gap as a regression.
-  The 4 skipped FILES are this repo's env-gated harnesses (`puzzles`, `matchup.sim`,
-  `catalog.dump`, `prompt-diag`), not failures, and were skipped in every earlier count too.
+  **The SKIPPED count is not a stable expectation and should not be pinned.** The 4 skipped FILES are
+  this repo's env-gated harnesses (`puzzles`, `matchup.sim`, `catalog.dump`, `prompt-diag`), and
+  `scripts/simulate.sh` is what copies them into the tree — so a freshly bootstrapped tree has none
+  of them and reports 0 skipped, while a tree where simulate.sh has run reports however many tests
+  those files currently hold. It moved 10 → 13 purely because Phase 1 added three tests to
+  `sim/puzzles.test.ts`. Count the PASSES.
   Historical figures in `docs/` are left as they were written.
 - **Upstream never ran ~2000 of its own per-card tests; we now do — FIXED 2026-08-19, quote 6078.**
   `packages/engine/vite.config.ts` sets `test.include` to `tests/cards/**` plus four named files —
@@ -480,12 +484,25 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
     not move. `basePower` is consequently unused in `actions.ts` and the import is dropped in the
     same patch — `noUnusedLocals` is what keeps "every printed-base read was converted" honest.
     Pinned by `copyPower REPLACES this clause's set base power` in `cards/tests/OP16/106-*.test.ts`.
-    **NOT fixed: the PERMANENT `setBasePowerFrom` branch in `getPermanentModifierTotal`.** It runs
-    inside a power computation, so calling `getEffectiveBasePower` there re-enters
-    `getPermanentSetBasePower` across sibling instances — the `OP16-017` blowup shape. Exactly ONE
-    card uses that branch (`OP14EB04-053` Vista, blue) and reaching it needs Vista plus a permanent
-    literal on the same Leader, i.e. a black/blue deck pairing Vista with `OP15-092`. Bounded and
-    known, not fixed blind.
+    **The PERMANENT `setBasePowerFrom` branch had the same defect and is ALSO fixed now — patch 24,
+    after Codex flagged it on PR #26. The "bounded and known, not fixed blind" line that stood here
+    was the wrong call.** The reason given for deferring was that calling `getEffectiveBasePower`
+    inside `getPermanentModifierTotal` would re-enter `getPermanentSetBasePower` across siblings.
+    That was true of that particular fix and irrelevant to the right one: `setBasePowerFrom` is a
+    base-power REPLACEMENT, so it does not belong in the additive modifier total at all. Moving it
+    onto `getPermanentSetBasePower`'s path makes two replacements SELECT — first match wins, the
+    contract `getPermanentSetCost` already has — instead of accumulating, and needs no call back
+    into the power path.
+    **The half that actually bit was the SOURCE side, not the target side.** `OP14EB04-053` Vista is
+    the only card in the catalog with `setBasePowerFrom` inside `permanentEffects`, and it targets
+    ITSELF while reading the Leader as source: *"this Character's base power becomes the same as your
+    Leader's base power."* With `OP15-092`'s bullet 2 setting that Leader to 7000, Vista read the
+    PRINTED 5000. Ruling #762 settles it — a base power changed by an effect IS that card's base
+    power for every later read. Behaviour-preserving for Vista alone (printed 4000 + delta 1000 = the
+    same 5000 the replacement now returns), pinned from both sides in
+    `cards/tests/OP15/092-monkey-d-luffy.test.ts`, and red-green verified.
+    **Codex described the symptom as an incorrect LEADER power; that part was wrong** — Vista never
+    targets the Leader — but the defect it pointed at was real.
   - **Two latent bugs in the new code, also found by review and also fixed:** the duration map
     omitted `untilEndOfYourNextTurn`, which falls through to `expiresAtTurn: null` and then NEVER
     EXPIRES — copy `modifyPower`'s map, which is the only complete one in the file, **not**
@@ -1124,8 +1141,8 @@ python3 tools/analyse_playdraw.py <dir>          # play/draw arms: paired gap di
 # re-implemented old body, because absolute ms is host-dependent and only in-run ratios are quotable.
 # The vanilla probe is the one that catches a guard-order regression (1.77x); the loaded probe is the
 # only coverage the per-source condition/candidate-pool loop has at all.
-# NOTE this file is NOT in the suite by default -- the 6110 count excludes it, and copying it in
-# makes the suite report 6111.
+# NOTE this file is NOT in the suite by default -- the 6111 count excludes it, and copying it in
+# makes the suite report 6112.
 cp bench/throughput.test.ts vendor/tcg-engines/submodules/one-piece/packages/engine/tests/cards/
 cd vendor/tcg-engines/submodules/one-piece/packages/engine && ./node_modules/.bin/vp test run tests/cards/throughput.test.ts
 ```
