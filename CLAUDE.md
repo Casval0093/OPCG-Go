@@ -198,8 +198,26 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   `arena/` (2 s, 8 packages, `arena/package-lock.json` is committed). Not folded into bootstrap here
   because that script's contract is stdlib-and-pnpm only; just know it is a required step.
 - **Real Block 2+ decks now simulate end to end**, 400/400 `rules-win`, median 9 turns.
-- **Do not calibrate on ST01.** The play/draw gap is **54.5 pts** on ST01, **26.7** on a vanilla
-  Block 2+ pile, and **8.5 pts** on a real Block 2+ deck — the last of which is plausible. The gap
+- **Play/draw: RE-MEASURED 2026-08-20 in Phase 2, and the old figures were a RULES BUG cancelling
+  first-player advantage, not a measurement of it.** The second player's illegal first-turn attack was
+  worth **+52.50 pts [43.38, 62.01]** of play/draw gap on `mihawk-green-proxy` and **+26.00 pts
+  [17.03, 34.97]** on `ace-op16` — paired arms, 400 games each on identical seeds, everything else
+  held fixed. Pre-fix the gap on the primary deck was **−28.50 pts**, i.e. the player going SECOND was
+  substantially favoured; post-fix it is **−2.50 pts**. So the recorded direction ("prior figures
+  understate first-player advantage") was right and the recorded magnitude was far too gentle.
+  **THE GAP IS DECK-SPECIFIC AND `mihawk-green-proxy` IS UNFIT FOR THIS MEASUREMENT.** Identical
+  rules, identical seeds, 400 games: `ace-op16` **−2.50 pts**, `mihawk-green-proxy` **+34.50 pts**.
+  Both are legal 50-card lists. The proxy deck is OP09–OP14 stand-ins predating the OP15/OP16
+  encoding and it behaves like the degenerate end of the interaction scale — the ST01 lesson one rung
+  up. **Quote `ace-op16`'s −2.50 as the current play/draw figure**; keep the proxy for the ladder,
+  where both seats play it and the deck cancels.
+  **The counter policy is worth −38.50 pts [−49.51, −27.37] of gap on its own**, which is the single
+  largest thing standing between this simulator and a pure race up the Leader — and the reason
+  blocking, still unimplemented by decision, is now the largest measured defensive gap.
+- **Do not calibrate on ST01.** The play/draw gap was **54.5 pts** on ST01, **26.7** on a vanilla
+  Block 2+ pile, and **8.5 pts** on a real Block 2+ deck — all measured on the broken rules, all
+  superseded by the Phase 2 figures above. The lesson survives its numbers: the gap tracks how much
+  interaction a deck has. The gap
   tracks how much interaction a deck has; a degenerate deck gives degenerate calibration. An
   earlier note here claiming the bot exaggerates first-player advantage "by an order of magnitude"
   was measured on ST01 and is **retracted**. Policy quality remains unmeasured — a plausible split
@@ -873,37 +891,30 @@ The `tools/` tests are stdlib `unittest`, matching the tools' own stdlib-only co
    Ping approved this sequence 2026-08-19. The audit's four options are all *throughput* levers, and
    **throughput buys precision, never freedom from bias.** A weak policy does not merely add noise to
    a tech-slot measurement; it biases it in a predictable direction — see the note below.
-   1. ~~**Dominance ladder**~~ — **DONE 2026-08-19**, `./scripts/policy_ladder.sh`, **full round
-      robin, all 10 pairs**, 200 games each, post-patch-4 engine.
-      **Measured total order: `passOnly < random < firstLegal < greedy < valueRanked`** — win counts
-      4-3-2-1-0, every pair decisive, **no cycles** (checked, not assumed). The pair that mattered
-      went the default's way: **`valueRanked` beats `greedy` 76.0% [69.6, 81.4]**, so the default is
-      not "greedy wearing a hat".
-      **Three things previously written here as known were refuted by measurement:**
-      (a) `firstLegal` beats `random` 98.0%, so **`random` is the honest no-policy control** — the
-      legal-command list leads with plays and attacks while random throws turns away on pass;
-      (b) `passOnly`'s timeouts are **opponent-dependent** — 0 in 9 pairs, but **22 (11%) in
-      `random vs passOnly`**, because when both sides are incompetent neither closes inside the clock
-      and the result is 双方败北. Both the original claim ("mostly timeouts") and its first correction
-      ("0 timeouts, loses outright") were wrong as stated; the second was measured only against
-      competent opponents. **That 11% is sensitivity to `SIM_TURN_BUDGET` (40 turns), NOT a
-      real-world timeout rate** — the turns-to-minutes mapping is uncalibrated, so it must never be
-      quoted against the 30-minute clock. What it does show is narrower: the timeout **scoring path**
-      fires only when neither side can close, and scores a double loss rather than a win;
-      (c) an 8-pair version of this claimed the same total order **while never having played
-      `random` vs `passOnly`** — pairwise policy strength need not be transitive, so a total order
-      may only be stated when every pair has been played. **Keep the round robin complete.**
-      **The first-turn DON!! fix did not move the ladder — for the 8 pairs that have a pre-fix
-      number.** The pre-fix run covered only 8 of 10, so `greedy vs passOnly` and `random vs passOnly`
-      are first measurements, not re-measurements, and **the 22-timeout pair is one of them** — the
-      fix can be neither credited nor cleared there. For the 8, all within noise, because the mirror
-      alternates seats so the surplus DON!! fell on both policies equally.
-      **A ceiling inference from the greedy gap is RETRACTED — do not re-derive it.** The gap between
-      the top two rungs measures the spacing of five hand-picked heuristics, not the distance to a
-      ceiling: an already-optimal `valueRanked` against a merely-poor `greedy` gives the same margin.
-      **No ladder result may be used to argue for or against buying throughput.** The decision rule
-      below survives untouched because it rests on the *bias* argument, not on this.
-      Full table: `docs/simulation.md`.
+   1. ~~**Dominance ladder**~~ — **RE-MEASURED 2026-08-20 in Phase 2, and the TOTAL ORDER IS GONE.**
+      Full round robin, all 10 pairs, 200 games each, post-Phase-1, `mihawk-green-proxy` mirror; two
+      unresolved cells extended by 400 more games at a fresh seed. **Do not restate the old chain
+      `passOnly < random < firstLegal < greedy < valueRanked` — two of its five relations no longer
+      hold.** What holds: **valueRanked > { greedy ≈ firstLegal } > { random, passOnly }, with random
+      and passOnly UNORDERED.**
+      - `valueRanked > greedy` **56.50% [52.50, 60.41]** over 600 games — was **76.0%**. The default
+        policy is still not "greedy wearing a hat", but the margin fell by a factor of ~3.4.
+      - `valueRanked > firstLegal` **56.50% [52.50, 60.41]** over 600 games.
+      - `greedy ≈ firstLegal` **49.33% [45.35, 53.33]** over 600 games — a TIE. Was a strict win.
+      - `random vs passOnly` **200 of 200 games time out**, so neither wins any: a timeout is 双方败北
+        and scores against both. The pair cannot order its policies at all. Was 22 timeouts (11%).
+        **That 100% is sensitivity to `SIM_TURN_BUDGET` (40 turns), NOT a real-world timeout rate** —
+        the same warning as before, now with more force.
+      - The top three all beat both bottom rungs **100.00%** [98.12, 100].
+      **The collapse is ATTRIBUTED, not left hanging.** A 2×2 on `valueRanked` vs `greedy`, 200 games
+      per cell: the attack ban alone costs **−10.5 pts**, the counter policy alone **−15.5 pts**, both
+      together **−18.5 pts** (sub-additive). Both changes add decisions that are not
+      policy-attributable — countering is resolver-owned and identical for every rung — so they dilute
+      the attacker-side difference the ladder measures.
+      **The instrument was validated first: the [ban OFF, counters OFF] cell reproduced the published
+      76.0% [69.6, 81.4] as 76.00% [69.63, 81.39]**, which is what licenses reading the rest as an
+      effect of Phase 1 rather than harness drift.
+      Full tables: `docs/simulation.md`.
    2. ~~**Puzzle suite**~~ — **DONE 2026-08-19**, both batches. `./scripts/simulate.sh --puzzles`,
       **14 positions in 5 classes**, every class verified against engine source before authoring.
       **HEADLINE: `greedy` 10/11 beats `valueRanked` 8/11 — the default policy is the worse of the
@@ -941,11 +952,13 @@ The `tools/` tests are stdlib `unittest`, matching the tools' own stdlib-only co
       own first turn; the bot counters, on a parameterised policy; blocking and [Trigger] declining
       are documented open surfaces. Engine suite unchanged at 3666 files / 6079 tests / 0 failures.
       Both facts above are updated in place — read them, not this line.
-   4. **Phase 2: re-measure the baseline ONCE.** The full 10-pair round robin and the play/draw split,
-      both of which every Phase 1 fix invalidates. **They were deliberately NOT run in Phase 1** so
-      the rules changes get one re-measurement rather than two. This is where the magnitude of the
-      second-player illegal-attack bias finally gets a number; the direction is known, the size is
-      not, and it must not be guessed before the run.
+   4. ~~**Phase 2: re-measure the baseline ONCE.**~~ — **DONE 2026-08-20.** The full 10-pair round
+      robin, the play/draw split and the puzzle suite, all against the merged Phase 1 tree, with the
+      pre-Phase-1 instrument reproduced first. Three findings that change later work: the total order
+      is gone, the play/draw gap is deck-specific (and the deck this project measured it on is unfit),
+      and the policy signal on the ladder deck fell ~3.4x while game length doubled — so **Phase 3
+      must be sized against the Phase 2 numbers, not against anything older.** Both facts above are
+      rewritten in place; read them, not this line.
    5. **Meta calibration** — sim matchup win rates against the 213k-game EN ladder matrix.
       **Newly possible:** this repo used to note that no matchup between two *different* decks had
       ever been simulated because `OP16-001` Ace was not in the engine. OP15/OP16 encoding is now

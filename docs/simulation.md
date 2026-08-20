@@ -114,6 +114,13 @@ Ordering cards *well* is a strategy question and identity order is a placeholder
 
 ## Every play/draw number below predates the first-turn DON!! fix — 2026-08-19
 
+> **AND every one of them predates Phase 1 as well. All of it is superseded by "Task 2.2 —
+> play/draw, and the magnitude of the illegal-attack bias".** The short version: the second
+> player's illegal first-turn attack was worth **+52.5 pts** of play/draw gap on this page's
+> usual deck, so the small gaps recorded below were a rules bug cancelling first-player
+> advantage rather than a measurement of it. The figures below are kept as the record of what
+> was measured, not as facts about the game.
+
 `tools/patch_engine.py` patch 4 corrects a rules bug: the engine placed 2 DON!! every DON!! Phase
 including the first player's first turn, where the rule is 1. So **the first player in every run
 recorded on this page held a turn-1 DON!! surplus.**
@@ -211,6 +218,12 @@ the OP15/OP16 encodings.
 in the play/draw split.
 
 ## Policy quality, step 1: the dominance ladder
+
+> **SUPERSEDED for the numbers, kept for the method — see "Phase 2 — the baseline re-measured,
+> once".** Everything in this section was measured before the first-turn attack ban and the
+> counter policy. Re-measured post-Phase-1: `valueRanked` beats `greedy` **56.5%**, not 76.0%,
+> and **the strict total order below no longer holds** — `greedy > firstLegal` is a tie and
+> `random vs passOnly` is 100% double losses. Do not quote the chain from this section.
 
 `./scripts/policy_ladder.sh [GAMES] [DECK]`, 200 games per pair, deck
 `sim/decks/mihawk-green-proxy.json`, 2026-08-19. **Both seats play the same deck, so the deck cancels
@@ -1125,12 +1138,243 @@ went missing, and the next apply added a second import until the file would not 
 caught only because the rewritten harness asserts its own baseline is green before reading any
 mutant. Assert the baseline.
 
+## Phase 2 — the baseline re-measured, once
+
+Phase 1 changed what a battle does twice over: neither player may attack on their own first turn, and
+the defender now counters. Every ladder, play/draw and mirror figure above predates both, so all of
+it is re-measured here in one pass — which is why Phases 1 and 2 were planned as a single unit.
+
+Run on the merged Phase 1 tree (`8eed908`). Four measurement arms ran in parallel against separate
+APFS engine clones, because two runs sharing one vendored engine overwrite each other's copied test
+files.
+
+### The instrument reproduces the pre-Phase-1 number exactly, so the comparisons below are sound
+
+Before trusting any before/after, the "before" was re-run on a clone with **only** the first-turn
+attack ban reverted and the counter policy switched off — i.e. the pre-Phase-1 rules, everything else
+held at Phase 1:
+
+| `valueRanked` vs `greedy`, 200 games | measured now | published pre-Phase-1 |
+|---|---|---|
+| ban OFF, counters OFF | **76.00% [69.63%, 81.39%]** | **76.0% [69.6%, 81.4%]** |
+
+Identical to the published figure to two decimal places on both bounds. That is what licenses reading
+every difference below as an effect of the Phase 1 changes rather than of drift in the harness, the
+decks or the host.
+
+**Reverting the ban is done by restoring the pristine `battle.ts`, not by setting
+`allowFirstTurnAttacks`.** The flag exempts BOTH seats; the pre-fix rule banned the first player on
+turn 1 and let only the second player through on turn 2. Using the flag would have measured a third
+rule set that never shipped.
+
+### Task 2.1 — dominance ladder, the complete round robin
+
+`./scripts/policy_ladder.sh 200`, all C(5,2)=10 pairs, `mihawk-green-proxy` mirror so the deck cancels
+and the win rate reads as a policy score. 2000 games, 78.6 minutes.
+
+| A | B | A's win rate | 95% CI | timeouts |
+|---|---|---|---|---|
+| valueRanked | greedy | 57.50% | [50.57%, 64.15%] | 0 |
+| valueRanked | firstLegal | 55.50% | [48.57%, 62.22%] | 0 |
+| valueRanked | random | 100.00% | [98.12%, 100.00%] | 0 |
+| valueRanked | passOnly | 100.00% | [98.12%, 100.00%] | 0 |
+| greedy | firstLegal | **47.50%** | [40.69%, 54.40%] | 0 |
+| greedy | random | 100.00% | [98.12%, 100.00%] | 0 |
+| greedy | passOnly | 100.00% | [98.12%, 100.00%] | 0 |
+| firstLegal | random | 100.00% | [98.12%, 100.00%] | 0 |
+| firstLegal | passOnly | 100.00% | [98.12%, 100.00%] | 0 |
+| random | passOnly | **0.00%** | [0.00%, 1.88%] | **200 of 200** |
+
+Two cells came back unresolved at n=200, so both were extended by 400 more games at a fresh seed
+rather than reported as-is:
+
+| pair | round robin (200) | extension (400, fresh seed) | pooled (600) | verdict |
+|---|---|---|---|---|
+| valueRanked–greedy | 57.50% | 56.00% [51.10, 60.78] | **56.50% [52.50, 60.41]** | valueRanked wins |
+| valueRanked–firstLegal | 55.50% | 57.00% [52.10, 61.76] | **56.50% [52.50, 60.41]** | valueRanked wins |
+| greedy–firstLegal | 47.50% | 50.25% [45.37, 55.12] | **49.33% [45.35, 53.33]** | **a TIE** |
+
+#### THE STRICT TOTAL ORDER DOES NOT SURVIVE PHASE 1, and two of its five relations are why
+
+Pre-Phase-1 the ladder was `passOnly < random < firstLegal < greedy < valueRanked`. What holds now:
+
+**valueRanked > { greedy ≈ firstLegal } > { random, passOnly }, with random and passOnly unordered.**
+
+- **`greedy > firstLegal` is gone.** 600 games put it at 49.33% [45.35, 53.33] — a tie, straddling 50
+  with room to spare. The extra machinery in `greedy` no longer buys anything over taking the first
+  legal action.
+- **`random > passOnly` is gone, and not because of a cycle.** All 200 games time out, so neither
+  side wins any: a timeout is 双方败北 and scores against both. The pair produces 100% double losses
+  and cannot order its two policies at all. Pre-Phase-1 this cell had 22 timeouts (11%); it is now
+  200 (100%). The mechanism is plain — `passOnly` never attacks, `random` attacks rarely, and now the
+  defender COUNTERS the few attacks that land, so nothing closes inside the budget.
+- **`SIM_TURN_BUDGET` sensitivity is now extreme, and the existing warning about it holds harder than
+  before.** That 100% is a statement about a 40-turn cap, NOT a real-world timeout rate; the
+  turns-to-minutes mapping is still uncalibrated and must never be quoted against the 30-minute clock.
+
+The ordering that survives is still enough for the ladder's actual job — the default policy is not
+"greedy wearing a hat", now with 600 games behind it rather than 200. But **it is a partial order, and
+this file must not restate the old chain.**
+
+#### valueRanked's edge over greedy collapsed from 76.0% to 56.5%, and both Phase 1 changes share the blame
+
+The pre-Phase-1 figure for the pair the plan calls the one that matters was **76.0% [69.6, 81.4]**. A
+2×2 on that single pair, 200 games per cell, attributes the collapse rather than leaving it hanging:
+
+| `valueRanked` vs `greedy` | counters OFF | counters ON |
+|---|---|---|
+| **ban OFF** (pre-Phase-1 rules) | **76.00% [69.63, 81.39]** — reproduces the published figure | 60.50% [53.59, 67.02] |
+| **ban ON** (current rules) | 65.50% [58.68, 71.74] | **57.50% [50.57, 64.15]** |
+
+- the attack ban alone: 76.0 → 65.5, **−10.5 pts**
+- the counter policy alone: 76.0 → 60.5, **−15.5 pts**
+- both: 76.0 → 57.5, **−18.5 pts** — sub-additive, so they overlap rather than stack
+
+Both changes move the same way for the same reason: they add decisions that are **not
+policy-attributable**. Countering is resolver-owned and identical for every rung, and the ban removes
+one attacker-side decision from whoever is second. Longer games with a larger share of non-policy
+decisions dilute the attacker-side differences that separate these two rungs.
+
+**This matters for Phase 3 far more than it matters for the ladder.** The measurement Phase 3 needs is
+a 1–3 point differential between two 50-card lists. Phase 1 shrank the *policy* signal on this deck by
+a factor of ~3.4 (26 points above 50% down to 6.5) while roughly doubling game length — 116 to 252
+commands. Effect sizes are smaller and each game costs more than twice as much, so the games-per-point
+of resolution has gone up sharply. Size the Phase 3 sweep against the post-Phase-1 numbers here, not
+against anything measured earlier on this page.
+
+### Task 2.2 — play/draw, and the magnitude of the illegal-attack bias
+
+Four arms, `mihawk-green-proxy` mirror, `valueRanked` both seats, **400 games each on identical seeds
+(424242)** so game *i* begins identically in every arm and a paired estimator is available. Paired
+matters here: an independent 400-game proportion carries a ±7-point CI, which is wider than some of
+the effects being measured.
+
+| arm | rules | overall | on play | on draw | **gap** | turns | cmds |
+|---|---|---|---|---|---|---|---|
+| **A** | ban ON, counters ON — **the current engine** | 51.25% [46.4, 56.1] | 68.50% | 34.00% | **+34.50** | 14.8 | 252.5 |
+| **B** | ban OFF, counters ON | 54.50% [49.6, 59.3] | 45.50% | 63.50% | **−18.00** | 14.3 | 243.3 |
+| **C** | ban ON, counters OFF | 47.50% [42.7, 52.4] | 84.00% | 11.00% | **+73.00** | 9.1 | 124.2 |
+| **D** | ban OFF, counters OFF — **the pre-Phase-1 engine** | 45.25% [40.4, 50.1] | 43.50% | 47.00% | **−3.50** | 8.7 | 116.1 |
+
+Zero timeouts and `rules-win` in all 1600 games. Mirror sanity holds: every arm's overall CI contains
+50%, as a mirror must.
+
+**Paired differences** (same seeds, same seat order; win-rate CI by the harness's own `pairedDiff`
+estimator, gap CI by a 20,000-draw paired bootstrap over game indices):
+
+| contrast | what it isolates | play/draw GAP difference | overall win rate |
+|---|---|---|---|
+| A − B | **the first-turn attack ban** | **+52.50 pts [+43.38, +62.01]** | −3.25 [−8.59, +2.09] n.s. |
+| C − D | the attack ban, counters OFF | **+76.50 pts [+66.37, +86.73]** | +2.25 [−4.12, +8.62] n.s. |
+| A − C | the counter policy | −38.50 pts [−49.51, −27.37] | +3.75 [−2.15, +9.65] n.s. |
+| B − D | the counter policy, ban OFF | −14.50 pts [−26.71, −2.20] | +9.25 [+3.05, +15.45] |
+| D − A | all of Phase 1 together | −38.00 pts [−51.11, −24.77] | −6.00 [−12.88, +0.88] n.s. |
+
+**THE ANSWER TO THE QUESTION THIS TASK EXISTS TO ANSWER.** The second player's illegal first-turn
+attack was worth **+52.50 pts [43.38, 62.01]** of play/draw gap under current rules, and **+76.50 pts
+[66.37, 86.73]** with counters off. The recorded direction was right — every prior figure understated
+first-player advantage — but the recorded framing was far too gentle. **The bug was not shading the
+gap; it was cancelling it and pushing it negative.** On the pre-Phase-1 engine the gap is −3.50 pts,
+i.e. the player going SECOND was very slightly favoured, which is what an extra Leader attack buys in
+a race.
+
+Why one attack is worth that much: with no blocking and no attack-target selection, a mirror is close
+to a pure race up the Leader, and the first player is exactly one tempo ahead. Restore that tempo and
+the first player wins 84% of the time (arm C). Hand the second player one compensating attack and the
+race levels (arm D). The counter policy then gives the defender something to spend and damps it by
+38.5 points (A − C), which is the single largest thing standing between this simulator and a pure
+race.
+
+**Do not read the +34.50 as "the engine's play/draw gap" — it is that DECK's.** Same rules as arm A,
+same 400 games, same seeds, `ace-op16` instead:
+
+| deck (arm A rules) | overall | on play | on draw | gap | turns | cmds |
+|---|---|---|---|---|---|---|
+| `mihawk-green-proxy` | 51.25% | 68.50% | 34.00% | **+34.50** | 14.8 | 252.5 |
+| `ace-op16` — **the primary deck** | 48.25% [43.4, 53.1] | 47.00% | 49.50% | **−2.50** | 11.0 | 142.7 |
+
+Both are legal 50-card lists, max 4 copies, so this is not a deck-legality artefact. The primary deck
+shows **essentially no play/draw gap**, which is the plausible answer for a real game; the proxy deck
+shows +34.50. That is the project's own rule about ST01 reappearing one rung up: **the gap tracks how
+much interaction a deck has, and `mihawk-green-proxy` behaves like the degenerate end even though it
+is a real Block 2+ pile.** It is a *proxy* — OP09–OP14 stand-ins that predate the OP15/OP16
+encoding — and on this evidence it should not be used for play/draw calibration again.
+
+**So the honest summary of 2.2 is two findings, not one:** the illegal attack was worth ~52 points on
+the deck that has always been used for this measurement, and that deck is the wrong one to measure it
+on. The number to carry forward is `ace-op16`'s **−2.50 pts**.
+
+**A confound worth naming, unchanged from before:** the 猜拳 roll is deterministic and north leads
+every game, so "on play" and "seat north" are the same column and cannot be separated. In a mirror
+with one policy on both seats the only seat-linked difference IS turn order, so the split is still
+readable — but a future non-mirror measurement cannot lean on it.
+
+### Task 2.3 — the puzzle suite: nothing moved, and the fixtures no longer need the exemption
+
+**Batch 1 is confirmed exactly as published**, row for row, including which single puzzle `firstLegal`
+fails and every guards figure:
+
+| puzzle | valueRanked | greedy | firstLegal | random | passOnly | correct/legal |
+|---|---|---|---|---|---|---|
+| lethal-bare | pass | pass | pass | FAIL | FAIL | 2/3 |
+| lethal-decoy-body | pass | pass | pass | FAIL | FAIL | 2/5 |
+| lethal-reaching-attacker | pass | pass | pass | FAIL | FAIL | 2/4 |
+| lethal-leader-rested | pass | pass | **FAIL** | FAIL | FAIL | 1/3 |
+| futile-unbeatable-body | pass | pass | pass | FAIL | FAIL | 2/5 |
+| futile-pick-any-productive | pass | pass | pass | FAIL | FAIL | 4/7 |
+
+**valueRanked 6/6, greedy 6/6, firstLegal 5/6, random 0/6** — the published numbers, unchanged by two
+rules fixes and a new counter policy. Batch 2 is also unchanged (`valueRanked` 2/5, `greedy` 4/5;
+combined 8/11 and 10/11; by class lethal 4/4, futile 2/2, donAllocation 2/3, sequencing 0/2).
+
+**The fixtures Task 1.1 was expected to break never broke** — Phase 1 measured that and the reason is
+recorded above. They have nonetheless been moved off turn 1, which is what the plan asked for, and
+the point is what that buys rather than the move itself:
+
+- `advancePastFirstTurn()` sets the state's turn to the acting seat's SECOND turn (`ownFirstTurn + 2`),
+  computed from `config.firstPlayer` rather than hardcoded, and set directly on the state rather than
+  by playing `endTurn` — a real `endTurn` would run a refresh, a DON!! phase and a draw, rewriting the
+  exact hand and DON!! counts every puzzle depends on.
+- **The re-run is byte-identical to the run before it**, every cell and every guards figure. An inert
+  change is the correct outcome: it proves the answers never depended on being at turn 1.
+- **The suite no longer depends on the fixture exemption at all, and that is verified rather than
+  argued.** With `allowFirstTurnAttacks` forced to `false` in a scratch clone, **7 of 8 tests pass** —
+  all 14 puzzles at unchanged scores, plus `counterPlay`. The only failure is the Phase 1 assertion
+  that deliberately pins the flag's *presence*, which must keep firing because 39 upstream card tests
+  in 31 files still need it.
+
+So the exemption remains necessary for upstream's fixtures and is no longer load-bearing for ours.
+
+### What Phase 2 changes about what comes next
+
+1. **Blocking is now the highest-value fidelity gap, and Phase 2 is what promoted it.** The counter
+   policy alone damps the play/draw gap by 38.5 points on the proxy deck. Blocking is the other
+   defensive tool the defender still does not have, and the arms above show how much a single
+   defensive lever is worth. It remains an OPEN POLICY SURFACE by decision (Task 1.3) — this is
+   evidence about its size, not a decision to build it.
+2. **`mihawk-green-proxy` should not be used for play/draw calibration again.** +34.50 pts against
+   `ace-op16`'s −2.50 under identical rules. It is a proxy of OP09–OP14 stand-ins that predates the
+   OP15/OP16 encoding, and it behaves like the degenerate end of the interaction scale. It remains
+   fine as the LADDER deck, where both seats play it and the deck cancels.
+3. **Phase 3 must be sized against the numbers here.** Policy signal on the ladder deck fell ~3.4x
+   while game length roughly doubled (116 → 252 commands). Both move the games-per-point of
+   resolution the wrong way.
+4. **The 100%-timeout cell is a live warning about `SIM_TURN_BUDGET`,** not a result. Any future
+   measurement involving a policy that cannot close needs the budget varied before its numbers mean
+   anything.
+
 ## What is not done
 
-- **The Phase 2 re-measure.** Every ladder, play/draw and mirror figure on this page predates the
-  first-turn attack ban AND the counter policy, both of which change what a battle does. They are
-  batched on purpose — one re-run, not two — and until it happens the numbers above are the last
-  measurement of a DIFFERENT engine.
+- ~~**The Phase 2 re-measure.**~~ **DONE** — see "Phase 2 — the baseline re-measured, once". The
+  ladder, the play/draw split and the puzzle suite were all re-run against the merged Phase 1 tree,
+  and the pre-Phase-1 instrument was reproduced exactly (76.00% vs a published 76.0%) before any
+  comparison was read off it.
+- **Blocking**, promoted by Phase 2 from "an open surface" to "the largest measured defensive gap":
+  the counter policy alone is worth 38.5 points of play/draw gap, and blocking is the other lever the
+  defender still does not have. Still a decision not to build it, not an oversight.
+- **A play/draw calibration deck.** `mihawk-green-proxy` is unfit for it (+34.50 pts against
+  `ace-op16`'s −2.50 under identical rules) and `ace-op16` is a mono-red list with 15 distinct cards.
+  Neither is a field-representative deck.
 - **Blocking and `[Trigger]` declining** remain unimplemented, on purpose (Task 1.3). Pinned by a
   test so a silent change is loud, not so they stay that way forever.
 - **Attack target selection** is still unreachable, so a body saved by a counter is purely
