@@ -3,6 +3,7 @@
 #   ./scripts/simulate.sh --games 200 [--a DECK] [--b DECK] [--compare DECK] [--strategy NAME]
 # Policy-quality ladder: give each DECK its own policy and read the win rate as a policy score.
 #   ./scripts/simulate.sh --games 200 --a D --b D --strategy-a valueRanked --strategy-b random
+# Counter-policy knobs (see docs/simulation.md, "Knobs"): --counter avg-cost=3 --counter enabled=0
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENG="$ROOT/vendor/tcg-engines/submodules/one-piece/packages/engine"
@@ -32,6 +33,15 @@ while [ $# -gt 0 ]; do case "$1" in
   --dump-catalog) export SIM_DUMP_CATALOG=1; shift;;
   --diag-prompts) export SIM_DIAG_PROMPTS=1; shift;;
   --puzzles) export SIM_PUZZLES=1; shift;;
+  # Counter-policy knobs, e.g. --counter avg-cost=3 --counter enabled=0. NAME is upper-cased and
+  # dashes become underscores, so it maps to OPCG_COUNTER_<NAME>; counter-policy.ts holds the
+  # table of names it reads. This is what makes a Phase 3 sweep a sweep rather than fifteen
+  # hand-edits, so it is deliberately generic: a knob added there needs no change here.
+  --counter)
+    _k="${2%%=*}"; _v="${2#*=}"
+    [ "$_k" != "$2" ] || { echo "--counter wants NAME=VALUE, got: $2" >&2; exit 2; }
+    export "OPCG_COUNTER_$(printf '%s' "$_k" | tr 'a-z-' 'A-Z_')=$_v"
+    shift 2;;
   --patch-ordercards) export SIM_PATCH_ORDERCARDS=1; shift;;
   *) echo "unknown option: $1" >&2; exit 2;;
 esac; done

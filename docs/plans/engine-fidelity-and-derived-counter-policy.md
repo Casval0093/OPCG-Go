@@ -53,11 +53,18 @@ All measured this session; full detail in `CLAUDE.md` and `docs/simulation.md`.
 2. **Every engine fix lands in `tools/patch_engine.py`**, never as a hand-edit to `vendor/`, which is
    gitignored. **Amended 2026-08-19: existing patches are 1–7, not 1–5** — PR #20 landed patches 6
    (`OP06-054` Borsalino) and 7 (`EB03-008` Hibari) after this plan was written, so the patches
-   below are 8+.
+   below are 8+. **Amended again 2026-08-20: patches are now 1–14** (Phase 1 added four:
+   `battle: neither player may attack on their own first turn`, `counter-policy: …`,
+   `bot-harness: resolve the counter step through the counter policy`, plus the two-file fixture
+   flag). **CITE PATCHES BY NAME, NEVER BY NUMBER** — two clean-merging branches have already
+   renumbered each other once, and a number in prose goes stale silently while a name does not.
 3. **Nothing goes to any external repository, and it is never proposed.** Standing rule, Ping
    2026-08-19.
 4. **Phases 1 and 2 are one unit.** Every rules fix invalidates the ladder, the play/draw split and
-   the mirror validations, so they are batched and re-measured once.
+   the mirror validations, so they are batched and re-measured once. **Status 2026-08-20: Phase 1 is
+   landed and Phase 2 has NOT been run** — deliberately, so the two rules changes get one
+   re-measurement between them. Nothing in `docs/simulation.md`'s ladder or play/draw tables has been
+   re-measured against the current engine.
 5. **No new calibration constant ships unlabelled.** Anything tunable is named in
    `docs/simulation.md` as a knob, in the same category as `SIM_TURN_BUDGET`, and never quoted as a
    measured result.
@@ -102,13 +109,35 @@ pathological shape) so a per-command cost regression fails loudly.
 ## Phase 1 — rules fidelity
 
 ### Task 1.1 — neither player may attack on their own first turn
-Patch 9 (renumbered; see the amendment to constraint 2). Condition must express "this seat's own
-first turn", not `turnNumber === 1`.
+**DONE 2026-08-20**, patch `battle: neither player may attack on their own first turn`. The condition
+is `state.turnNumber === (seat === state.config.firstPlayer ? 1 : 2)` — "this seat's own first turn",
+keyed on `config.firstPlayer` exactly as the first-turn DON!! rule in `state.ts` is.
 
-**Verification** the probe table (turns 1–4, both seats) shows `declareAttack offered` false only on
-each seat's own first turn. Engine suite green. **Batch-2 puzzle fixtures will break** — they sit at
-`turnNumber: 1` acting as south; fix them by advancing past turn 1, not by re-seating. The SOLVABLE
-guards must be the thing that catches it.
+**Verified on a REAL match** driven through 猜拳, mulligan and startGame, four turns, each seat in
+each role (`config.firstPlayer` is discarded by the engine, so the probe picks the winner's
+`chooseFirstPlayer` deliberately): `offered=false` on turns 1 and 2, `true` on 3 and 4, both ways
+round. Engine suite **3666 files / 6079 tests / 0 failures**, identical to the pre-Phase-1 baseline.
+
+**THIS SECTION'S PREDICTION WAS WRONG AND THE RESULT WINS.** The batch-2 puzzle fixtures did **not**
+break: they seat south as the SECOND player at `turnNumber: 1`, and south's own first turn is turn 2,
+so their attacks stay legal and both puzzle tables are byte-identical. The SOLVABLE guards therefore
+had nothing to catch — not because they are wrong, but because the breakage was somewhere else.
+
+What broke was **39 tests in 31 files**, all `declareAttack failed: The selected attacker cannot
+attack.` — 5 in upstream `src/cards`, 21 in upstream `tests/cards`, 5 in our grafted OP15/OP16 tests
+— each a fixture that starts at `turnNumber: 1`, plays one `endTurn`, and attacks with the other seat
+on turn 2. The cause is that **a fixture's turn counter is not the game's**:
+`createTestMatchState({ skipSetup: true })` materialises an arbitrary mid-game board and leaves
+`turnNumber` at 1. `buildConfig` already suspends three other opening-turn rules for that reason, so
+this adds a fourth — an opt-in `allowFirstTurnAttacks`, set by the fixture builder and nothing else.
+Real matches build configs directly and are banned as the rules require.
+
+Two alternatives measured and rejected: expressing the ban as `turnNumber <= 2 && activeSeat === seat`
+would rewrite most of the suite (**1020 of the 1248 test files that declare an attack use the seat
+trick**), and starting fixtures at `turnNumber: 3` silently un-sickens the 15 fixtures that use
+`playedOnTurn: 1` to mean "played this turn". **Cost of the flag, stated:** no fixture exercises the
+ban, so the probe walks a real match AND asserts the flag's presence, or deleting it would silently
+revert those 39 tests.
 
 ### Task 1.2 — a counter policy, parameterised from the start
 Replace the always-empty selection. Shape agreed with Ping (C+B):
@@ -127,15 +156,44 @@ card choice : cheapest-sufficient, preferring low play-value cards (Phase 3 lear
 readable from a config object so a Phase 3 sweep can vary it **without a code edit** — that is the
 difference between a sweep and fifteen hand-runs.
 
-**Verification** a new `counterPlay` puzzle class in `sim/puzzles.test.ts`, engine-adjudicated on the
-threshold-free parts only: never waste a counter; always counter lethal; prefer tank-early. The
-R-dependent middle is opinion and is measured in Phase 3, not asserted here. Mutation-check every new
-guard.
+**DONE 2026-08-20.** `src/automation/counter-policy.ts`, written by
+`counter-policy: the defender's counter step, with every knob in a config object` and called from one
+branch in `resolveBotPromptCommand`. Every parameter resolves defaults ← `OPCG_COUNTER_*` ←
+`setCounterPolicyConfig()`, and `./scripts/simulate.sh --counter avg-cost=3` plumbs the environment
+side, so a sweep needs no code edit. Knob table in `docs/simulation.md`.
+
+**One design decision this plan did not anticipate: counter EVENTS are OFF by default.** An Event's
+`[Counter]` power grant is applied by a SECOND (`selectTargets`) prompt, which this same resolver
+answers with `Math.min(max, min)` = the empty selection — so spending one trashes the card and grants
+nothing. That is a targeting defect, not an evaluation choice, and it is out of Phase 1's scope.
+`useEventCounters` exists and is `false`; character counters are exact integers, so the arithmetic is
+exact without it.
+
+**Verification, done:** a `counterPlay` block in `sim/puzzles.test.ts`, engine-adjudicated, reported
+apart from the ladder totals (the resolver never sees a strategy, so scoring it as policy quality
+would be a category error). Four positions — never spend a set that cannot flip the battle, always
+counter lethal, spend the fewest cards that flip it, and tank while life is comfortably above R —
+plus the `enabled: false` control arm, the env plumbing, and a `runBotMatch` wiring check with 0
+illegal commands. The R-dependent middle is NOT asserted; `counter-tank-early` instead has to hold at
+every `avgCost` from 1 to 10, which is a statement about the policy rather than about the knob.
+
+**Nine mutants, one expected survivor, and one guard that had to be hardened because of them.** The
+first `counter-cannot-flip` position sat at 3 life, where the tank rule declines anyway — so accepting
+counter sets that cannot flip the battle passed it. Moved to 0 life, where every override wants to
+counter and only the never-waste rule holds it back, it kills that mutant. The expected survivor is
+the lethal override itself: at 0 life the hard floor and the R rule both fire, so it is redundant
+belt-and-braces rather than a load-bearing branch, and no position can isolate it.
 
 ### Task 1.3 — leave blockers and triggers alone, in writing
 Blocking has no waste-free rule (it trades a permanent for ~2 cards of hand) and declining a
 `[Trigger]` is a genuine value call. Both stay as they are and are documented as **open policy
 surfaces**, not oversights. Do not silently fix either.
+
+**DONE 2026-08-20.** Written up in `docs/simulation.md` ("Task 1.3 — blocking and `[Trigger]` are
+OPEN POLICY SURFACES") and in CLAUDE.md, and pinned by
+`the prompt resolver never blocks, and always activates a [Trigger]` in `sim/puzzles.test.ts` — which
+now also asserts that a real `[Trigger]` life card is offered BOTH `activate` and `skip` and that the
+resolver takes `activate`, so the surface cannot change silently.
 
 ## Phase 2 — re-measure the baseline once
 
