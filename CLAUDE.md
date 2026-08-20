@@ -344,10 +344,14 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
 - **The ATTACK-side policy cannot see a set base power; the counter step can. Split measured on the
   merged Phase 1 tree 2026-08-20 — an earlier version of this note said "nothing in
   `engine/src/automation/` imports `getCardPower`" and that is now FALSE.**
-  `automation/bot-strategies.ts` imports it **zero** times: `getTotalPower` computes
-  `card.power ?? 0` plus attached DON!! straight off the printed card (`:169-171`), the play-value
-  heuristic reads `card.power / 100` and `/ 50` (`:163-164`, `:329-330`), and the attack bonus gates
-  on `attacker.power >= 5000` (`:342`) — all printed. So attacker choice, DON!! allocation and
+  `automation/bot-strategies.ts` imports it **zero** times, at four sites named rather than numbered
+  because a sibling branch is editing this exact file: **`getTotalPower`** computes `card.power ?? 0`
+  plus attached DON!! straight off the printed card; **`cardValue`** reads `card.power / 100` and
+  **`valueRanked`'s `playCard` scoring** reads `card.power / 50`, both on cards in HAND; and
+  **`valueRanked`'s big-body attack bonus** gates on `attacker.power >= 5000` — all printed. (Those
+  were `:169-171`, `:163-164`, `:329-330` and `:342` when written. Treat every line number in this
+  file as PRE-fix and tree-relative: the fix in flight shifts two of them to `:346-347` and `:359`,
+  which is why the construct names are the citable part.) So attacker choice, DON!! allocation and
   attack scoring are blind to every power-changing effect. Counted rather than asserted, by the
   branch fixing it: only `greedy` (1 read) and `valueRanked` (4) consult power at all, so
   `firstLegal`/`random`/`passOnly` have zero between them — a repro puzzle fails for all five but
@@ -446,7 +450,15 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   labelled its own patch 15 while it was in fact 14, because it counted the list by eye instead of
   asking it. So a "patch N" you read here may never have been right. If you find one, re-derive it —
   `python3 -c "import sys;sys.path.insert(0,'tools');import patch_engine as p;[print(i,x['name'])
-  for i,x in enumerate(p.PATCHES,1)]"` — and do not propagate it.* Written
+  for i,x in enumerate(p.PATCHES,1)]"` — and do not propagate it.
+  **The same applies one level down, to LINE numbers.** They are tree-relative in exactly the way
+  patch numbers are position-relative, and this file cites ~16 of them. Two sessions independently
+  produced "both correct, for different trees" citations of `bot-strategies.ts` — the worst kind,
+  since each verifies on whichever tree its author had. Name the function or construct and treat the
+  line as a hint: the older notes here survive being 1-2 lines off already (`legal.ts:181` points at
+  `legal.push({` with the `declareAttack` on 182; `battle.ts:737` lands two lines into
+  `legalAttackTargets`' signature) precisely BECAUSE they name the construct alongside the number.*
+  Written
   `{ action: "setBasePower", target, value: 7000, duration: "thisTurn" }`.
   - **Why the three near-misses all fail.** `setPower` is the only other literal-valued power setter
     and it adds `action.value - getCardPower(target)` at resolution — a TOTAL-power set, so it
