@@ -18,13 +18,17 @@ The 1,419 pre-OP15 rows are the cards that produce at least one mutant; the othe
 
 `mutation_check.py` has two entry points for these two sets and they are not interchangeable. The
 **180 cards / 523 mutants** above came from `--vendor-set`, which is what `runs/sweep_all.sh` drives.
-Running the same 213 encoded cards through `--set` instead gives **105 OP15 + 108 OP16 = 213
-records, 182 `ok` and 31 `no-mutants`**. Neither count is wrong; they are answers to different
-questions, and two things cause the 33-card gap:
+Running the same encoded cards through `--set` instead gives **105 OP15 + 108 OP16 = 213 records,
+182 `ok` and 31 `no-mutants`**. Neither count is wrong; they answer different questions. The 33-card
+gap between 213 and 180 decomposes exactly, and it is worth doing the arithmetic rather than
+hand-waving at it: **31 of the 33 are zero-mutant cards** that `--vendor-set` skips, and **the other
+2 are `OP16-015` and `OP16-106`**, which generate mutants only once the `setBasePower` clauses are
+encoded — so they are absent from the sweep's own files, and the `ok` column reads 182 against 180
+for that reason alone, not because of any path difference. Two things cause the gap:
 
 - **`--vendor-set` SKIPS a zero-mutant card rather than recording it.** `--set` records it as
-  `no-mutants`. That is the whole difference in the `ok` column, and it matters because **"no mutants
-  generated" and "all mutants killed" are the same green today and they are not the same fact.** A
+  `no-mutants`. That accounts for 31 of the 33, and it matters because **"no mutants generated" and
+  "all mutants killed" are the same green today and they are not the same fact.** A
   zero-mutant card is *unperturbable*, not verified — the five operators found no filter, threshold,
   zone or once-per-turn flag to touch. `runs/mutation_shard.py --aggregate` therefore prints the two
   buckets separately and labels the second UNVERIFIED, so a run cannot be quoted as "every encoding
