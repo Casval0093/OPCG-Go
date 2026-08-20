@@ -43,7 +43,13 @@
 // leaders screened for INERTNESS instead, also asserted below.
 
 import { test } from "vite-plus/test";
-import { allCards, op16PortgasDAce001, op16PortgasDAce118, op01Sai012 } from "@tcg/op-cards";
+import {
+  allCards,
+  op16PortgasDAce001,
+  op16PortgasDAce118,
+  op01Sai012,
+  op10Sanji005,
+} from "@tcg/op-cards";
 import { applyCommand, createMatch, getLegalCommands } from "../../src/core.ts";
 import {
   valueRankedStrategy,
@@ -105,6 +111,14 @@ const V7000 = "EB01-018"; // Mountain God
 const V8000 = "OP06-005"; // Gasparde
 const V9000 = "OP09-067"; // Jinbe
 const BLOCKER = "OP05-013"; // 2000 body carrying the real [Blocker] keyword (Task 5)
+// A body whose PLAYED power is not its printed power, for the effective-power puzzle below.
+// `[Your Turn] This Character gains +3000 power` -- printed 3000, plays 6000 on your own turn, no
+// keywords, no [Activate: Main], nothing else on the board required to switch it on. Chosen BY
+// MEASUREMENT, not by reading encodings: a probe over every character in the catalog with printed
+// power <= 6000 asked the engine `getCardPower` on a bare board and reported the seven cards that
+// answer above their printed value; this is the one with the largest gap. `fixture integrity`
+// re-measures both numbers so the puzzle cannot quietly stop meaning what its prose says.
+const PUMPED_3000 = "OP10-005"; // Sanji
 // An Event whose printed [Trigger] is "Draw 1 card." -- used as a LIFE card to pin the
 // resolver's Trigger choice (Task 1.3). Chosen for being harmless; it is never resolved.
 const TRIGGER_LIFE_CARD = "EB02-030";
@@ -547,6 +561,31 @@ const PUZZLES: Puzzle[] = [
       ),
     expect: "pass",
   },
+  // The same "pick a body that reaches" decision as lethal-reaching-attacker, with ONE difference:
+  // which body reaches is decided by a live power-changing effect rather than by printed power. It
+  // is here because every other puzzle in this file can be solved by reading the printed numbers off
+  // the cards, so none of them can see whether the policy reads the power a card actually plays at.
+  // Inert leaders on both seats (not batch 1's OP01-001) so the ONLY non-printed power on the board
+  // is the one under test.
+  {
+    id: "lethal-effective-power-attacker",
+    klass: "lethal",
+    mode: "command",
+    why: "North is on 0 life behind a 6000 Leader. The printed-5000 body whiffs; the printed-3000 body plays at 6000 (`[Your Turn] This Character gains +3000 power`) and reaches, so it wins outright. Printed power ranks the two the WRONG way round, so a policy that reads `card.power` instead of `getCardPower` picks the body that cannot connect.",
+    build: () =>
+      board(
+        {
+          hand: 0,
+          character: [
+            { cardId: V5000, playedOnTurn: 0 },
+            { cardId: PUMPED_3000, playedOnTurn: 0 },
+          ],
+        },
+        { life: 0, hand: 0 },
+        { restLeader: true, southLeader: LEAD_INERT_5000, northLeader: LEAD_INERT_6000 },
+      ),
+    expect: "pass",
+  },
   {
     id: "futile-unbeatable-body",
     klass: "futile",
@@ -970,6 +1009,159 @@ run("fixture integrity", () => {
     if (getKeywords(s, inst).size !== 0)
       throw new Error(`${id} is not vanilla: keywords ${[...getKeywords(s, inst)].join(",")}`);
   }
+
+  // 4. lethal-effective-power-attacker is the one puzzle whose answer is NOT readable off the
+  //    printed cards, so both halves of its premise are measured rather than trusted: the body must
+  //    print 3000 (or the printed ranking against V5000 stops being inverted, and the puzzle no
+  //    longer discriminates) AND it must play at 6000 in that puzzle's own fixture (or it stops
+  //    reaching the 6000 Leader and the position becomes unsolvable). It must also stay keyword-free
+  //    -- a [Blocker] or [Rush] would give the position a second reason to move.
+  {
+    const printed = (op10Sanji005 as { power?: number }).power ?? 0;
+    if (printed !== 3000)
+      throw new Error(`${PUMPED_3000} now prints ${printed}, not the 3000 the puzzle inverts`);
+    const s = PUZZLES.find((q) => q.id === "lethal-effective-power-attacker")!
+      .build()
+      .getState();
+    const insts = s.players[SEAT].characterArea.filter((x): x is string => Boolean(x));
+    const pumped = insts.find((i) => s.cards[i]!.cardId === PUMPED_3000);
+    if (!pumped) throw new Error(`${PUMPED_3000} is not on the board in its own puzzle`);
+    const plays = getCardPower(s, pumped);
+    if (plays !== 6000)
+      throw new Error(
+        `${PUMPED_3000} plays at ${plays}, not the 6000 that reaches ${LEAD_INERT_6000} — ` +
+          `the puzzle is no longer solvable`,
+      );
+    if (getKeywords(s, pumped).size !== 0)
+      throw new Error(
+        `${PUMPED_3000} is no longer keyword-free: ${[...getKeywords(s, pumped)].join(",")}`,
+      );
+    // And the decoy really is ranked above it on PRINTED power, which is the whole inversion.
+    const decoy = insts.find((i) => s.cards[i]!.cardId === V5000);
+    if (!decoy) throw new Error(`${V5000} is not on the board in its own puzzle`);
+    if (!(printed < 5000 && getCardPower(s, pumped) > getCardPower(s, decoy))) {
+      throw new Error(
+        `the inversion is gone: printed ${printed} vs 5000, played ` +
+          `${getCardPower(s, pumped)} vs ${getCardPower(s, decoy)}`,
+      );
+    }
+  }
+});
+
+/**
+ * `bot-strategies.ts` now reads BOARD power through `getCardPower` (the
+ * `bot-strategies: the policy compared PRINTED power` patch), but the two reads that
+ * score a card in HAND were deliberately left on printed power, and this is the measurement that
+ * justified it -- asserted rather than written in a comment, because a comment cannot notice when it
+ * stops being true. If either half of this goes red the decision has to be revisited: a hand card's
+ * power would then be something the `playCard` scoring cannot see.
+ */
+run("hand-card power is printed power, so the two hand reads stay printed", () => {
+  let checked = 0;
+  const disagree: string[] = [];
+  for (const card of allCards) {
+    if (card.cardType !== "character") continue;
+    const printed = (card as { power?: number }).power ?? 0;
+    let state: MatchState;
+    try {
+      state = OnePieceTestEngine.create(
+        // activeDon 5 on purpose: getCardPower credits attached DON!! only while its controller is
+        // the active seat, and a hand card must never pick any up.
+        { leaderCardId: LEAD_INERT_5000, deck: 20, hand: [card.id], life: 2, activeDon: 5 },
+        { leaderCardId: LEAD_INERT_5000B, deck: 20, hand: 0, life: 2 },
+        { activeSeat: SEAT, firstPlayer: "north" },
+      ).getState();
+    } catch {
+      continue; // a card the fixture builder will not seat; not this test's subject
+    }
+    const inst = state.players[SEAT].hand[0];
+    if (!inst) continue;
+    checked++;
+    const actual = getCardPower(state, inst);
+    if (actual !== printed) disagree.push(`${card.id} printed=${printed} inHand=${actual}`);
+  }
+
+  // Structural half: nothing in the PRINTED catalog aims a permanent power modifier at a hand zone
+  // in a way that could reach a CHARACTER's power.
+  //
+  // TWO SCOPING DECISIONS HERE, both load-bearing, both the difference between a guard and a
+  // false alarm.
+  //
+  // (1) `allCards` is the PRINTED catalog and that is deliberate, not incidental. It is
+  //     `Object.freeze([...])` built at module scope in `packages/cards/src/index.ts`, and
+  //     `registerCards` feeds the RUNTIME registry one-directionally -- so a card a *test file*
+  //     registers at module scope is invisible here. That matters concretely: a sibling branch adds
+  //     a synthetic hand-buffing EventCard as a test fixture (the only way to falsify a
+  //     `cardCategory: "character"` filter, since `basePower()` returns 0 for a non-character, so
+  //     no printed card can be a non-Character with power). Under `isolate: false` that fixture
+  //     persists across files in a worker and WOULD be seen if this enumerated the runtime
+  //     registry. The frozen-ness is asserted below so that repointing this at the runtime registry
+  //     fails here loudly instead of quietly reporting somebody's fixture as a real card.
+  // (2) A `self: true` modifier on a card that is not a character or leader is SKIPPED. Both reads
+  //     this test protects (`cardValue`, and `valueRanked`'s `playCard` branch) are gated on
+  //     `cardType === "character"` before they touch `.power`, and `basePower()` is 0 for anything
+  //     else -- so an Event that buffs only itself in hand cannot change either decision. Widening
+  //     this to "any hand-zone power modifier" would fail on a card that provably does not matter.
+  //     HONEST LIMITATION: the printed catalog contains ZERO hand-zone power modifiers today, so
+  //     this filter is currently unreachable and therefore UNTESTED -- it encodes the intended
+  //     verdict for the first real hit rather than something the suite exercises. The frozen-ness
+  //     check above IS exercised (inverting it turns this test red; verified).
+  //     WHAT WOULD ACTUALLY FLIP THIS, stated narrowly so nobody re-runs it and concludes nothing:
+  //     not "a card modifies power in hand" in the abstract, but specifically an encoding that
+  //     writes a POWER action (`modifyPower`/`setPower`, and on the in-flight `setBasePowerLiteral`
+  //     branch also `setBasePower`) carrying `zones: ["hand"]`. "Base power becomes N" is a field
+  //     effect and no printed card is shaped that way, so such an encoding would be an ENCODING
+  //     ERROR rather than a consequence of any primitive -- which is the right thing for this test
+  //     to catch. Cross-checked, not assumed: that branch measured this same assertion against its
+  //     own redefined `getCardPower` with all its patches applied and got 1968 characters / 0
+  //     disagreements, and reports every `setBasePower` target there scoped to leader/character
+  //     only. Treat that as their measurement, not one made here.
+  //     COROLLARY, for whoever points a mutation driver at this file: an unreachable filter is also
+  //     an UNKILLABLE mutant, so perturbing `zones` or the `self` flag here would report a survivor
+  //     that is not a vacuous assertion but dead-by-catalog code. No driver attributes this file
+  //     today -- it is not a card encoding, so neither `--set` nor `--vendor-set` reaches it -- but
+  //     if that changes, this filter is where the false survivor will appear. Triage it as
+  //     unreachable, not as a missing assertion.
+  if (!Object.isFrozen(allCards))
+    throw new Error(
+      "allCards is no longer frozen, so this scan may be reading runtime-registered TEST FIXTURES " +
+        "as printed cards — see scoping decision (1) above before trusting its verdict",
+    );
+  const handTargeted: string[] = [];
+  for (const card of allCards) {
+    const blocks = (card as { effects?: { permanentEffects?: unknown[] } }).effects
+      ?.permanentEffects;
+    if (!Array.isArray(blocks)) continue;
+    const ownerCarriesPower = card.cardType === "character" || card.cardType === "leader";
+    for (const block of blocks as Array<{ actions?: Array<Record<string, unknown>> }>) {
+      for (const action of block.actions ?? []) {
+        if (action.action !== "modifyPower" && action.action !== "setPower") continue;
+        const target = action.target as { zones?: string[]; self?: boolean } | undefined;
+        if (!target?.zones?.includes("hand")) continue;
+        if (target.self === true && !ownerCarriesPower) continue; // decision (2)
+        handTargeted.push(`${card.id} ${String(action.action)}`);
+      }
+    }
+  }
+
+  console.log(
+    `\n  hand-card power: ${checked} characters checked, ${disagree.length} disagreements; ` +
+      `permanent power modifiers aimed at a hand zone: ${handTargeted.length}`,
+  );
+  if (checked < 1900)
+    throw new Error(`only ${checked} characters were seated — the probe is broken`);
+  if (disagree.length)
+    throw new Error(
+      `getCardPower disagrees with printed power in HAND for ${disagree.length} card(s) — ` +
+        `bot-strategies.ts's hand reads must now go through getCardPower: ` +
+        disagree.slice(0, 5).join("; "),
+    );
+  if (handTargeted.length)
+    throw new Error(
+      `${handTargeted.length} permanent power modifier(s) now reach a character's power in hand — ` +
+        `re-open the decision in the "bot-strategies: the policy compared PRINTED power" patch: ` +
+        handTargeted.slice(0, 5).join("; "),
+    );
 });
 
 /**
