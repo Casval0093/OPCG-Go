@@ -86,6 +86,14 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   <https://github.com/TheCardGoat/tcg-engines/pull/216>. That does not reopen the `orderCards`
   decision: Ping's 2026-08-17 "stays local" call stands for that one, and `patch_engine.py` remains
   permanent regardless of whether #216 merges.
+- **The suite is 6106 pass / 0 fail / 10 skipped as of 2026-08-20, and the older 6078/6079 figures
+  differ for a reason worth knowing.** 6078 → 6106 is the +28 tests `setBasePower` added across the
+  6 unparked OP15/OP16 cards (OP15+OP16 alone went 738 → 766, measured). The **6079** that
+  `scripts/bootstrap.sh` used to quote was one too many: a tree with `bench/throughput.test.ts`
+  copied into `tests/cards/` reports one extra test, and bootstrap does not copy it. So: **6106
+  without the bench, 6107 with it.** The 4 skipped FILES are this repo's env-gated harnesses
+  (`puzzles`, `matchup.sim`, `catalog.dump`, `prompt-diag`), not failures, and they were skipped in
+  every earlier count too. Historical figures in `docs/` are left as they were written.
 - **Upstream never ran ~2000 of its own per-card tests; we now do — FIXED 2026-08-19, quote 6078.**
   `packages/engine/vite.config.ts` sets `test.include` to `tests/cards/**` plus four named files —
   **not** `src/cards/**`, where **2065** test files live. Only 26 of their basenames appear under
@@ -251,6 +259,75 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
 - **The 30-minute clock is a format-level edge for Ace, independent of preference.** Tempo closes
   inside the round; attrition may not. It cuts against Teach and Big Mom, the two decks the raw EV
   table favours and the two the research notes describe as attrition engines.
+- **`setBasePower` has been PLAYED, not just unit-tested — 38 resolutions across 6 of 30 real games,
+  0 illegal commands.** This gap was worth closing on precedent: all 32 of the primitive's unit tests
+  are `OnePieceTestEngine` fixtures, and that is exactly how the `OP16-118` search-to-hand defect
+  escaped — it passed unit tests and aborted live games with `illegal-command`. `OP16-015` resolves
+  through the risky machinery (an optional block, a `trashFromHand` cost carrying two filters, then
+  two `setBasePower` actions one of which auto-resolves a single-candidate Leader target).
+  Deck: `sim/decks/ace-op16-setbasepower-probe.json` — `ace-op16.json` with its 4 rotated-out
+  `OP05-019` slots swapped for `OP16-015`, so it stays a legal 50-card mono-red Ace list, and the
+  Leader is the `OP16-001` Ace that the card's own parked cost clause keys on. It holds 16 copies of
+  four different EXACTLY-8000 Characters (`OP16-011/014/016/017`), which is what makes the cost
+  payable at all — without one the clause can never fire and a clean run would prove nothing.
+  Result: `./scripts/simulate.sh --a sim/decks/ace-op16-setbasepower-probe.json --b <same>
+  --games 8` gives 8/8 `rules-win`, 0 timeouts. **But a clean run is not evidence the clause fired**,
+  and the sim keeps only summary stats, so that was measured separately: `runBotMatch` exposes
+  `logHistory`, and counting lines matching `/sets the base power of/` over 30 games at seeds
+  1000+i gives **6/30 games, 38 resolutions, `{"rules-win":30}`, illegalCommands 0, unfinished 0**,
+  with lines reading `Monkey.D.Luffy sets the base power of Portgas.D.Ace to 7000 this turn.`
+  The probe itself is not committed — the deck plus this recipe reproduces it in ~50s, and a
+  permanent "does this verb ever fire" harness is more surface than the finding needs.
+- **The `basePower` TargetFilter reads the PRINTED base, so 50 filter sites across 13 sets cannot see
+  ANY "base power becomes N" effect — and SC ruling #762 says they must. Pre-existing, NOT fixed,
+  wants its own branch.** `effects/targeting.ts` resolves `filter: "basePower"` as
+  `basePower(card)` — the catalog value, no modifiers, no permanent effects — while `filter: "power"`
+  goes through `getCardPower`. Ruling #762 (`EB03-004` Carina) settles it in the engine's own terms:
+  when `OP06-009` Shuraiya's 原本的力量 *becomes* 6000 by effect, a "原本的力量 6000 or more" test
+  **does** see 6000 (不会 +4000, *because* Shuraiya now counts). Shuraiya uses `setBasePowerFrom`, so
+  **this has been broken since OP06 and `setBasePower` only adds a fourth way to trip it** — it is
+  not a regression from that work. Live consequences with real Standard cards: `OP15-070` Fuza and
+  `OP15-071` Holly lift their [Shura]/[Ohm] bodies to base 6000 on the opponent's turn, which is
+  exactly when a `basePower lte N` K.O. resolves, and the engine still reads 2000 — dodging that
+  removal is Fuza's whole printed function. `OP16-106` pulls a body DOWN to base 7000 and it does not
+  become a legal target for a `lte 8000` K.O.
+  **Two reasons it is not folded into the setBasePower work.** It changes behaviour at 50 filter
+  sites across 13 sets, which is the same "own branch, before/after suite run" call already recorded
+  for the trait-matching change. And it CLOSES A CYCLE: `getCardPower → getEffectiveBasePower →
+  getPermanentSetBasePower → candidatePoolForTarget → matchesTargetFilter → case "power" →
+  getCardPower`. The guard is keyed `setBasePower:${targetInstanceId}`, which stops the direct
+  self-cycle but **not permutations across sibling instances** — structurally the `OP16-017` blowup
+  moved from the cost path to the power path. Exposure is 0 today only because none of the six
+  encoded targets uses a power/basePower filter. **Harden the guard on source AND target first, then
+  route the filter through `getEffectiveBasePower`, then add a bench probe pairing 4 copies with a
+  power-filtered target.**
+- **The bot cannot see a set base power AT ALL — the decision layer reads printed power.
+  Pre-existing, and it blunts what this primitive was built for.** `automation/bot-strategies.ts`
+  computes `card.power + attachedDon * 1000` off the printed card and gates its attack bonus on
+  `attacker.power >= 5000`, also printed. **Nothing in `engine/src/automation/` imports
+  `getCardPower`.** `battle.ts` resolves combat correctly, so `setBasePower` changes battle OUTCOMES
+  and never a policy CHOICE. That matters because the primitive's headline justification is
+  `OP17-005` taking Ace's Leader 5000 → 8000 for tech-slot EV, and CLAUDE.md already records the
+  failure mode: *a policy that cannot use a conditional card will report that every tech card is
+  bad, and that looks like a clean answer rather than a broken measurement.* **Corollary: the
+  byte-identical puzzle re-run does NOT prove live play is unperturbed** — an identical result is
+  equally consistent with the policy being unable to notice, and that suite cannot tell the two
+  apart. `docs/simulation.md` now says so. Closing move: one puzzle whose correct attacker is only
+  correct under a live `setBasePower`.
+- **`getPermanentModifierTotal` is 25µs per call and it is on `getCardPower`'s path — a ~10x
+  speedup looks available and has NOT been taken. Measured 2026-08-20, not estimated.** On a vanilla
+  10-body board it costs **25.64µs** while its new sibling `getPermanentSetBasePower` costs
+  **1.35µs** doing structurally the same work, and the whole difference is two things the sibling
+  does and it does not: iterate `inPlaySources` (≤14 slots) instead of `Object.values(state.cards)`
+  (~72 cards, i.e. both decks, hands, trashes and Life), and run the cheap structural "does this
+  card even carry a relevant action" test BEFORE the expensive `sourceEffectsAreNegated` check.
+  `getCardPower` is the hottest read in the engine, so this is a throughput lever that costs nothing
+  in fidelity — and it is a bigger one than any of `docs/engine-audit.md`'s options A–D.
+  **The port is NOT a copy-paste**: `getPermanentModifierTotal` has a `sourceIsSelfInHand` exception
+  (a card in hand modifying its own cost) that `inPlaySources` does not cover, so the source set has
+  to be `inPlaySources` PLUS that one card, and getting it wrong silently switches off every
+  "give this card in your hand -N cost" in the game. It wants its own branch, a before/after suite
+  run, and the overhead guard in `bench/throughput.test.ts` pointed at it.
 - **Engine throughput: ~2–4 games/s single-core, host-dependent.** The 2.80 figure was measured on
   another machine and is not comparable across hosts; only within-run ratios are. Full-strength
   ISMCTS remains ~2 orders of magnitude out of reach. **But throughput has not been the binding
@@ -259,28 +336,138 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
 - **Card-effect encoding does not templatise.** 1,092 of 1,219 normalized effect templates are
   singletons; top-100 templates cover only 34.6% of clauses. Composition, not pattern matching.
 - **OP15/OP16 encoding IS complete — verified 2026-08-19, and "complete" is now a measured claim,
-  not an assertion.** Per set: **119 imported = 119 definitions**, exactly. Of those, OP15 has 8
-  vanilla / 111 with effect text, OP16 has 10 vanilla / 109 with effect text. Cards with effect text
-  but no `effects:` encoding: **8 in OP15, 3 in OP16 = 11 — and all 11 are in
+  not an assertion.** Per set: **119 imported = 119 definitions**, exactly. Of those, OP15 has 6
+  vanilla / 113 with effect text, OP16 has 9 vanilla / 110 with effect text. Cards with effect text
+  but no `effects:` encoding: **8 in OP15, 2 in OP16 = 10 — and all 10 are in
   `data/parked-clauses.json`.** So **cards unencoded AND unparked = 0**. Test files (105 OP15 /
-  107 OP16) are fewer than 119 only because vanillas and parked cards need none. This is the check
+  108 OP16) are fewer than 119 only because vanillas and parked cards need none. This is the check
   to re-run rather than trusting the count: compare `id:` against `effects:` presence against
-  `cards/tests/<set>/`.
-- **The parked list is complete for the sets that exist, and 3 of its 20 primitives have already
-  cleared the "cannot scope from one card, can from thirty" bar.** 40 clauses over 35 cards
-  (OP15 25, OP16 10); coverage `partial` 26 / `none` 14. Clustering is the decisive part:
+  `cards/tests/<set>/`. (Re-measured 2026-08-20: was 3 in OP16 = 11 and 107 OP16 test files;
+  `OP16-015` gained an encoding and a test when `setBasePower` was built. The vanilla split was also
+  corrected from 8/111 and 10/109, which did not reconcile: **6 vanilla / 113 with text** and
+  **9 / 110** are the measured buckets, and they close exactly --
+  113 − 8 unencoded = 105 OP15 test files, 110 − 2 = 108 OP16. A card counts as vanilla only if it
+  has NEITHER printed effect text NOR a `trigger`; there are zero trigger-only cards in either set.)
+- **The parked list is complete for the sets that exist, and 2 of its 18 primitives still clear the
+  "cannot scope from one card, can from thirty" bar — the third was BUILT.** Re-measured
+  2026-08-20: **34 clauses over 30 cards** (OP15 26 clauses, OP16 8); coverage `partial` 22 /
+  `none` 12. Clustering is the decisive part:
   - **`giveDonSourcePlayer` — 10 instances** (all OP15). Scopable now.
   - **`attachedDonTargetFilter` — 7.** Scopable now.
-  - **`setBasePowerLiteral` — 6** (spans both sets). Scopable now, and **on the critical path**:
-    `OP17-005`'s [On Play] sets Ace's Leader base power 5000 → 8000, which CLAUDE.md records as the
-    whole OP17 Ace thesis. Without this primitive the OP17 list cannot be simulated at all.
-  - **17 of the 20 primitives are singletons** — including `setCounterLiteral`, the one that
-    prompted the question (only `OP16-118`). By the project's own rule those stay parked; waiting
-    for OP17 will add more singletons, not make singletons scopable. This mirrors the already-banked
-    fact that 1,092 of 1,219 effect templates are singletons.
+  - ~~**`setBasePowerLiteral` — 6**~~ — **BUILT 2026-08-20 as the DSL action `setBasePower`; all 6
+    clauses are encoded and tested. See the `setBasePower` fact below.** It was on the critical path
+    because `OP17-005`'s [On Play] sets Ace's Leader base power 5000 → 8000, and that is the whole
+    OP17 Ace thesis; the OP17 list is now simulable in principle, once Bandai publishes the set.
+  - **`returnDonStateRestriction` has 2 blockers** (`OP15-059`, `OP16-060`) and **15 of the 18 are
+    genuine singletons** — including `setCounterLiteral`, the one that prompted the question (only
+    `OP16-118`). By the project's own rule those stay parked; waiting for OP17 will add more
+    singletons, not make singletons scopable. This mirrors the already-banked fact that 1,092 of
+    1,219 effect templates are singletons.
+  - **The earlier version of this note said "3 of its 20 primitives" with "17 singletons" and
+    "40 clauses over 35 cards (OP15 25, OP16 10)". The three headline numbers were right in
+    substance and wrong in detail: there were 19 primitives, not 20, and **15 singletons both before
+    and after** -- not 17, and not the "16" an earlier version of this correction claimed
+    (`returnDonStateRestriction`'s 2 blockers had been counted as a singleton, and the primitive
+    that was built had 6 blockers, so removing it changed the primitive count and not the singleton
+    count). The parenthetical 25/10 was a CARD split quoted against a CLAUSE total it does not sum
+    to. **And "18 primitives" is only true of the `missing_primitives` array: the `parked` clauses
+    reference 19 primitive ids, because `OP15-058`'s DON!!-deck-size clause cites
+    `donDeckSizeRule`, which has no `missing_primitives` entry at all.** That gap is pre-existing.
+    Re-derive all of these from `data/parked-clauses.json` and say which array you counted.**
 
-  So the answer to "is the list complete enough to scope primitives?" is **yes for the top 3, no for
-  the other 17, and OP17 will not change that split.**
+  So the answer to "is the list complete enough to scope primitives?" is **yes for the remaining 2,
+  no for the other 16, and OP17 will not change that split.**
+- **`setBasePower` EXISTS — a literal base-power setter, built 2026-08-20 as patches 10-18 of
+  `tools/patch_engine.py` (9 patches over 5 files). Do not re-park a "base power becomes N" clause,
+  and do not reach for `setPower` instead.** *"Patch N" means the Nth entry of that file's `PATCHES`
+  list, and the list has been inserted into before — the getPermanentSetCost prefilter is called
+  "patch 8" throughout this file from when it was 8th and is now 9th. Cite patches by NAME.* Written
+  `{ action: "setBasePower", target, value: 7000, duration: "thisTurn" }`.
+  - **Why the three near-misses all fail.** `setPower` is the only other literal-valued power setter
+    and it adds `action.value - getCardPower(target)` at resolution — a TOTAL-power set, so it
+    absorbs modifiers already on the target instead of letting them stack on the new base; it is
+    also invisible inside `permanentEffects`, because the permanent power path reads only
+    `modifyPower` and `setBasePowerFrom`. `setBasePowerFrom` has the right arithmetic but needs a
+    source CARD on the field. `copyPower` only ever retargets the effect's own card.
+    **`OP07-002` Ain is the ONLY `setPower` user in the whole catalog**, and it prints "Set the
+    POWER of ... to 0", which is the reading `setPower` actually implements.
+  - **The design is a REPLACEMENT of the base, not a delta modifier**, and that is what makes it
+    right: a `setBasePower` modifier stores the literal in `value` under its own
+    `ModifierState["type"]`, and `getCardPower` substitutes it for the printed base through
+    `getEffectiveBasePower` (`shared.ts`) — timed modifier first, then `getPermanentSetBasePower`
+    (`effects/permanent.ts`, the twin of `getPermanentSetCost`), then the printed base. So +power
+    modifiers and attached DON!! stack on top; applying the same literal twice is idempotent (two
+    `OP15-070` Fuza both say 6000 about one shared [Shura] body, where a delta would say 8000); and
+    it can move a card DOWN (`OP16-106` pulls a 10000 body to 7000 — no `modifyPower` value can do
+    that and raise a 5000 Leader in the same clause).
+  - **Rulings #909 / #910 / #994 all answer 是的 to the same question** — a Leader carrying "has
+    every card's name" DOES reach the literal — so an "all of your [Name] cards' base power" clause
+    takes `zones: ["leader", "character"]`. Third appearance of the C1/C2 Leader-exclusion trap
+    (rulings #979/#993).
+  - **Ruling #927 is what makes the stacking mandatory rather than tidy**: at 30 cards in the trash
+    all three of `OP15-092`'s bullets apply, so base-9000 and +1000 must reach 10000.
+  - **The duration→expiry mapping is copied from `setPower`, NOT from `setBasePowerFrom`.**
+    `setBasePowerFrom` leaves `untilEndOfOpponentNextEndPhase` unmapped, so it would never expire —
+    and that is exactly the duration `OP17-005` prints.
+  - **The naive implementation cost 2.04x on `getCardPower`, and `getCardPower` is the hottest read
+    in the engine — every battle, every legal-command enumeration, every policy score.** Measured on
+    a vanilla 10-body board, 200k calls, old-vs-new bodies timed in ONE process so the ratio is not
+    a cross-run comparison. The first hypothesis was wrong: narrowing the loop from
+    `Object.values(state.cards)` (~72 cards) to `inPlaySources` (≤14 slots) moved the ratio only
+    **2.04x → 1.91x**, and the modifier scan was never a factor at all (`getSetBasePowerModifier`
+    is 0.02µs). Profiling the pieces found it: `sourceEffectsAreNegated` was being paid per source
+    *before* the structural "does any in-play card even print this action" test. Reordering those
+    two guards took `getPermanentSetBasePower` from **18.13µs to 1.35µs** per call and the whole
+    overhead to **1.16x under load and 1.02x on an idle host** (`getPermanentModifierTotal`
+    alongside it is ~25µs, which is what the remaining 1-2% is measured against). The `inPlaySources`
+    narrowing was kept anyway — provably equivalent and strictly cheaper — but it was not the fix.
+    `bench/throughput.test.ts` now carries the ratio as a second guard at a **1.6x** limit,
+    red-green verified in both directions: the slow guard order measures 1.80x there and fails, and
+    a 2.5x limit would have passed both and been decoration. Same lesson as patch 8, one level
+    deeper: prefilter before you evaluate anything you might discard — and profile before you
+    believe a mechanism.
+  - Two DIFFERENT literals on one card resolve to whichever source is scanned first, the same
+    contract `getPermanentSetCost` already has. Nothing in OP15/OP16 produces that: every permanent
+    user names 6000 except `OP15-092`, whose two literals land on a Character and a Leader.
+  - **It broke the three OLDER base-power setters and that took a second pair of patches (17-18) to
+    fix. Found by review, reproduced before fixing, and worth understanding because the shape
+    recurs.** `copyPower`, `setBasePowerFrom` and `swapBasePower` each add a `type: "power"` delta of
+    `desired − basePower(card)`. That was self-consistent while `getCardPower` started from the
+    PRINTED base — `printed + (desired − printed) == desired` — and patch 14 moved the starting point
+    to `getEffectiveBasePower`, so a card carrying BOTH a literal and one of those deltas read
+    `literal + (desired − printed)`: two mutually exclusive REPLACEMENTS added together. Measured on
+    real cards: `OP16-106` Sanjuan.Wolf sets `OP16-104` Catarina Devon (printed 3000) to base 7000,
+    Devon's `[When Attacking]` `copyPower` off a 10000 body then added +7000, and the engine returned
+    **14000 where the printed text says 10000** — on the attacking body, deciding a battle. Both
+    cards are yellow and legal together. Fix: those three now measure from `getEffectiveBasePower`,
+    which is *identical* to `basePower` on any card without a literal, so the 6106-test suite does
+    not move. `basePower` is consequently unused in `actions.ts` and the import is dropped in the
+    same patch — `noUnusedLocals` is what keeps "every printed-base read was converted" honest.
+    Pinned by `copyPower REPLACES this clause's set base power` in `cards/tests/OP16/106-*.test.ts`.
+    **NOT fixed: the PERMANENT `setBasePowerFrom` branch in `getPermanentModifierTotal`.** It runs
+    inside a power computation, so calling `getEffectiveBasePower` there re-enters
+    `getPermanentSetBasePower` across sibling instances — the `OP16-017` blowup shape. Exactly ONE
+    card uses that branch (`OP14EB04-053` Vista, blue) and reaching it needs Vista plus a permanent
+    literal on the same Leader, i.e. a black/blue deck pairing Vista with `OP15-092`. Bounded and
+    known, not fixed blind.
+  - **Two latent bugs in the new code, also found by review and also fixed:** the duration map
+    omitted `untilEndOfYourNextTurn`, which falls through to `expiresAtTurn: null` and then NEVER
+    EXPIRES — copy `modifyPower`'s map, which is the only complete one in the file, **not**
+    `setPower`'s, which has the same hole; and `getPermanentSetBasePower` never evaluated the
+    action-level `condition` its own type declares, failing OPEN with no capability issue and no
+    judge prompt.
+  - **`setPower` and `setBasePower` were INDISTINGUISHABLE on `OP16-015` and `OP16-106` until tests
+    were added for it.** On a target carrying no power modifier both verbs land on the same number,
+    so swapping the verb kept both files green — the exact defect class the cards' own PARKED notes
+    existed to reject. Now all six cards go red under a `setBasePower` → `setPower` swap, verified by
+    doing it. The trick is a target with a LIVE modifier: `op05Ohm101` at 2 Life carries its own
+    permanent +1000, so 7000 + 1000 = 8000 under the right verb and 7000 under the wrong one.
+  - This is **the first patch to reach outside `packages/engine`** — the Action union lives in
+    `packages/types`, which is consumed from source (`main: ./src/index.ts`), so there is no build
+    step. `tools/test_patch_engine.py`'s `seed_stock` had to be fixed at the same time: it wrote one
+    fixture file per patch, so the three files that now carry two patches each lost an anchor and
+    three tests went red. Its "every patch is PENDING, none FAILED" assertion is new and is what
+    makes that class of fixture bug fail loudly.
 - **The first player may not attack on their own first turn — `canAttackWith` enforces it, and it
   silently voids hand-built attack fixtures.** `if (state.turnNumber === 1 && state.activeSeat ===
   state.config.firstPlayer) return false;` in `battle.ts`. A fixture that seats the acting player as
@@ -442,7 +629,17 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   1622 perturbations of a filter, threshold, comparison, zone or once-per-turn flag that no test in
   the 6078-test suite detects, and **177 cards where NOT ONE mutant died**. By contrast our own
   **OP15+OP16 kill 523/523 — 100%**, same tool, same day: the difference is that those tests were
-  authored with `mutation_check.py` in the loop.
+  authored with `mutation_check.py` in the loop. **Re-measured 2026-08-20 after `setBasePower`:
+  542/542 across all 213 encoded cards, still 100%, 0 survivors** — and the honest caveat the tool
+  itself prints, which the 523 figure did not carry: **31 of the 213 cards produce ZERO mutants**,
+  so they are unperturbable rather than verified. Records: `runs/OP15.jsonl` / `runs/OP16.jsonl`
+  (which SUPERSEDE the `--vendor-set` sweep's older files of the same name — same corpus, same
+  operators, but 105/108 cards against 94/86 because the sweep path skips zero-mutant cards);
+  gate: `./runs/mutation_shard.py --aggregate`, which exits 1 on a survivor OR a missing card.
+  **Run TWICE, on two different engine states — before and after patches 17-18 — and the two runs
+  are byte-identical record-for-record, card for card and label for label.** That is the evidence
+  that patches 17-18 were result-preserving; it is stronger than the reasoning, which is why it was
+  measured instead of argued.
   **Worst offenders, each matching a defect class already in this file:** `zone: "field"` →
   `"character"` survives **15/15** (the C1/C2 Leader-exclusion defect, rulings #979/#993); deleting
   a `cardCategory` filter survives **82%**; `eq` → `gte` survives **62%** (rulings #962/#963,
@@ -491,12 +688,16 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   shared `OP14EB04` directory; and **the official EN site prints counter bare, not `+2000`** (the `+`
   is a Limitless/JP convention).
   **Still open and deliberately so:** the trait-*matching* change (below), the **10 missing
-  `[Trigger]` abilities**, `OP13-084`'s wrong ability (needs `setBasePowerLiteral`), and the 445 absent
-  card definitions.
+  `[Trigger]` abilities**, `OP13-084`'s wrong ability, and the 445 absent card definitions.
+  **`OP13-084` is no longer BLOCKED, only unfixed** — it needed a literal base-power setter and that
+  primitive landed 2026-08-20. Both halves have to land together (a `card-corrections.json` text fix
+  AND replacing the fabricated `[On Play]` encoding), plus new tests, since `docs/mutation-triage.md`
+  records it as the one card where fixing the existing test would be wasted work.
   **The "70 Standard-legal encodings referenced by no test" figure is WITHDRAWN — the real number is
   0.** Of the 74 unmentioned ids, **63 are vanilla** (no printed effect text and no `effects:` block,
-  so nothing a test could assert) and **11 have printed text but no encoding** — and all 11 are exactly
-  the 8 OP15 + 3 OP16 already enumerated in `data/parked-clauses.json`. **Zero cards carry an
+  so nothing a test could assert) and **11 have printed text but no encoding** — and all 11 were exactly
+  the 8 OP15 + 3 OP16 then enumerated in `data/parked-clauses.json` (10 as of 2026-08-20: `OP16-015`
+  gained an encoding with `setBasePower`). **Zero cards carry an
   `effects:` encoding with no test.** `section_tests` now prints the three buckets separately so the
   aggregate cannot be quoted as a coverage gap again; this dropped the audit's Standard-legal finding
   count from 506 to 436.
@@ -674,8 +875,15 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   ST01 deck back to back. **Realism ratio 1.79x per game, 0.97x per command** — re-measured
   2026-08-19 after patch 8 at **1.78x / 0.96x**, i.e. unmoved, which is the expected result since
   neither of those decks contains the pathological shape. (The file gained a third deck and a
-  constructed-board regression guard in 2026-08-19; the realism ratio is still the first two decks
-  only.) The audit's
+  constructed-board regression guard in 2026-08-19, and the setBasePower overhead guard in
+  2026-08-20; the realism ratio is still the first two decks only.) **Do NOT read the realism ratio
+  as a general regression guard** — 2026-08-20 measured it at 1.78x/0.95x while `getCardPower`
+  itself had silently gone 2.04x, because both decks in the ratio are effect-light and a ratio of
+  two equally-slowed decks does not move. That is what the in-process overhead guard is for.
+  **It is also noisier than the two-decimal figures suggest**: five runs the same day on the same
+  tree spanned **1.61x-1.90x per game and 0.86x-1.01x per command**, varying with host load. Treat
+  it as "about 1.6-1.9x per game, flat per command" and do not read a 0.1 move as a regression.
+  The audit's
   assumed 2–5x roughly holds in magnitude but its mechanism was wrong: per-command cost is flat,
   and the whole slowdown is game length (94.6 cmds/game vs 51.1). Effect resolution is not the
   bottleneck — state transitions are. See `docs/engine-audit.md`.
@@ -743,6 +951,7 @@ tools/mutation_check.py         can a card's tests FAIL — serial, one mutant p
 tools/mutation_sweep.py         the same verdicts in disjoint batches, ~17x faster
 tools/card_deps.py              which test files can exercise which card (shared attribution)
 runs/                           mutation sweep results, one jsonl per set
+runs/mutation_shard.py          run mutation_check over OP15/OP16 in parallel clones, and GATE on it
 docs/mutation-sweep.md          the sweep's findings
 docs/mutation-operators.md      what the operators cannot see, and what to add next
 tools/verify_limitless.py       fetch/parse Limitless card pages; the adjudicator, automated
@@ -754,7 +963,10 @@ data/cards-OP16-en.json         imported OP16, 119 cards
 arena/log.ts                    decision corpus: append-only NDJSON, one record per decision
 arena/replay.ts                 replayMatch — reconstruct a recorded game from (config, commands)
 tools/mutation_check_arena.py   mutation harness for arena/log.test.ts (13 mutants, 0 may survive)
-bench/throughput.test.ts        throughput benchmark + the patch-8 per-command regression guard
+bench/throughput.test.ts        throughput benchmark + 3 guards: patch-8 permanent-effect scaling,
+                                setBasePower overhead on a vanilla board (<=1.6x) and on a
+                                board where 4 setBasePower clauses are live (<=2.0x)
+sim/decks/ace-op16-setbasepower-probe.json   ace-op16 + 4x OP16-015; plays setBasePower live
 data/op16-matchup-matrix.json   the matchup matrix, machine-readable
 data/card-coverage.json         all 2,282 cards classified encoded/gap/vanilla
 scripts/bootstrap.sh            clone + install the vendored engine, run its tests
@@ -772,6 +984,18 @@ python3 tools/audit_encodings.py --json data/encoding-audit.json  # is the encod
 python3 tools/correct_cards.py --check            # are the 48 corrections still applied (exit 1 if not)
 ./runs/sweep_all.sh                               # mutation-sweep every pre-OP15 encoding (~35 min)
 ./runs/status.sh                                  # aggregate the sweep
+
+# OP15/OP16 are the sets this repo OWNS. mutation_sweep.py DOES cover them (sweep_all.sh launches
+# both), but only via --vendor-set, which mutates the grafted copy and attributes tests by imported
+# symbol; --set reads the pristine encoding from cards/ and is the documented-correct path for these
+# two, and only --set has no batched implementation. Serially ~4-5h for 213 cards; this shards it
+# over APFS clones, ~1h on 5 workers. Not a new verdict path -- one `--card` process per card.
+# WITHOUT --fresh it RESUMES from runs/<SET>.jsonl and therefore verifies nothing.
+mkdir -p .mut   # BSD cp will NOT create the destination's parent
+for n in 1 2 3 4 5; do cp -Rc vendor/tcg-engines .mut/w$n; done
+./runs/mutation_shard.py --clones .mut/w1 .mut/w2 .mut/w3 .mut/w4 .mut/w5 --fresh
+rm -rf .mut                                       # the clones are disposable; nothing else reads them
+./runs/mutation_shard.py --aggregate              # the gate; exit 1 on a survivor OR a missing card
 python3 tools/mutation_check.py --vendor-set OP06 # mutation-check one upstream set, serially
 python3 tools/verify_limitless.py OP06-054        # what does the adjudicator actually print
 python3 -m unittest discover -s tools -p 'test_*.py'   # tools/ regression tests (56)
@@ -779,8 +1003,15 @@ node --test arena/log.test.ts                     # decision-log suite (14); nee
 python3 tools/mutation_check_arena.py             # prove those 14 can fail (13 mutants)
 ./scripts/arena.sh --replay arena/logs/<f>.jsonl --contested   # read a played game back
 
-# throughput benchmark AND the per-command regression guard (patch 8). Fails loudly if
-# permanent-effect evaluation starts re-entering itself again.
+# throughput benchmark AND two regression guards. (1) patch 8: fails loudly if permanent-effect
+# evaluation starts re-entering itself again. (2)+(3) setBasePower: fails if the base-power lookup
+# costs getCardPower more than 1.6x its pre-primitive body on a vanilla board, or 2.0x on a board
+# where four permanent setBasePower clauses are live. Both measured in-process against a locally
+# re-implemented old body, because absolute ms is host-dependent and only in-run ratios are quotable.
+# The vanilla probe is the one that catches a guard-order regression (1.77x); the loaded probe is the
+# only coverage the per-source condition/candidate-pool loop has at all.
+# NOTE this file is NOT in the suite by default -- the 6106 count excludes it, and copying it in
+# makes the suite report 6107.
 cp bench/throughput.test.ts vendor/tcg-engines/submodules/one-piece/packages/engine/tests/cards/
 cd vendor/tcg-engines/submodules/one-piece/packages/engine && ./node_modules/.bin/vp test run tests/cards/throughput.test.ts
 ```
@@ -798,13 +1029,16 @@ The `tools/` tests are stdlib `unittest`, matching the tools' own stdlib-only co
    That is the whole thesis. Second: 1–2 `OP17-016` Rakuyo as anti-aggro tech (Ping's call), but
    see §5 — the removal suite and the discount want opposite fields and rarely both switch on.
 3. ~~Generate engine card definitions for OP15/OP16~~ — **DONE, verified 2026-08-19.**
-   119 imported = 119 definitions per set, 0 cards unencoded-and-unparked, 212 test files. The
-   remaining work is not encoding, it is the 3 scopable DSL primitives below.
-   **Build `setBasePowerLiteral` first — it blocks item 2.** `OP17-005` sets Ace's Leader base power
-   5000 → 8000 and that is the OP17 thesis; 6 parked clauses across OP15/OP16 already pin the
-   semantics, so it can be scoped from real cases rather than from one. Then
-   `giveDonSourcePlayer` (10 clauses) and `attachedDonTargetFilter` (7). Leave the 17 singleton
-   primitives parked.
+   119 imported = 119 definitions per set, 0 cards unencoded-and-unparked, 213 test files. The
+   remaining work is not encoding, it is the DSL primitives below.
+   ~~**Build `setBasePowerLiteral` first — it blocks item 2.**~~ — **DONE 2026-08-20.** It is the
+   DSL action `setBasePower`, patches 10–16 of `tools/patch_engine.py`, and all 6 parked clauses are
+   encoded and tested. Item 2 is unblocked on the engine side; what still blocks it is Bandai not
+   having published OP17.
+   **Next up, and in this order: `giveDonSourcePlayer` (10 clauses, all OP15) then
+   `attachedDonTargetFilter` (7).** Neither blocks OP17, so neither is on the critical path — they
+   are the two remaining primitives that can be scoped from real cases rather than from one card.
+   Leave the 15 singleton primitives parked.
 4. **Measure policy quality, in this order — then and only then pick a Tier-3 lever.**
    Ping approved this sequence 2026-08-19. The audit's four options are all *throughput* levers, and
    **throughput buys precision, never freedom from bias.** A weak policy does not merely add noise to

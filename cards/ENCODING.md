@@ -139,9 +139,20 @@ disposable and gets overwritten.
    first.
 5. Typecheck and format:
    ```bash
-   ./node_modules/.bin/vp check          # from packages/engine, and again from packages/cards
-   ./node_modules/.bin/vp check --fix    # if it reports formatting issues
+   ./node_modules/.bin/vp check src tests   # from packages/engine
+   ./node_modules/.bin/vp check src         # and again from packages/cards
+   ./node_modules/.bin/vp check --fix <file>  # if it reports formatting issues
    ```
+   **Scope it to `src tests`, not bare `vp check`.** If `./scripts/arena.sh` has ever been run,
+   `packages/engine/arena/` holds a copy of this repo's `arena/` (the script `rm -rf`s and re-copies
+   it), and that copy carries pre-existing formatting issues in 4 files plus one `no-unused-vars`
+   warning. A bare `vp check` reports them and exits non-zero, which reads as "my change broke
+   something" and is not. Note the type check ALSO runs under `--no-fmt`, so `vp check --no-fmt src`
+   is the way to see type errors past a formatting failure.
+   **`vp check` alone does not full-typecheck the workspace** — for that use
+   `./node_modules/.bin/tsgo --noEmit -p tsconfig.json`, from `packages/engine` and again from
+   `packages/cards` (borrowing engine's binary). Two errors in the sibling `agnostic-simulator`
+   package are pre-existing and unrelated; filter them out.
    **Round-trip hazard:** `vp check --fix` rewrites files in place wherever you ran it —
    which, run from `packages/engine`, is the **grafted copy under `vendor/`**, not the
    source of truth in `cards/tests/`. If you fix-and-forget there, the fix is invisible to
@@ -968,11 +979,16 @@ cost with the card itself and asserting the effect still resolves.
 entry written with `count: { amount: 1 }` over another zone compiles, type-checks, raises no capability
 issue, and never applies. Watch for it on anything printed "your Leader gains +N power".
 
-**`copyPower` vs `setBasePowerFrom` is decided by one word of printed text.** `copyPower` reads
-`getCardPower(source)` (current, with modifiers) and always applies to the card bearing the effect;
-`setBasePowerFrom` reads `basePower(source)` (printed) and takes an explicit target. Tell:
+**`copyPower` vs `setBasePowerFrom` vs `setBasePower` vs `setPower` is decided by one phrase of printed
+text, and there are four verbs, not two.** `copyPower` reads `getCardPower(source)` (current, with
+modifiers) and always applies to the card bearing the effect; `setBasePowerFrom` reads
+`basePower(source)` (printed) and takes an explicit target; `setBasePower` takes a LITERAL and an
+explicit target; `setPower` takes a literal too but sets TOTAL power. Tell:
 *"the power of X"* → `copyPower` (`OP04-069`, `OP16-055`, `OP16-104`); *"the same as X's base power"* →
-`setBasePowerFrom` (`OP06-009`, `OP14-053`).
+`setBasePowerFrom` (`OP06-009`, `OP14-053`); *"base power becomes N"* → `setBasePower` (`OP15-070`,
+`OP15-071`, `OP15-092`, `OP16-015`, `OP16-058`, `OP16-106`); *"set the power of X to N"* → `setPower`,
+which in the whole 2,537-card catalog is `OP07-002` Ain alone. See the `setBasePower` section below —
+picking `setPower` for a "base power becomes" clause is wrong in a way a green test will not show you.
 
 **Attached DON!! gives its +1000 only while its controller is the ACTIVE seat** —
 `getCardPower` is `basePower + (state.activeSeat === instance.controller ? attachedDon * 1000 : 0)`.
@@ -1255,6 +1271,113 @@ trait-filtered and DON!!-gated while its `[Counter]` is neither), so copy delibe
 **`baseCost` vs `cost`, `basePower` vs `power`.** "a base cost of 5 or less" (原本的费用) is
 `baseCost`; a discounted cost-6 body must not qualify. Same split as `basePower` on `OP15-098`.
 
+## The `setBasePower` primitive (built 2026-08-20)
+
+Six clauses across OP15/OP16 print *"base power becomes N"* and were parked on
+`setBasePowerLiteral` until this primitive existed. It is now DSL vocabulary like any other verb, so
+**do not re-park a "base power becomes" clause** — and do not reach for `setPower` instead.
+
+```ts
+{ action: "setBasePower", target: <Target>, value: 7000, duration: "thisTurn" }
+```
+
+**Why `setPower` is the wrong answer, in two independent ways.** It computes
+`action.value - getCardPower(target)` at resolution and stores that as a `type: "power"` delta. So
+(a) it absorbs modifiers the target already carries instead of letting them stack on the new base —
+a 6000 Prisoner holding one attached DON!! must read 8000 under `OP16-058`, and `setPower` reads
+7000; and (b) the permanent power path recognises only `modifyPower` and `setBasePowerFrom`, so a
+`setPower` written inside `permanentEffects` **is never read at all**.
+
+**What the engine actually does.** A `setBasePower` modifier stores the LITERAL in `value`, not a
+delta, under its own `ModifierState["type"]`. `getCardPower` substitutes it for the printed base
+before summing attached DON!! and the power modifiers, via `getEffectiveBasePower`
+(`shared.ts`) — timed modifier first, then `getPermanentSetBasePower` (`effects/permanent.ts`, the
+twin of `getPermanentSetCost`), then the printed base. Consequences worth knowing:
+
+- **+power modifiers stack on top.** Ruling #927 makes that mandatory rather than tidy: at 30 cards
+  in the trash all three of `OP15-092`'s bullets apply, so base-9000 and +1000 must reach 10000.
+- **Applying the same literal twice is idempotent.** Two `OP15-070` Fuza in play both say 6000
+  about one shared [Shura] body; a delta encoding would say 8000.
+- **It can move a card DOWN.** `OP16-106` sets "up to 1 of your Leader or Character cards" to 7000,
+  which on a 10000 body is a cut. No `modifyPower` value can express a clause that raises a 5000
+  Leader and lowers a 10000 Character in the same breath — that is the shape to watch for.
+- **Two DIFFERENT literals on one card** resolve to whichever source is scanned first, the same
+  contract `getPermanentSetCost` already has. Nothing in OP15/OP16 can produce that: every
+  permanent user names 6000 except `OP15-092`, whose two literals land on a Character and on a
+  Leader.
+- **Permanent-effect targets still need `count.amount: "all"` or `self: true`**, the same guard
+  `getPermanentModifierTotal` applies. `getPermanentSetBasePower` enforces it deliberately, because
+  a permanent effect cannot make a choice.
+
+**Rulings #909 / #910 / #994 all answer 是的 to the same question and all three pin the same thing:
+a Leader carrying "has every card's name" DOES reach the literal.** So a "all of your [Name] cards'
+base power" clause takes `zones: ["leader", "character"]`, not `["character"]`. This is the C1/C2
+Leader-exclusion trap (rulings #979/#993) in a third guise, and `zone: "character"` reads perfectly
+naturally each time.
+
+**But be honest about what that zone list buys today: on a NAME-gated arm it is inert, and no test
+can cover it.** Names resolve through `cardNames()` = `name` + `alternateNames`; exactly 12 cards in
+the 2,537-card catalog set `alternateNames`, none is a Leader, and no Leader carries "has every
+card's name" text at all. So no Leader can currently match `filter: "name"`, and conforming to those
+three rulings really needs a name-WILDCARD mechanism in `matchesTargetFilter`, which does not exist.
+Keep the breadth — it is correct and forward-compatible, and `zones:` is not a mutation-operator
+site so nothing will flag it — but do not claim it is exercised. Where the target is NOT name-gated
+the primitive demonstrably does reach a Leader: `OP16-106`, `OP16-015` and `OP15-092` bullet 2 all
+assert a Leader's power directly.
+
+**Engine delivery.** The primitive is patches 10–16 in `tools/patch_engine.py`, across
+`packages/types/src/effect/action.ts` (the action type and its union membership),
+`engine/src/types.ts` (the modifier type), `engine/src/shared.ts`
+(`getSetBasePowerModifier`, `getEffectiveBasePower`, `getCardPower`),
+`engine/src/effects/permanent.ts` (`getPermanentSetBasePower`) and
+`engine/src/effects/actions.ts` (the resolver case). One of those is the first patch to reach
+outside `packages/engine`; `packages/types` is consumed from source, so there is no build step.
+The duration→expiry mapping is copied from `setPower`, not from `setBasePowerFrom`, because
+`setBasePowerFrom` leaves `untilEndOfOpponentNextEndPhase` unmapped and it would never expire —
+and that is exactly the duration `OP17-005` prints.
+
+**Testing it.** Five assertions carry the semantics. The first three are per-card; the last two are
+the ones a green suite will NOT ask you for, and both were missing on the first pass:
+
+1. **the exact literal**, from a printed base that is not the literal — this is what kills
+   `value: N -> N-1000`, and on a card whose printed base happens to equal `N-1000` (`OP16-015`
+   Luffy at 6000, `OP16-058`'s Prisoner at 6000) the mutant otherwise reads as "nothing happened";
+2. **a modifier stacking on top** — `OP15-071` uses `op05Ohm101`'s own "2 or less Life" +1000,
+   `OP16-058` uses one attached DON!!, `OP15-092` uses ruling #927. All three would read the base
+   literal, unchanged, under `setPower`;
+3. **a non-matching body left alone**, which is the only thing that kills `delete filter:name` —
+   and it has to cover the Leader as well as a Character, or half the zone list is unprotected.
+4. **that the verb is not `setPower` in disguise.** This is the one to actually worry about. On a
+   target carrying NO live power modifier the two verbs land on the same number, so a whole test file
+   can pass with the wrong verb — which is what happened: `OP16-015` and `OP16-106` were both
+   swappable to `setPower` and stayed green, the exact defect their sibling cards' PARKED notes
+   existed to reject. The fix is a target with a live modifier. `op05Ohm101` is the cheapest one in
+   the game: printed 5000, and it carries its own permanent *"2 or less Life cards: +1000 power"*,
+   so at 2 Life it is a 6000 body whose extra 1000 is real. 7000 + 1000 = **8000** under
+   `setBasePower`; `setPower` computes `7000 − 6000` and lands on 7000. **Verify by swapping the verb
+   and watching for red** — `mutation_check.py` has no operator for it, so nothing else will.
+5. **that the duration is real.** Nothing else in these six crosses a turn boundary, so
+   `duration: "thisTurn"` is unfalsifiable without one `endTurn` and a re-read — `permanent` passes
+   every other assertion. Template: `cards/tests/OP15/034-yorki.test.ts`.
+
+And one thing to test that is not about the primitive at all: **that it composes with the three older
+base-power setters.** `copyPower`, `setBasePowerFrom` and `swapBasePower` add a delta measured from a
+base power, so a card carrying a literal AND one of those deltas is where replacement semantics
+either hold or silently stop holding. `cards/tests/OP16/106-sanjuan-wolf.test.ts` pins it with
+Sanjuan → Catarina Devon; that test caught a real 14000-instead-of-10000 defect.
+
+Measured on the batch that built it: **26 mutants across the 6 cards, all killed**, inside
+**542/542 across all 213 encoded OP15/OP16 cards**. Two mutants deserve naming because they were
+close to unkillable. `value: 7000 -> 6000` on `OP16-015` and `OP16-058` lands on the target's OWN
+printed base, so it reads as "the clause did nothing" and only an exact-number assertion sees it.
+And `delete filter:cardCategory` on `OP16-015`'s cost is EQUIVALENT for every printed card —
+`basePower()` returns 0 for anything that is not a Leader or Character, and Leaders are never in
+hand — so it needed a synthetic Event that buffs ITSELF by 8000 while in hand, via
+`getPermanentModifierTotal`'s `sourceIsSelfInHand` exception. That control is only worth having
+because the test asserts `getCardPower(state, eventId) === 8000` directly: the projection reports
+`power: null` for an Event whatever its modifiers, so a control reading 0 would have looked
+identical to a control working.
+
 ## Parked (DSL gaps)
 
 Recorded per the settled decision: *record the card and the missing primitive, move on; revisit
@@ -1263,6 +1386,15 @@ once the parked list is complete.* **A fully-parked card cannot document itself*
 nothing encoded gets its comments overwritten on the next generator run (this happened to
 `OP15-058` Enel). For those cards **this list is the only record**. Partially-parked cards do
 carry an inline `// PARKED` note, because they have an `effects` block to protect them.
+
+**`setBasePowerLiteral` is no longer on this list — it was BUILT on 2026-08-20** and its 6 clauses
+(`OP15-070`, `OP15-071`, `OP15-092`, `OP16-015`, `OP16-058`, `OP16-106`) are encoded and tested. See
+the section above. That took the registry from 40 parked clauses over 35 cards to **34 over 30**, and
+from 19 `missing_primitives` entries to **18** (the `parked` clauses reference 19 primitive ids --
+`donDeckSizeRule` has no entry; that gap is pre-existing). `OP16-015` was the only one **of these
+six** with BOTH clauses parked -- not the only card in the sets, since `OP15-015` and `OP15-058` are
+too -- and it now has an `effects` block and so can carry its own inline `// PARKED` note for the
+remaining `nameIncludesMatch` clause.
 
 *Task 2 (the five reference cards): none — all expressed fully in the existing DSL.*
 

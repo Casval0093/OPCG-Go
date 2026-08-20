@@ -28,18 +28,10 @@ export const op16SanjuanWolf106: CharacterCard = {
   attribute: "strike",
   effect:
     "[On K.O.] If your Leader has the [Blackbeard Pirates] type, draw 1 card, then up to 1 of your Leader or Character cards' base power becomes 7000 during this turn.",
-  // PARKED -- "then up to 1 of your Leader or Character cards' base power becomes 7000 during this
-  // turn" is NOT encoded. No DSL verb sets a card's BASE power to a literal. `setPower`
-  // (effects/actions.ts) adds a modifier of `value - getCardPower(target)`, i.e. it sets TOTAL
-  // power measured from the target's power AT RESOLUTION, so any modifier already on the target
-  // (attached DON!! on your Leader, a counter boost) is absorbed instead of stacking on top of
-  // 7000 -- a different card. `setBasePowerFrom` has the right arithmetic
-  // (`value - basePower(card)`) but requires another card on the field to copy from, and
-  // `copyPower` only ever retargets the effect's own card. Missing primitive: a literal
-  // base-power setter -- a `setBasePower` action, or a flag on `setPower` that makes it compute
-  // its delta from `basePower(card)`. The same wording parks clauses on OP16-015, OP16-058 and
-  // OP15-092, so it is wanted by four cards in these two sets. The draw and the Leader-type gate
-  // below ARE encoded.
+  // `setBasePower`, not `setPower`, on the second half. `setPower` sets TOTAL power measured at
+  // resolution, so a modifier already on the target -- attached DON!! on your Leader, a counter
+  // boost -- would be absorbed instead of stacking on top of 7000. On a Leader in particular that
+  // is the difference between a 7000 body and a 7000+1000-per-DON!! body.
   effects: {
     effects: [
       {
@@ -56,6 +48,21 @@ export const op16SanjuanWolf106: CharacterCard = {
             action: "draw",
             player: "self",
             amount: 1,
+          },
+          {
+            // "then up to 1 of your Leader or Character cards' base power becomes 7000 during this
+            // turn". "Leader or Character cards" is printed explicitly, so no ruling is needed to
+            // justify the zone list here. `upTo` because the clause says "up to 1" -- declining is
+            // legal, and Sanjuan.Wolf is often the K.O.'d body itself, so the effect frequently
+            // resolves with nothing worth raising.
+            action: "setBasePower",
+            target: {
+              player: "self",
+              zones: ["leader", "character"],
+              count: { amount: 1, upTo: true },
+            },
+            value: 7000,
+            duration: "thisTurn",
           },
         ],
       },

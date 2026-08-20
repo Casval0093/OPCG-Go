@@ -416,6 +416,22 @@ and choosing between a K.O. and leader damage. 14 positions total.
 5/11, `random` 0/11, `passOnly` 0/11.
 **`valueRanked` by class:** lethal 4/4, futile 2/2, donAllocation 2/3, **sequencing 0/2**.
 
+**Re-run 2026-08-20 after the `setBasePower` primitive changed `getCardPower`: every number above
+is byte-identical, class by class and puzzle by puzzle.** It was re-run because the primitive
+substitutes a set base power inside `getCardPower`, so the suite is a cheap regression check that
+the change did not perturb the positions it does cover.
+
+**Do NOT read it as evidence that live play is unaffected in general, and this is the important
+part.** No puzzle contains a card that uses `setBasePower`, and — separately — the decision layer
+cannot see one at all: `automation/bot-strategies.ts` computes power as `card.power +
+attachedDon * 1000` off the printed card and gates its attack bonus on `attacker.power >= 5000`,
+also printed. **Nothing in `engine/src/automation/` imports `getCardPower`.** So an identical result
+here is equally consistent with "nothing was perturbed" and with "the policy could not have noticed",
+and this suite cannot distinguish the two. `battle.ts` resolves combat through `getCardPower` and is
+correct, so the primitive changes battle OUTCOMES while changing no policy CHOICE. That is a real
+gap against the tech-slot job in CLAUDE.md, and closing it starts with a puzzle whose correct
+attacker is only correct under a live `setBasePower`.
+
 ### Batch 2 separates the two top policies — and the default one loses
 
 This is the finding, and it is not the one the batch was designed to get. The plan asked for puzzles

@@ -22,3 +22,12 @@ arena/logs/
 # results live in runs/*.jsonl, which IS tracked.
 .clones/
 runs/*.out
+
+# Disposable per-worker engine clones (cp -Rc vendor/tcg-engines, APFS copy-on-write). One per
+# worker is mandatory for runs/mutation_shard.py: mutation_check writes its mutant into the
+# cards package next to the engine it is given, so a shared tree makes every verdict noise.
+.mut/
+
+# `--fresh` in runs/mutation_shard.py sets the previous per-set results aside here before a re-run.
+# Useful for cross-checking two independent runs record-for-record; not a deliverable.
+runs/*.jsonl.prev

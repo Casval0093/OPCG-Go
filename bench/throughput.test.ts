@@ -40,13 +40,17 @@ import { runBotMatch } from "../../src/automation/bot-harness.ts";
 import { valueRankedStrategy } from "../../src/automation/bot-strategies.ts";
 import { ST01_LEADER_CARD_ID, ST01_MAIN_DECK } from "../../src/starter-decks.ts";
 import { OnePieceTestEngine } from "../../src/index.ts";
-import { getCardPower } from "../../src/shared.ts";
+import { basePower, getCardPower, getInstance, getPowerModifierTotal } from "../../src/shared.ts";
+import { getPermanentModifierTotal } from "../../src/effects/permanent.ts";
+import { getCard } from "../../../cards/src/runtime-catalog.ts";
 import {
   eb01Doma005,
   eb01Fourtricks025,
   eb01Koza004,
   eb01MsMonday035,
+  op05Shura106,
   op13MonkeyDLuffy001,
+  op15Fuza070,
 } from "@tcg/op-cards";
 import type { MatchConfig } from "../../src/types.ts";
 
@@ -90,6 +94,45 @@ interface Deck {
 // hide. Checked in ascending N with an early throw, so a broken engine fails
 // at N=4 in ~1.5 s instead of grinding through N=5 for two and a half minutes.
 const PERMANENT_EFFECT_MS_LIMIT = 250;
+
+// getCardPower is the hottest read in the engine, and the setBasePower primitive added two lookups
+// to it -- one over state.modifiers and one over every card's permanentEffects. Both almost always
+// return null, but "almost always cheap" is how the OP16-017 blowup was justified too, so the
+// overhead is measured rather than argued.
+//
+// The probe board is deliberately VANILLA, not the OP16-017 board above. That is the adverse case
+// for this ratio and the representative one: on the pathological board getPermanentModifierTotal
+// costs ~3ms per call and swamps the two new lookups into 1.01x, which flatters them. On a plain
+// board getCardPower is sub-microsecond and the added scans are a visible fraction of it.
+//
+// The SECOND setBasePower probe's limit. The first one (below) times a board where no in-play card
+// prints `setBasePower`, so getPermanentSetBasePower's structural prefilter returns on its first
+// `.some()` for every call and the loop the guard's own error message names -- evaluateConditions
+// plus candidatePoolForTarget, per source, per getCardPower -- has ZERO coverage. That is
+// CLAUDE.md's "a deck-based performance guard is unreliable; construct the board" lesson in a new
+// form: a board WAS constructed, but one where the code under test is skipped.
+//
+// So the loaded probe puts 4x OP15-070 Fuza in play on the opponent's turn, which is exactly when
+// their [Opponent's Turn] clause is live, and times getCardPower on a [Shura] body that all four
+// of them target. Every call then pays four condition evaluations and four candidate-pool scans.
+// A KNOB, not a result. Measured 1.20x with the guards in the right order and 1.44x with them in
+// the wrong one, so -- and this is worth stating rather than leaving implied -- THIS PROBE DOES NOT
+// CATCH THE GUARD-ORDER REGRESSION. The vanilla probe does (1.77x against its 1.6x limit), and that
+// is the expected split: on a loaded board getPermanentSetBasePower has to do the per-source work
+// whatever order the guards are in, so reordering barely shows. What this probe bounds instead is
+// the per-source work ITSELF -- it is the only coverage the evaluateConditions +
+// candidatePoolForTarget loop has, and it would catch a change that made that loop scale with
+// something larger than the board. 2.0x is ~1.7x headroom over the measured 1.20x.
+const LOADED_BASE_POWER_LIMIT = 2.0;
+
+// A KNOB, not a result -- but a deliberately TIGHT one, because it has a real value to separate.
+// The first implementation of getPermanentSetBasePower measured 2.04x here; reordering its guards so
+// the structural "does any in-play card even print this action" test runs before the negation check
+// took it to 1.02x on an idle host and 1.16x under load. A limit of 2.5x would have passed both
+// shapes, i.e. would have been decoration. 1.6x fails the slow shape (measured 1.80x) and passes
+// the fast one, verified in both directions.
+const BASE_POWER_OVERHEAD_LIMIT = 1.6;
+const OVERHEAD_SAMPLES = 200_000;
 const PATHOLOGICAL_COPIES = [1, 2, 3, 4, 5];
 const PATHOLOGICAL_GAMES = 3;
 
@@ -251,4 +294,137 @@ test("bench", () => {
     }
   }
   console.log(`  all under ${PERMANENT_EFFECT_MS_LIMIT}ms — ${timings.join(" ")}\n`);
+
+  // THE SECOND GUARD — what the setBasePower base-power lookup costs on the hot path.
+  //
+  // Measured as a RATIO inside one process against a locally re-implemented "old" getCardPower,
+  // rather than by comparing two runs: absolute ms/call is host- and load-dependent, and the two
+  // variants here see the same board, the same cache state and the same contention. The old body
+  // is `basePower(card) + attachedDon + power modifiers + permanent power modifiers`, verbatim what
+  // shared.ts computed before the setBasePower patch.
+  console.log(
+    "setBasePower OVERHEAD — getCardPower vs its pre-setBasePower body, same process, vanilla board",
+  );
+  const board = OnePieceTestEngine.create(
+    {
+      leaderCardId: "OP16-060",
+      character: Array.from({ length: 5 }, (_, i) => SYNTHETIC_CARDS[i % 4]!.id),
+      hand: 5,
+      trash: 10,
+    },
+    {
+      leaderCardId: "OP16-060",
+      character: Array.from({ length: 5 }, (_, i) => SYNTHETIC_CARDS[i % 4]!.id),
+      hand: 5,
+      trash: 10,
+    },
+    { activeSeat: "south", firstPlayer: "north" },
+  );
+  const boardState = board.getState();
+  const probeId = boardState.players.south.characterArea.find((x): x is string => Boolean(x))!;
+
+  const oldGetCardPower = (id: string) => {
+    const instance = getInstance(boardState, id);
+    const card = getCard(instance.cardId);
+    return (
+      basePower(card) +
+      (boardState.activeSeat === instance.controller ? instance.attachedDon * 1000 : 0) +
+      getPowerModifierTotal(boardState, id) +
+      getPermanentModifierTotal(boardState, id, "power")
+    );
+  };
+
+  // Same answer, or the ratio below is comparing two different computations.
+  if (oldGetCardPower(probeId) !== getCardPower(boardState, probeId)) {
+    throw new Error(
+      `The pre-setBasePower body disagrees with getCardPower (${oldGetCardPower(probeId)} vs ` +
+        `${getCardPower(boardState, probeId)}), so this ratio is meaningless. Re-derive the old ` +
+        `body from shared.ts before trusting the number.`,
+    );
+  }
+
+  const time = (fn: () => number) => {
+    for (let i = 0; i < 200; i += 1) fn(); // warm
+    const t0 = process.hrtime.bigint();
+    for (let i = 0; i < OVERHEAD_SAMPLES; i += 1) fn();
+    return Number(process.hrtime.bigint() - t0) / 1e6;
+  };
+  const oldMs = time(() => oldGetCardPower(probeId));
+  const newMs = time(() => getCardPower(boardState, probeId));
+  const overhead = newMs / oldMs;
+  console.log(
+    `  ${OVERHEAD_SAMPLES} calls: old ${oldMs.toFixed(0)}ms, new ${newMs.toFixed(0)}ms, ` +
+      `${overhead.toFixed(2)}x\n`,
+  );
+  // THE LOADED PROBE — the same ratio on a board where the new code cannot short-circuit.
+  const loaded = OnePieceTestEngine.create(
+    {
+      leaderCardId: "OP16-060",
+      character: [
+        op05Shura106.id,
+        op15Fuza070.id,
+        op15Fuza070.id,
+        op15Fuza070.id,
+        op15Fuza070.id,
+      ],
+      hand: 5,
+      trash: 10,
+    },
+    { leaderCardId: "OP16-060", hand: 5, trash: 10 },
+    // north active => it is the OPPONENT's turn for south, so all four Fuza clauses are live.
+    { activeSeat: "north", firstPlayer: "south" },
+  );
+  const loadedState = loaded.getState();
+  const shuraId = loadedState.players.south.characterArea.find(
+    (id): id is string => Boolean(id) && getCard(getInstance(loadedState, id).cardId).name === "Shura",
+  );
+  if (!shuraId) {
+    throw new Error(
+      "The loaded probe did not seat a [Shura] body, so it measures the same short-circuit as the " +
+        "probe above and proves nothing. Check the character fixture and maxCharacterSlots.",
+    );
+  }
+  // Non-vacuity: 2000 printed, 6000 through four overlapping Fuza clauses. If this reads 2000 the
+  // clauses are not live and the timing below is the empty case again.
+  const loadedPower = getCardPower(loadedState, shuraId);
+  if (loadedPower !== 6000) {
+    throw new Error(
+      `The loaded probe's [Shura] reads ${loadedPower}, not 6000, so the four Fuza clauses are not ` +
+        `live and this probe is measuring the short-circuit it exists to avoid.`,
+    );
+  }
+  const loadedOld = time(() => {
+    const instance = getInstance(loadedState, shuraId);
+    const card = getCard(instance.cardId);
+    return (
+      basePower(card) +
+      (loadedState.activeSeat === instance.controller ? instance.attachedDon * 1000 : 0) +
+      getPowerModifierTotal(loadedState, shuraId) +
+      getPermanentModifierTotal(loadedState, shuraId, "power")
+    );
+  });
+  const loadedNew = time(() => getCardPower(loadedState, shuraId));
+  const loadedRatio = loadedNew / loadedOld;
+  console.log(
+    `  4x Fuza + [Shura], ${OVERHEAD_SAMPLES} calls: old ${loadedOld.toFixed(0)}ms, ` +
+      `new ${loadedNew.toFixed(0)}ms, ${loadedRatio.toFixed(2)}x (power=${loadedPower})\n`,
+  );
+  if (loadedRatio > LOADED_BASE_POWER_LIMIT) {
+    throw new Error(
+      `getCardPower is ${loadedRatio.toFixed(2)}x its pre-setBasePower cost on a board where four ` +
+        `permanent setBasePower clauses are live, limit ${LOADED_BASE_POWER_LIMIT}x. This is the ` +
+        `path the vanilla probe cannot see: getPermanentSetBasePower is evaluating conditions and ` +
+        `candidate pools per source, per call.`,
+    );
+  }
+
+  if (overhead > BASE_POWER_OVERHEAD_LIMIT) {
+    throw new Error(
+      `getCardPower is ${overhead.toFixed(2)}x its pre-setBasePower cost, limit ` +
+        `${BASE_POWER_OVERHEAD_LIMIT}x. getEffectiveBasePower (shared.ts) consults a modifier scan ` +
+        `and getPermanentSetBasePower (effects/permanent.ts); one of them has stopped short-` +
+        `circuiting. Note this is the hottest read in the engine -- every battle, every legal-` +
+        `command enumeration and every policy score goes through it.`,
+    );
+  }
 }, 1_800_000);

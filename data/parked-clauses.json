@@ -14,7 +14,7 @@
     "missing), rulings (SC ruling numbers that constrain what the primitive must do), blocks (other",
     "cards waiting on the same primitive)."
   ],
-  "generated_from": "Tasks 3, 4, 5-18 — ALL of OP15 and OP16 — 2026-08-18",
+  "generated_from": "Tasks 3, 4, 5-18 — ALL of OP15 and OP16 — 2026-08-18; minus the 6 `setBasePowerLiteral` clauses, which were unparked and encoded 2026-08-20 (the primitive was built as patches 10-16 of tools/patch_engine.py).",
   "missing_primitives": [
     {
       "id": "attachedDonTargetFilter",
@@ -29,20 +29,6 @@
         "OP15-027",
         "OP15-031",
         "OP15-038"
-      ]
-    },
-    {
-      "id": "setBasePowerLiteral",
-      "summary": "An action setting a card's BASE power to a literal value.",
-      "detail": "setPower applies value - getCardPower(target), i.e. a TOTAL-power set measured at resolution, so it absorbs modifiers already on the target instead of letting them stack on top. setBasePowerFrom has the right arithmetic but requires a source card on the field; copyPower only ever retargets the effect's own card. Rulings #909/#910 add a requirement: the target must span the LEADER (zones ['leader','character']), not just characters.",
-      "wanted_rank": 2,
-      "blocks": [
-        "OP15-070",
-        "OP15-071",
-        "OP15-092",
-        "OP16-015",
-        "OP16-058",
-        "OP16-106"
       ]
     },
     {
@@ -284,16 +270,6 @@
       "rulings": []
     },
     {
-      "card": "OP16-058",
-      "name": "The Prisoners Are Rioting!!",
-      "coverage": "partial",
-      "clause": "[Main] If you have 10 DON!! cards on your field, all of your [Prisoner of Impel Down] cards' base power becomes 7000 during this turn.",
-      "primitive": "setBasePowerLiteral",
-      "rulings": [
-        994
-      ]
-    },
-    {
       "card": "OP16-060",
       "name": "Sengoku",
       "coverage": "none",
@@ -322,14 +298,6 @@
       ]
     },
     {
-      "card": "OP16-106",
-      "name": "Sanjuan.Wolf",
-      "coverage": "partial",
-      "clause": "then up to 1 of your Leader or Character cards' base power becomes 7000 during this turn",
-      "primitive": "setBasePowerLiteral",
-      "rulings": []
-    },
-    {
       "card": "OP16-119",
       "name": "Marshall.D.Teach",
       "coverage": "partial",
@@ -356,21 +324,11 @@
     {
       "card": "OP16-015",
       "name": "Monkey.D.Luffy",
-      "coverage": "none",
+      "coverage": "partial",
       "clause": "If your Leader's card name includes \"Ace\" and you have 6 or more DON!! cards on your field, give this card in your hand -2 cost.",
       "primitive": "nameIncludesMatch",
       "rulings": [],
-      "note": "BOTH of this card's clauses are parked, so it has no effects block and cannot document itself -- this registry is its only record."
-    },
-    {
-      "card": "OP16-015",
-      "name": "Monkey.D.Luffy",
-      "coverage": "none",
-      "clause": "[On Your Opponent's Attack] You may trash 1 Character card with 8000 power from your hand: Your Leader and this Character's base power becomes 7000 during this turn.",
-      "primitive": "setBasePowerLiteral",
-      "rulings": [
-        972
-      ]
+      "note": "Was the only card in these sets with BOTH clauses parked, and this registry was its only record. Its [On Your Opponent's Attack] clause was encoded on 2026-08-20 when setBasePowerLiteral was built, so the card now carries an effects block and an inline // PARKED comment of its own."
     },
     {
       "card": "OP16-118",
@@ -495,26 +453,6 @@
       ]
     },
     {
-      "card": "OP15-070",
-      "name": "Fuza",
-      "coverage": "partial",
-      "clause": "[Opponent's Turn] All of your [Shura] cards' base power and this Character's base power become 6000.",
-      "primitive": "setBasePowerLiteral",
-      "rulings": [
-        909
-      ]
-    },
-    {
-      "card": "OP15-071",
-      "name": "Holly",
-      "coverage": "partial",
-      "clause": "[Opponent's Turn] All of your [Ohm] cards' base power and this Character's base power become 6000.",
-      "primitive": "setBasePowerLiteral",
-      "rulings": [
-        910
-      ]
-    },
-    {
       "card": "OP15-027",
       "name": "Dracule Mihawk",
       "coverage": "none",
@@ -592,17 +530,6 @@
       "clause": "[Opponent's Turn] This Character cannot be rested by your opponent's Leader and Character effects.",
       "primitive": "restPreventionSourceCardType",
       "rulings": []
-    },
-    {
-      "card": "OP15-092",
-      "name": "Monkey.D.Luffy",
-      "coverage": "partial",
-      "clause": "this Character's base power becomes 9000 (and a second bullet setting a literal base power)",
-      "primitive": "setBasePowerLiteral",
-      "rulings": [
-        927
-      ],
-      "note": "Two of three printed bullets. The third bullet IS encoded and tested."
     },
     {
       "card": "OP15-093",
