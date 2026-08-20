@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vite-plus/test";
+import type { Target } from "@tcg/op-types";
 import {
   op03Namule007,
   op06GeckoMoria080,
@@ -6,6 +7,7 @@ import {
   op15MonkeyDLuffy092,
 } from "@tcg/op-cards";
 
+import { candidatePoolForTarget } from "../../../src/effects/targeting.ts";
 import { OnePieceTestEngine } from "../../../src/index.ts";
 
 // Three independent thresholds over the trash, all cumulative once passed (ruling #927,
@@ -84,6 +86,40 @@ describe("OP15-092 Monkey.D.Luffy", () => {
     // every other printed base. Only a base-power REPLACEMENT gives 9000 alone at 10 cards and
     // 10000 at 30.
     expect(luffyWithTrash(30)).toEqual({ power: 10000, cost: 17 });
+  });
+
+  // OP16-013 McGuy's K.O. target, copied verbatim: "K.O. up to 1 of your opponent's Characters
+  // with 8000 base power or less." Luffy is printed 7000, so he starts INSIDE it and bullet 1
+  // takes him out -- the one card in the catalog where the trash count alone decides whether a
+  // removal spell can reach him.
+  const KO_BASE_POWER_LTE_8000 = {
+    player: "opponent",
+    zones: ["character"],
+    count: { amount: 1, upTo: true },
+    filters: [{ filter: "basePower", comparison: "lte", value: 8000 }],
+  } as const satisfies Target;
+
+  function koCandidatesAtTrash(trash: number) {
+    const engine = OnePieceTestEngine.create(
+      { leaderCardId: op06GeckoMoria080, character: [op15MonkeyDLuffy092], trash, deck: 10 },
+      {},
+    );
+    const luffyId = engine.findCardInZone("south", "character", op15MonkeyDLuffy092);
+    const pool = candidatePoolForTarget(engine.getState(), "north", null, KO_BASE_POWER_LTE_8000);
+    expect(pool.supported).toBe(true);
+    return { candidateIds: pool.candidateIds, luffyId };
+  }
+
+  test("ruling #762: at 10 cards in the trash Luffy leaves a `basePower lte 8000` K.O. pool", () => {
+    // Bullet 1 read through a filter instead of through a power projection. The trash count is the
+    // ONLY input that differs between the two halves, and 9 -> 10 is the same boundary the power
+    // tests above use, so a mutant that widens or shifts the threshold moves both together rather
+    // than letting this one pass on the old reading.
+    const under = koCandidatesAtTrash(9);
+    expect(under.candidateIds).toEqual([under.luffyId]);
+
+    const over = koCandidatesAtTrash(10);
+    expect(over.candidateIds).toEqual([]);
   });
 
   test("at 19 cards the Leader clause has not switched on, even on the opponent's turn", () => {
