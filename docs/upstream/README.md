@@ -8,8 +8,15 @@ Prepared 2026-08-19.
 |---|---|
 | 1 — search-to-hand slot gate | **SENT.** PR <https://github.com/TheCardGoat/tcg-engines/pull/216> — ready for review, `MERGEABLE`, 2 files, +56/−3 |
 | 2 — 1972 per-card tests never run | **SENT.** Issue <https://github.com/TheCardGoat/tcg-engines/issues/217> |
+| 3 — `getPermanentSetCost` evaluates conditions it discards | **LOCAL ONLY.** Carried as patch 8 in `tools/patch_engine.py`. Not sent, and not to be proposed — see the standing rule below. |
 
-Ping authorised sending 2026-08-19 and delegated the issue/promote calls.
+Ping authorised sending findings 1 and 2 on 2026-08-19 and delegated the issue/promote calls.
+**That authorisation was specific to those two and does not carry forward.**
+
+**STANDING RULE — no issues or PRs on external repos, and do not ask (Ping, 2026-08-19).** Verbatim:
+*"本项目外部库不要发issue，未来也不要再问我"*. Findings from here on are recorded in this file and in
+`CLAUDE.md`, and carried in `tools/patch_engine.py`. That local record **is** the deliverable. Do not
+raise sending as a question, a "still outstanding" item, or a next action.
 
 **Reviewed 2026-08-19 after sending: Ping asked whether #216 could be withdrawn, then decided to
 keep both open. Do not re-litigate this.** The question was about the destination being a
@@ -147,6 +154,62 @@ Cheapest change with real yield: add `"src/cards/**/*.test.ts"` to `include`.
 > measurable wall-clock cost. The surrounding text above reflects what issue #217 actually says,
 > which was written from the OP12-only sample — **#217 has not been updated with this stronger
 > evidence.**
+
+---
+
+## Finding 3 — `getPermanentSetCost` evaluates conditions it is about to discard
+
+**File:** `packages/engine/src/effects/permanent.ts`, `getPermanentSetCost`.
+**State: recorded here and carried as patch 8. Not sent. Not to be proposed.**
+
+An upstream inefficiency that is a **correctness-preserving performance bug**, but a severe one: it
+made this project's primary deck ~200x more expensive to simulate than every other deck, with a cost
+**super-exponential in the number of copies in play**.
+
+`getPermanentSetCost` loops every source in play and evaluates each permanent effect's `conditions`
+**before** checking whether that effect has a `setCost` action at all. `getPermanentModifierTotal`,
+40 lines above it in the same file, does the opposite — it builds `relevantActions` first and
+`continue`s when empty. It is the **only one of the file's 14 condition-evaluating functions** that
+pre-filters; the other 13 share the compute-then-discard shape. `getPermanentSetCost` is the one
+measured to sit inside a cycle.
+
+The cycle needs a card whose permanent effect carries a `cost` target-filter in its conditions.
+`OP16-017` LittleOars Jr. is one: its only action is `modifyPower`, but its `notHasCard` condition
+carries `{ filter: "cost", comparison: "gte", value: 8 }`.
+
+```
+getCardCost(C)
+  -> getPermanentSetCost(C)
+       -> evaluateConditions(source)             for EVERY permanentEffect of EVERY source in play,
+                                                 including ones with no setCost action
+            -> candidatePoolForTarget -> matchesTargetFilter   `filter: "cost"`
+                 -> getCardCost(C')              a DIFFERENT instance -> re-entry
+```
+
+The existing re-entrancy guard is keyed `` `${type}:${targetInstanceId}` ``, so it breaks the
+**direct** self-cycle but permits re-entry along every distinct permutation of sibling instances.
+With S copies of the source and T targets the branching is (S × T) per level, hence (S × T)^depth.
+Instrumented call counts for one `getCardPower` on a board of N copies:
+
+| copies of OP16-017 | 1 | 2 | 3 | 4 | 5 |
+|---|---|---|---|---|---|
+| `getCardCost` calls, stock | 2 | 52 | 2,034 | 126,224 | 11,450,650 |
+| `getCardCost` calls, patched | 1 | 4 | 9 | 16 | 25 |
+
+Patched is exactly N². **`getPermanentModifierTotal:power` is called exactly once at every N, before
+and after** — the `modifyPower` on the card is a red herring; the blowup is entirely on the cost path.
+
+**Fix:** the pre-filter, mirroring `getPermanentModifierTotal`. Three lines. It cannot change results:
+for an effect with no `setCost` action the inner loop `continue`s on every action, so the effect could
+never contribute a return value and the condition's result was discarded. `evaluateConditions` is a
+pure read of state — there is no assignment to `state.*` anywhere in `conditions.ts` — which is the
+same assumption `getPermanentModifierTotal` already relies on.
+
+**Catalog exposure, measured across all 2,537 cards.** 12 permanent effects carry a `cost` filter.
+After the patch, **no multi-copy character** pairs a `cost` filter with a cost-path action
+(`setCost`/`modifyCost`), so the copies term that drives the blowup is gone. Two single-copy sources
+remain — `OP05-097` (stage) and `OP10-042` (leader) — and both are structurally bounded, since one
+source and the 5-slot character area cap the permutations at Σ P(5,k) = 325.
 
 ---
 
