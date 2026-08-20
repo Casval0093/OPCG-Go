@@ -436,11 +436,17 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   and do not reach for `setPower` instead.** ***CITE PATCHES BY NAME, NEVER BY NUMBER.** "Patch N" means the
   Nth entry of that file's `PATCHES` list, and that list gets INSERTED INTO, so every number
   downstream of an insertion goes stale silently — nothing checks these. It has happened twice
-  already: PR #22 added `tests: OP07-030 Pappag...` at position 7, which pushed the
-  getPermanentSetCost prefilter from 8th to 9th and staled five references in this file; then Phase 1
-  took 10-14, which pushed the `setBasePower` patches from 10-18 to 15-24 and staled four more. All
-  nine were converted to names on 2026-08-21. If you find a bare "patch N" here, treat it as
-  suspect and re-derive it from `PATCHES` — do not propagate it.* Written
+  already: PR #22 inserted `tests: OP07-030 Pappag...` at position 7, pushing the
+  getPermanentSetCost prefilter down one and staling five references in this file; then Phase 1
+  inserted five, pushing the `setBasePower` block down five and staling four more. All nine were
+  converted to names on 2026-08-21. **Note this sentence deliberately states the SHIFT and not the
+  destination** — an earlier version said "to 15-24" and a third insertion would have made the
+  warning itself one of the stale numbers it warns about.
+  **And the number can be wrong the day it is written, not only later.** The bot-policy branch
+  labelled its own patch 15 while it was in fact 14, because it counted the list by eye instead of
+  asking it. So a "patch N" you read here may never have been right. If you find one, re-derive it —
+  `python3 -c "import sys;sys.path.insert(0,'tools');import patch_engine as p;[print(i,x['name'])
+  for i,x in enumerate(p.PATCHES,1)]"` — and do not propagate it.* Written
   `{ action: "setBasePower", target, value: 7000, duration: "thisTurn" }`.
   - **Why the three near-misses all fail.** `setPower` is the only other literal-valued power setter
     and it adds `action.value - getCardPower(target)` at resolution — a TOTAL-power set, so it

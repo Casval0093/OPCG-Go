@@ -1041,9 +1041,11 @@ FIRST_TURN_ATTACK_FIXTURE_FIX = """    skipFirstTurnDraw: true,
 #
 # NOTE ON NUMBERING — DO NOT WRITE "patch N" ANYWHERE DURABLE. "Patch N" means the Nth entry of
 # PATCHES below, and this list gets INSERTED INTO, so every number downstream of an insertion goes
-# stale silently. Nothing checks them. It has happened twice: PR #22 added the Pappag test fix at
-# position 7, pushing the getPermanentSetCost prefilter from 8th to 9th; then Phase 1 took 10-14,
-# pushing the setBasePower patches from 10-18 to 15-24. Between them that staled 26 references
+# stale silently. Nothing checks them. It has happened twice: PR #22 inserted the Pappag test fix at
+# position 7, pushing the getPermanentSetCost prefilter down one; then Phase 1 inserted five,
+# pushing the setBasePower block down five. (This states the SHIFT, not the destination, on purpose:
+# an earlier version named the resulting range and a third insertion would have made this very
+# warning one of the stale numbers it warns about.) Between them that staled 26 references
 # across CLAUDE.md, six docs and this file's own bench, and the same string "patch 8" ended up
 # meaning the Pappag fix in two files and the getPermanentSetCost prefilter in four others. All were
 # converted to NAMES on 2026-08-21. Use the "name" field verbatim; it is greppable and cannot rot.
@@ -1058,6 +1060,12 @@ FIRST_TURN_ATTACK_FIXTURE_FIX = """    skipFirstTurnDraw: true,
 # how the headers here, plus a plan doc and a prose reference to the getCardPower patch, survived a
 # sweep that reported itself complete. Codex caught two of the four; the fourth was found only by
 # re-running with -i.
+#
+# AND A NUMBER CAN BE WRONG ON THE DAY IT IS WRITTEN, which is a stronger reason to use names than
+# rot is: the bot-policy branch labelled its own new patch 15 when it was in fact 14, having counted
+# this list by eye rather than asking it. If you must know a position, ask:
+#   python3 -c "import sys;sys.path.insert(0,'tools');import patch_engine as p;\
+#               [print(i, x['name']) for i, x in enumerate(p.PATCHES, 1)]"
 #
 # THE DESIGN DECISION, and why a delta modifier is not good enough. A `setBasePower` modifier
 # stores the LITERAL in `value` and `getCardPower` substitutes it for the printed base, rather than
