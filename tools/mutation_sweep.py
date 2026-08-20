@@ -193,14 +193,41 @@ def main() -> int:
                 originals[info[c][0]] = open(info[c][0], encoding="utf-8").read()
 
             base = sw.run(files)
-            red = [f for f, ok in base.items() if not ok]
+            red = {f for f, ok in base.items() if not ok}
             if red:
-                print(f"batch {bi}: BASELINE RED in {red[:3]} — falling back to serial", flush=True)
-                for c in batch:
+                # Quarantine only the cards that OWN a red file, and carry on with the rest of the
+                # batch. An earlier version marked every card in the batch `baseline-red`, announced
+                # a serial fallback it did not perform, and never wrote those records to the sink —
+                # so one unrelated red file silently discarded up to 120 healthy cards' measurements
+                # while the run still reported success. Batches are disjoint by construction, so a
+                # red file belongs to exactly one card and the others are unaffected by it.
+                hurt = [c for c in batch if red & set(sw.attr[c])]
+                orphan = sorted(red - {f for c in batch for f in sw.attr[c]})
+                print(f"batch {bi}: BASELINE RED in {len(red)} file(s); quarantining "
+                      f"{len(hurt)} card(s), continuing with {len(batch) - len(hurt)}", flush=True)
+                if orphan:
+                    # A red file no batch member owns means the tree itself is dirty (a mutant left
+                    # behind, a bad graft), not that one card's test is broken. Stop rather than
+                    # score anything against it.
+                    raise RuntimeError(
+                        f"baseline red in file(s) no card in this batch owns: {orphan[:3]} — "
+                        "the engine tree is dirty; re-clone it before trusting any verdict"
+                    )
+                for c in hurt:
+                    bad = sorted(red & set(sw.attr[c]))
                     results[c] = {"card": c, "status": "baseline-red", "killed": 0,
-                                  "mutants": len(info[c][1]), "survivors": ["baseline red"]}
-                restore()
-                continue
+                                  "mutants": len(info[c][1]),
+                                  "survivors": [f"baseline red: {', '.join(bad)}"]}
+                    if sink:
+                        sink.write(json.dumps(results[c]) + "\n")
+                if sink:
+                    sink.flush()
+                for c in hurt:
+                    originals.pop(info[c][0], None)
+                batch = [c for c in batch if c not in hurt]
+                if not batch:
+                    restore()
+                    continue
 
             killed = {c: 0 for c in batch}
             surv = {c: [] for c in batch}

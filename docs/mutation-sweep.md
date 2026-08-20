@@ -168,6 +168,13 @@ because batches are built so that no two cards in a batch share a test file — 
 strings, so a batch-mate cannot reach a file that decides another card's verdict. Inert stub files
 and whole-catalog tests are excluded from attribution and never run.
 
+Two harness details that exist because their obvious versions are silently wrong. A red baseline
+quarantines **only the cards that own the red file** and the batch continues — batches are disjoint,
+so a red file belongs to exactly one card, and an earlier version that failed the whole batch could
+discard up to 120 healthy cards' measurements over one unrelated failure. And `runs/sweep_all.sh`
+waits on each worker PID individually: a bare `wait` with no job id returns 0 even when a child
+died, so the script would have printed `sweep complete` over a partial corpus.
+
 **The batching is not trusted on the strength of that argument.** It was verified against the
 serial `tools/mutation_check.py` on 40 cards / 134 mutants spanning OP01, OP06, OP10 and EB01:
 **40/40 cards agree, card-for-card and label-for-label.** Re-run that check after touching either

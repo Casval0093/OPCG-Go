@@ -21,9 +21,18 @@ wrong, all of which bit during development:
     `void card; assert.ok(true);`. They can never go red, so they are not coverage; they are
     tracked separately as `inert` and never run.
 
-So attribution is by IMPORTED SYMBOL, resolved one level through local `*.shared.ts` helpers
-(several `tests/cards` files get their cases from a helper that imports the cards itself), unioned
+So attribution is by IMPORTED SYMBOL, resolved through local TEST-SUPPORT helpers (several
+`tests/cards` files get their cases from a `*.shared.ts` that imports the cards itself), unioned
 with card ids named as strings (the `getCard("OP06-054")` route).
+
+The helper walk is recursive with a cycle guard, but it deliberately does NOT follow imports into
+the engine's own source. That is not a shortcut, it is the whole point: 22 non-inert test files
+import `src/index.ts`, `src/shared.ts` or `src/effects/*.ts`, and `src/index.ts` re-exports the
+entire card barrel. Following those edges would make every test depend on every card, which would
+collapse every batch to a single card and make attribution useless while looking more rigorous.
+Importing the engine is not evidence that a test exercises a particular card; importing a fixture
+helper is. So the walk follows `*.shared.ts` and anything under `tests/`, and stops at engine
+source.
 
 The question this answers is deliberately the broad one — *if this encoding were wrong, would
 anything in the suite catch it?* — not the narrow *is this card's own test load-bearing?*. A
@@ -108,6 +117,13 @@ class Attribution:
                         with open(p, encoding="utf-8", errors="replace") as fh:
                             raw[p] = fh.read()
 
+        tests_root = os.path.join(engine, "tests")
+
+        def is_helper(path: str) -> bool:
+            """A test-support file, as opposed to engine source. See the module docstring for why
+            the distinction is load-bearing rather than cosmetic."""
+            return path.endswith(".shared.ts") or path.startswith(tests_root + os.sep)
+
         def direct(path: str) -> tuple[set[str], set[str]]:
             src = raw[path]
             cards = set(ID_STRING_RE.findall(src))
@@ -119,9 +135,23 @@ class Attribution:
                         cards.add(self.symbols[n])
                 if spec.startswith("."):
                     cand = os.path.normpath(os.path.join(os.path.dirname(path), spec))
-                    if cand in raw:
+                    if cand in raw and is_helper(cand):
                         local.add(cand)
             return cards, local
+
+        def resolve(path: str) -> set[str]:
+            """Every card `path` can exercise, following helper imports to any depth."""
+            cards, frontier = direct(path)
+            seen = {path}
+            while frontier:
+                nxt = frontier.pop()
+                if nxt in seen:
+                    continue  # cycle guard: helpers may import each other
+                seen.add(nxt)
+                c2, l2 = direct(nxt)
+                cards |= c2
+                frontier |= l2 - seen
+            return cards
 
         self.deps: dict[str, set[str]] = {}
         self.inert: set[str] = set()
@@ -133,10 +163,7 @@ class Attribution:
             if "validateCardAbility(" in src and "expect(" not in src:
                 self.inert.add(rel)
                 continue
-            cards, local = direct(p)
-            for lp in local:
-                c2, _ = direct(lp)
-                cards |= c2
+            cards = resolve(p)
             if CATALOG_HINT.search(src) and len(cards) > CATALOG_MIN_CARDS:
                 self.catalog.add(rel)
                 continue
@@ -154,8 +181,7 @@ class Attribution:
         self.inert_attr: dict[str, list[str]] = {}
         for rel in self.inert:
             p = os.path.join(engine, rel)
-            cards, _ = direct(p)
-            for c in cards:
+            for c in resolve(p):
                 self.inert_attr.setdefault(c, []).append(rel)
 
     def files(self, card_id: str) -> list[str]:

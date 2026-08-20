@@ -127,6 +127,67 @@ class TestAttribution(unittest.TestCase):
             a = card_deps.Attribution(engine, cards_root)
             self.assertEqual(a.files("OP05-098"), ["tests/c.test.ts"])
 
+    def test_helper_chain_is_followed_to_any_depth(self):
+        """A test -> helper -> helper -> card chain must still attribute the card. One level of
+        indirection was all the first implementation followed, which would silently under-report
+        coverage and, worse, let two cards that share a test land in the same batch."""
+        with tempfile.TemporaryDirectory() as root:
+            engine, cards_root = _tree(
+                root, [("OP05-098", "op05Enel098")],
+                {"tests/inner.shared.ts":
+                 'import { op05Enel098 } from "@tcg/op-cards";\nexport const y = op05Enel098;\n',
+                 "tests/outer.shared.ts":
+                 'import { y } from "./inner.shared.ts";\nexport const x = y;\n',
+                 "tests/d.test.ts":
+                 'import { x } from "./outer.shared.ts";\n'
+                 'test("x", () => { expect(x).toBeTruthy(); });\n'},
+            )
+            a = card_deps.Attribution(engine, cards_root)
+            self.assertEqual(a.files("OP05-098"), ["tests/d.test.ts"])
+
+    def test_helper_cycle_does_not_hang(self):
+        """Helpers may import each other. Termination is guaranteed twice over — by the explicit
+        `if nxt in seen` guard and by the `- seen` filter on the frontier — and the two are
+        MUTUALLY redundant: measured, removing either one alone still terminates, removing both
+        hangs. So this test cannot fail on one of them, only on both, and then it fails as a hang
+        rather than an assertion. Do not 'simplify' either mechanism away on the grounds that the
+        suite stays green when you drop it."""
+        with tempfile.TemporaryDirectory() as root:
+            engine, cards_root = _tree(
+                root, [("OP05-098", "op05Enel098")],
+                {"tests/a.shared.ts":
+                 'import { b } from "./b.shared.ts";\n'
+                 'import { op05Enel098 } from "@tcg/op-cards";\nexport const a = [b, op05Enel098];\n',
+                 "tests/b.shared.ts":
+                 'import { a } from "./a.shared.ts";\nexport const b = a;\n',
+                 "tests/e.test.ts":
+                 'import { a } from "./a.shared.ts";\n'
+                 'test("x", () => { expect(a).toBeTruthy(); });\n'},
+            )
+            a = card_deps.Attribution(engine, cards_root)
+            self.assertEqual(a.files("OP05-098"), ["tests/e.test.ts"])
+
+    def test_engine_source_imports_are_not_followed(self):
+        """The stop rule, and it is the load-bearing half. 22 real test files import
+        `src/index.ts`, which re-exports the whole card barrel; following that edge would make
+        every test depend on every card, collapse every batch to one card, and destroy the
+        attribution while looking more thorough."""
+        with tempfile.TemporaryDirectory() as root:
+            engine, cards_root = _tree(
+                root, [("OP05-098", "op05Enel098"), ("OP06-054", "op06Borsalino054")],
+                {"src/index.ts":
+                 'import { op06Borsalino054 } from "@tcg/op-cards";\n'
+                 'export const engine = op06Borsalino054;\n',
+                 "tests/f.test.ts":
+                 'import { engine } from "../src/index.ts";\n'
+                 'import { op05Enel098 } from "@tcg/op-cards";\n'
+                 'test("x", () => { expect(engine && op05Enel098).toBeTruthy(); });\n'},
+            )
+            a = card_deps.Attribution(engine, cards_root)
+            self.assertEqual(a.files("OP05-098"), ["tests/f.test.ts"])
+            self.assertEqual(a.files("OP06-054"), [],
+                             "importing engine source must not attribute its cards")
+
     def test_variant_printing_id_is_matched(self):
         """`PRB02-006_p2` has an underscore; a trailing \\b in the id regex drops it."""
         self.assertEqual(card_deps.CARD_ID_RE.findall("see PRB02-006_p2 here"), ["PRB02-006_p2"])
