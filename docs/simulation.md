@@ -437,17 +437,29 @@ substitutes a set base power inside `getCardPower`, so the suite is a cheap regr
 the change did not perturb the positions it does cover.
 
 **Do NOT read it as evidence that live play is unaffected in general, and this is the important
-part.** No puzzle contains a card that uses `setBasePower`, and — separately — the ATTACK-side policy
-cannot see one: `automation/bot-strategies.ts` imports `getCardPower` zero times and computes power
-off the printed card throughout (`getTotalPower` at `:169-171`, the play-value heuristic at
-`:163-164` and `:329-330`, the attack-bonus gate `attacker.power >= 5000` at `:342`). Phase 1's
-`automation/counter-policy.ts` is the exception and reads `getCardPower` properly (`:415-416`), so
-the DEFENDER's counter decision does see a set base power. So an identical result here is equally
+part.** No puzzle contains a card that uses `setBasePower`, so an identical result here is equally
 consistent with "nothing was perturbed" and with "the attacking policy could not have noticed", and
 this suite cannot distinguish the two. `battle.ts` resolves combat through `getCardPower` and is
-correct, so the primitive changes battle OUTCOMES while changing no policy CHOICE. That is a real
-gap against the tech-slot job in CLAUDE.md, and closing it starts with a puzzle whose correct
-attacker is only correct under a live `setBasePower`.
+correct, so the primitive changed battle OUTCOMES while changing no policy CHOICE.
+
+**The second half of that — the ATTACK-side blindness — HAS SINCE BEEN CLOSED, and the line numbers
+this paragraph used to cite are gone.** As written it said `bot-strategies.ts` imports `getCardPower`
+zero times and computes power off the printed card at `:169-171`, `:163-164`, `:329-330` and `:342`,
+with Phase 1's `counter-policy.ts` (`:415-416`) the lone exception, so the defender saw a set base
+power and the attacker did not. The `bot-strategies: the policy compared PRINTED power` patch fixes
+exactly that: attacker selection and DON!! concentration now go through `getCardPower`, so a live
+`setBasePower` reaches the attacking policy too. **Three of the four sites that paragraph cited are
+deliberately still printed, and the fourth — `getTotalPower` — is the one the patch fixes.** The
+three that stay are `cardValue`'s hand read, `valueRanked`'s `playCard` hand read, and the
+`attacker.power >= 5000` big-body gate; all three are measured decisions rather than omissions.
+(The paragraph's "four" was its own citation count, not the total — there were five `.power` sites.)
+**Sites are named rather than cited by line, because LINE numbers rot exactly the way patch numbers
+do:** the `:163-164` / `:329-330` / `:342` above are PRE-fix positions, and this patch's own
+insertion shifted the last two to `:346-347` and `:359`. A reader with either tree checked out would
+find one set wrong, so trust the names. See "The decision layer read PRINTED power" below. The puzzle this
+paragraph asked for ("closing it starts with a puzzle whose correct attacker is only correct under a
+live power-changing effect") is `lethal-effective-power-attacker`, and it was written before the fix
+so that it went red first. **Do not re-derive the blindness from this paragraph; it is history.**
 
 ### Batch 2 separates the two top policies — and the default one loses
 
@@ -505,7 +517,12 @@ and never blocks`, now split between `counterPlay` and `the prompt resolver neve
 activates a [Trigger]`.
 **This is Task 5's answer and it is worse than "the resolver plays counters badly": it never plays
 them at all.** Combined with fact 1, simulated combat has *no defensive interaction whatsoever* —
-every battle resolves on printed power plus attached DON!!. Every number in this file was measured
+every battle resolves on the attacker's power against the defender's, with nothing added by the
+defender. (**That sentence used to read "on printed power plus attached DON!!" and it was wrong** —
+`battle.ts` has always resolved combat through `getCardPower`, so power-changing effects always
+counted in the *outcome*. What read printed power was the POLICY, on the attacker's side only, and
+that is a separate defect fixed 2026-08-20 by the `bot-strategies: the policy compared PRINTED power` patch — see "The decision layer read PRINTED power"
+below.) Every number in this file was measured
 under those conditions. Per the architecture note already recorded, counter and blocker use are not
 policy decisions in this engine (the strategy never sees a prompt), so this is not a mark against
 any rung of the ladder — it is a property of the simulator that biases every matchup it produces.
@@ -1410,6 +1427,201 @@ So the exemption remains necessary for upstream's fixtures and is no longer load
    measurement involving a policy that cannot close needs the budget varied before its numbers mean
    anything.
 
+## The decision layer read PRINTED power — fixed 2026-08-20
+
+Carried by the `bot-strategies: the policy compared PRINTED power` patch in
+`tools/patch_engine.py`. **Cited by NAME, not by number**, for two reasons and the second is the
+stronger one. (1) Numbering is positional and therefore branch-local: any insertion above a patch
+renumbers it, so whoever merges second silently rots every `patch N` reference. (2) **A number can
+be wrong the day it is written** — this section was drafted saying "patch 15" when the patch was
+14th, because the list was counted by eye instead of being asked. That makes a number not merely
+perishable but never load-bearing evidence in the first place.
+
+If you do need a position, derive it rather than count it, and prefer stating a SHIFT over a
+destination ("pushed down five" survives later insertions; "moved to 15-24" does not):
+
+```bash
+python3 -c "import sys; sys.path.insert(0,'tools'); import patch_engine as pe; print([(i+1,p['name']) for i,p in enumerate(pe.PATCHES)])"
+```
+
+Section headers in `tools/patch_engine.py` are unnumbered for the same reason: a numbered header is
+what re-seeds stale citations, because a reader takes the number off the header and cites it.
+
+`src/automation/bot-strategies.ts` decided *which body to attack with* and *which body to put DON!!
+on* from the number printed on the card. `src/battle.ts` resolves the resulting attack through
+`getCardPower`. So **every power-changing effect in the game changed battle OUTCOMES while changing
+no policy CHOICE**, and the two disagreed silently.
+
+The helper:
+
+```ts
+function getTotalPower(state: MatchState, instanceId: string): number {
+  const card = getCardForInstance(state, instanceId);
+  const base = card.cardType === "leader" || card.cardType === "character" ? (card.power ?? 0) : 0;
+  const instance = state.cards[instanceId];
+  const donBonus = instance ? instance.attachedDon * 1000 : 0;
+  return base + donBonus;
+}
+```
+
+against `shared.ts`'s `getCardPower` = `basePower + attached DON!! (only while its controller is the
+active seat) + power modifiers + permanent power modifiers`. `grep -rn getCardPower src/automation/`
+returned **nothing at all**.
+
+**Which rungs this reached, counted rather than assumed.** Only two of the five consult power: `greedy`
+(one read) and `valueRanked` (four). Both went through this one helper. `firstLegal`, `random` and
+`passOnly` have **zero** power reads between them. So no rung could see an effect-modified power, and
+**`random` is not a control for it** — it has no power-based preference to be right or wrong about.
+This is the same shape as the attack-target finding above but not the same mechanism, and it is the
+fourth member of that family: attack-target selection, counter/blocker play and `[Trigger]`
+activation are resolver-owned; this one was policy-owned and simply wrong.
+
+### Reproduced as a puzzle before anything was changed
+
+`lethal-effective-power-attacker` in `sim/puzzles.test.ts`. North on 0 life behind a 6000 Leader;
+South's own Leader rested; two bodies, `OP05-012` Hack (vanilla 5000) and `OP10-005` Sanji
+(**prints 3000, plays 6000** — `[Your Turn] This Character gains +3000 power`). The 5000 whiffs
+against a 6000 Leader, the 6000 connects and wins. Printed power ranks the two the wrong way round.
+
+The fixture card was found **by measurement, not by reading encodings** — the standing rule in this
+repo. A probe asked the engine for `getCardPower` on a bare board for every character in the catalog
+with printed power ≤ 6000 and reported the seven that answer above their printed value; `OP10-005`
+has the largest gap. `fixture integrity` re-measures both halves of the premise (prints 3000, plays
+6000, no keywords, and the inversion against the decoy still holds), so the puzzle cannot quietly
+stop meaning what its prose says.
+
+Red baseline, single-command mode, guards `1/3 correct of legal` (solvable and discriminating):
+
+| puzzle | valueRanked | greedy | firstLegal | random | passOnly |
+|---|---|---|---|---|---|
+| `lethal-effective-power-attacker` (before) | FAIL | FAIL | FAIL | FAIL | FAIL |
+| `lethal-effective-power-attacker` (after) | pass | pass | FAIL | FAIL | FAIL |
+
+Failing for **all five** is what localises the cause to the shared helper rather than to any one
+policy — though the three that stay red do so for a different reason and the fix cannot help them:
+they never consult power at all. Every one of the other 14 puzzles keeps its exact result, before and
+after, which is what says the change is scoped to the defect.
+
+### Two reads are deliberately LEFT on printed power
+
+Neither is an oversight, and both decisions are asserted in the suite rather than written down here
+and left to rot.
+
+**(a) `valueRanked`'s `attacker.power >= 5000` "big body" bonus stays printed.** It is *inert* for
+attacker choice, and routing it through `getCardPower` is measurably *worse*.
+
+*Inert, exactly.* A `declareAttack` scores `600 + 300*(target is a Leader) + 100*(gate) +
+150*(sourceId === bestAttacker)`. `bestAttacker` is a single instanceId, so among any set of attacks
+**exactly one** is awarded the 150 — and 150 > 100. For two attacks on the same target class the
+bestAttacker one therefore scores ≥ 150 from those two terms while the other scores ≤ 100, and it
+wins under **either** reading of the gate. (With the gate on *effective* power it cannot even
+disagree with `bestAttacker`, which is then the argmax of the very quantity the gate thresholds: if
+any attacker clears 5000, `bestAttacker` does.) The gate cannot reorder two attacks. It is not an
+attacker-selection input at all.
+
+*Worse.* Its only live effect is to lift `declareAttack` (1150) above `attachDon` (1050) — the
+swing-before-buff defect already recorded above. On effective power that defect fires **sooner**,
+because a body that has just taken one DON!! crosses 5000. A/B of the puzzle suite, gate on printed
+vs gate on effective, everything else identical:
+
+| | valueRanked donAllocation | `don-concentrate-to-reach` |
+|---|---|---|
+| gate on printed power (shipped) | 2/3 | pass |
+| gate on effective power | **1/3** | **FAIL** |
+
+Nothing else moved. So the change costs a measured puzzle and buys no fidelity anywhere. **The gate
+is mis-DESIGNED, not mis-sourced** — it belongs on the sequencing worklist, and CLAUDE.md's standing
+instruction is not to reweight it without re-running the ladder. `lethal-effective-power-attacker` is
+also the guard on this decision: its board is one where the gate (printed) and `bestAttacker`
+(effective) point at *different* bodies, so if the 150/100 weighting is ever changed so the gate
+wins, that puzzle goes red and this paragraph has to be revisited.
+
+**(b) The two reads that score a card in HAND stay printed** (`cardValue`, and `valueRanked`'s
+`playCard` branch). Measured over the whole catalog: `getCardPower` on a hand instance disagrees with
+printed power for **0 of 1968** characters, and **0** permanent power modifiers target a hand zone.
+Routing them through `getCardPower` is provably a no-op today, at the price of a permanent-effect
+sweep per hand card per decision — the hot path Phase 0's `permanent: getPermanentSetCost
+evaluates conditions it then discards` patch exists to keep cheap. Both facts
+are asserted by `hand-card power is printed power, so the two hand reads stay printed`, so the day a
+card modifies power in hand the suite says so.
+
+### The ladder did not move — and that is attributed, not assumed
+
+`./scripts/policy_ladder.sh 200`, the full C(5,2)=10 pair round robin on the `mihawk-green-proxy`
+mirror, run on the patched tree. The control is **Phase 2's own post-Phase-1 table**, measured on the
+same script, same deck, same 200 games, on the same tree this branch started from.
+
+| A | B | with the fix | 95% CI | Phase 2 control | Δ |
+|---|---|---|---|---|---|
+| valueRanked | greedy | 56.50% | [49.57%, 63.18%] | 57.50% | **−1.00** |
+| valueRanked | firstLegal | 55.50% | [48.57%, 62.22%] | 55.50% | 0.00 |
+| valueRanked | random | 100.00% | [98.12%, 100.00%] | 100.00% | 0.00 |
+| valueRanked | passOnly | 100.00% | [98.12%, 100.00%] | 100.00% | 0.00 |
+| greedy | firstLegal | 49.00% | [42.16%, 55.88%] | 47.50% | **+1.50** |
+| greedy | random | 100.00% | [98.12%, 100.00%] | 100.00% | 0.00 |
+| greedy | passOnly | 100.00% | [98.12%, 100.00%] | 100.00% | 0.00 |
+| firstLegal | random | 100.00% | [98.12%, 100.00%] | 100.00% | 0.00 |
+| firstLegal | passOnly | 100.00% | [98.12%, 100.00%] | 100.00% | 0.00 |
+| random | passOnly | 0.00% (200 timeouts) | [0.00%, 1.88%] | 200 timeouts | 0.00 |
+
+**Eight of ten pairs are byte-identical.** The two that move do so by −1.00 and +1.50 points, both
+far inside their own ±7-point CIs, and both on pairs Phase 2 had *already* extended to 600 games
+because they were unresolved. **Phase 2's ordering stands unchanged:**
+`valueRanked > {greedy ≈ firstLegal} > {random, passOnly}`, with the bottom two unordered.
+
+**Why Phase 2's table is a legitimate control.** A second arm was started — a detached worktree at
+`8eed908` with the fix absent, its own APFS engine clone, everything else held — and its first pair
+returned **57.50% [50.57%, 64.15%]**, reproducing Phase 2's cell to the digit on both bounds. The
+ladder is seed-deterministic, so the remaining nine control pairs were redundant and that arm was
+stopped rather than burned.
+
+**What this does NOT say.** It does not rehabilitate the pre-Phase-1 `76.0%`: that collapse is Phase
+1's, already measured and attributed by Phase 2 (attack ban −10.5 pts, counter policy −15.5 pts,
+both −18.5 pts). This fix simply is not part of it. Nor does an unmoved ladder mean the fix is
+worthless — the ladder is a *mirror* on a deck whose bodies mostly have no live power effects, which
+is exactly the blind spot the puzzle exists to cover.
+
+### No measurable throughput cost
+
+Routing the hottest read in the policy loop into `getCardPower` was the obvious risk.
+`bench/throughput.test.ts`, same host, back to back, nothing else running:
+
+| deck | games/s before | games/s after | cmds/s before | cmds/s after | cmds/game before → after |
+|---|---|---|---|---|---|
+| synthetic-4card | 1.32 | 1.35 | 148 | 152 | 112.3 → 112.3 |
+| ST01-real-50 | 1.17 | 1.22 | 165 | 172 | 140.8 → 140.8 |
+| oars-x4 | 0.51 | 0.55 | 68 | 71 | 134.0 → 130.3 |
+
+Every "after" is *faster*, which adding work cannot cause — so it is noise, and the noise was
+measured rather than asserted. Three repeats of the **same patched binary**: synthetic
+**1.35 / 1.45 / 1.55** (±15%), ST01 **1.22 / 1.29 / 1.31** (±7%), oars-x4 **0.55 / 0.57 / 0.53**
+(±8%). The whole before/after delta (+2% to +8%) sits inside that.
+
+The decisive column is the last one. On synthetic-4card and ST01 `cmds/game` is **identical** across
+arms, so the patch changed no decision on those decks and the comparison is a *pure cost*
+measurement — and the cost is below the noise floor. On oars-x4 it moved (134.0 → 130.3), so there
+the policy genuinely played differently and games/s is not a cost comparison at all.
+Per the standing rule, only the within-run ratios above are quotable; the absolute ms are
+host-dependent.
+
+**Incidental finding: the recorded realism ratio is stale, and it is Phase 1's doing, not this
+patch's.** `CLAUDE.md` and this file record **1.79x per game / 0.97x per command**. Measured now:
+**1.11–1.18x / 0.88–0.94x** — and the *unpatched* arm already reads 1.12x/0.90x, which is what
+attributes it to Phase 1. The mechanism is the one the original fact already names: game length. The
+counter policy lengthens games and lengthens the synthetic deck's proportionally more —
+post-Phase-1 `cmds/game` is **ST01 140.8, synthetic 112.3**, which compresses the ratio between them.
+
+**Do not difference those against the 94.6 / 51.1 recorded pre-Phase-1.** Those are an older
+session's figures from a different run, and this project only treats *within-run* ratios as
+quotable — subtracting across runs is the same category error as comparing absolute ms across hosts.
+What licenses the attribution to Phase 1 is the **unpatched arm** measured here (1.12x/0.90x), which
+is like-for-like against the patched arm in the same session. A fresh like-for-like pre-Phase-1
+baseline is being measured on the in-flight `setBasePowerLiteral` branch; when that lands, take its
+before-figures and keep this arm as the attribution. Corroboration that the *after* side is solid:
+that branch independently measured **112.3 / 140.8**, matching to the decimal across two trees.
+Phase 2 re-measured the ladder and the play/draw split but not the bench, so this is the first
+sighting. The engine-audit's assumed 2–5x realism multiplier is now further out than ever.
+
 ## What is not done
 
 - ~~**The Phase 2 re-measure.**~~ **DONE** — see "Phase 2 — the baseline re-measured, once". The
@@ -1424,6 +1636,15 @@ So the exemption remains necessary for upstream's fixtures and is no longer load
   Neither is a field-representative deck.
 - **Blocking and `[Trigger]` declining** remain unimplemented, on purpose (Task 1.3). Pinned by a
   test so a silent change is loud, not so they stay that way forever.
+- **`valueRanked`'s `>= 5000` big-body bonus still reads PRINTED power, by decision** — it is inert
+  for attacker choice and routing it through `getCardPower` costs a measured puzzle (see the
+  printed-power section below). It is on the *sequencing* worklist, not the fidelity one.
+- **The two hand-card reads still read printed power, by decision**, on a measurement (0 of 1968
+  characters disagree) that is asserted rather than assumed. A card that modifies power in hand would
+  reopen it.
+- **The realism ratio in `bench/throughput.test.ts` has not been re-measured deliberately** — the
+  1.11–1.18x figure below was a by-product of the printed-power throughput A/B, not a designed
+  re-measurement, and Phase 2 did not cover the bench.
 - **Attack target selection** is still unreachable, so a body saved by a counter is purely
   offensive. This is the honest cost of Phase 1's scope, and it will bias Phase 3's weight on any
   "keep a body" feature toward zero.

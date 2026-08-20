@@ -47,7 +47,8 @@ COUNTER = "counterPlay (prompt resolver, not scored as policy)"
 SURFACES = "the prompt resolver never blocks, and always activates a [Trigger]"
 ABILITY = "hasEncodedAbility counts every ability-bearing collection, and only those"
 PUZZLES = "puzzles"
-TESTS = [PROBE, COUNTER, SURFACES, ABILITY, PUZZLES, "fixture integrity",
+HANDPOWER = "hand-card power is printed power, so the two hand reads stay printed"
+TESTS = [PROBE, COUNTER, SURFACES, ABILITY, PUZZLES, HANDPOWER, "fixture integrity",
          "no ladder strategy can choose an attack target",
          "drainPrompts resolves a real multi-prompt cascade (not just the no-op branch)"]
 
@@ -81,6 +82,12 @@ MUTANTS = [
      [ABILITY]),
     ("policy: hasEncodedAbility calls an effect-less card ability-bearing", "sub",
      ("if (!effects) return false;", "if (!effects) return true;"), [ABILITY]),
+    # The printed-power fix. A revert, not a `sub`: `sub` only reaches counter-policy.ts, and the whole point of
+    # this mutant is that reverting the helper to printed power has to turn `puzzles` red via
+    # `lethal-effective-power-attacker` -- the one puzzle in the file whose answer is not readable
+    # off the printed cards.
+    ("revert: policy reads printed power, not getCardPower", "revert",
+     "the policy compared PRINTED power", [PUZZLES]),
     ("policy: drop the lethal override only", "sub",
      ("if (config.lethalOverride && life === 0) return spend",
       "if (config.lethalOverride && life === -1) return spend"), []),

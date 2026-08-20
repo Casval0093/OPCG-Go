@@ -1581,6 +1581,129 @@ PERM_SETBASEPOWERFROM_BRANCH_ANCHOR = """          if (type === "power" && actio
 PERM_SETBASEPOWERFROM_BRANCH_FIX = ""
 
 
+# --- The bot's decision layer could not see any effect that changes power --------------------
+#
+# Deliberately UNNUMBERED. A numbered section header is what re-seeds stale "patch N" citations --
+# a reader takes the number off the header and cites it, and the number is positional, so it goes
+# stale the moment anyone inserts a patch above it. The descriptive text is the identifier; the
+# `name` field below is what to cite.
+#
+# `getTotalPower` -- the helper every ladder strategy uses to pick an attacker and to decide which
+# body to concentrate DON!! on -- rebuilt power from the PRINTED card:
+#
+#     const base = card.cardType === "leader" || card.cardType === "character" ? (card.power ?? 0) : 0;
+#     const donBonus = instance ? instance.attachedDon * 1000 : 0;
+#     return base + donBonus;
+#
+# `battle.ts` resolves combat through `getCardPower` (= basePower + attached DON!! + power modifiers
+# + permanent power modifiers) and is correct. So every power-changing effect in the game changed
+# battle OUTCOMES while changing no policy CHOICE.
+#
+# Scope it precisely, because the obvious grep is misleading in both directions. `bot-strategies.ts`
+# imported `getCardPower` ZERO times and read `.power` at five sites. But `grep -rn getCardPower
+# src/automation/` is NOT empty on a patched tree: `counter-policy.ts`, which the
+# `counter-policy: the defender's counter step` patch adds, already
+# does this correctly (`getCardPower(state, battle.attackerId)` / `(state, battle.targetId)`), so the
+# DEFENDER's counter decision could always see power-changing effects while the ATTACKER's could not.
+# counter-policy.ts is the reference for how this should look, not something to change. (The empty
+# grep is true only of an UNPATCHED engine, where counter-policy.ts does not exist yet -- do not
+# quote it as evidence about the shipped tree.)
+#
+# Counted rather than asserted: only TWO rungs of the ladder consult power at all -- `greedy` (one
+# read) and `valueRanked` (four) -- and BOTH went through this one helper. `firstLegal`, `random`
+# and `passOnly` have zero power reads between them. So no rung could see an effect-modified power,
+# and `random` is not a control for it: it has no power-based preference to be right or wrong about.
+# That is also why the reproduction puzzle fails for all five but for two different reasons, and why
+# only the two power-consulting rungs are fixed by this patch.
+#
+# Measured, not argued. `OP10-005` Sanji prints 3000 and plays at 6000 on its controller's turn
+# (`[Your Turn] This Character gains +3000 power`) -- found by probing `getCardPower` over every
+# character in the catalog rather than by reading encodings, which is the standing rule. On a board
+# where it sits beside a vanilla 5000 against a 6000 Leader on 0 life, printed power ranks the two
+# the wrong way round and ALL FIVE strategies attacked with the body that cannot connect. That is
+# `lethal-effective-power-attacker` in sim/puzzles.test.ts and it is red without this patch.
+#
+# `getCardPower` also closes a second, smaller divergence for free: it credits attached DON!! only
+# while its controller is the ACTIVE seat, which is the rule. The old helper credited it always.
+# Every current call site is the acting seat's own attacker on its own turn, so that half is
+# equivalent today rather than a behaviour change.
+#
+# TWO READS ARE DELIBERATELY LEFT ON PRINTED POWER. Neither is an oversight.
+#
+#   (a) `valueRanked`'s `attacker.power >= 5000` "big body" bonus. It is INERT for attacker choice,
+#       and routing it through getCardPower is measurably WORSE.
+#
+#       INERT, exactly. A `declareAttack` scores 600 + 300*(target is a Leader) + 100*(gate) +
+#       150*(sourceId === bestAttacker). `bestAttacker` is a single instanceId, so among any set of
+#       attacks EXACTLY ONE is awarded the 150; and 150 > 100. So for two attacks on the same target
+#       class the bestAttacker one scores >= 150 from these two terms while the other scores <= 100,
+#       and it wins whichever power the gate reads. (With the gate on EFFECTIVE power it cannot even
+#       disagree with bestAttacker, since bestAttacker is then the argmax of the quantity the gate
+#       thresholds: if any attacker clears 5000, bestAttacker does.) The gate therefore cannot
+#       reorder two attacks under EITHER reading -- it is not an attacker-selection input at all.
+#
+#       WORSE. Its only live effect is to lift `declareAttack` (1150) above `attachDon` (1050) --
+#       the swing-before-buff defect docs/simulation.md already records. On EFFECTIVE power that
+#       defect fires SOONER, because a body that has just taken one DON!! crosses 5000: an A/B of
+#       the puzzle suite moved `don-concentrate-to-reach` from pass to FAIL for `valueRanked`
+#       (donAllocation 2/3 -> 1/3) and changed nothing else. So the change costs a measured puzzle
+#       and buys no fidelity anywhere. The gate is mis-DESIGNED, not mis-sourced; it belongs on the
+#       sequencing worklist, and CLAUDE.md's standing instruction is not to reweight it without
+#       re-running the ladder. `lethal-effective-power-attacker` is also the guard on this decision:
+#       its board is one where the gate (printed) and bestAttacker (effective) point at DIFFERENT
+#       bodies, so if the 150/100 weighting is ever changed so the gate wins, that puzzle goes red
+#       and this paragraph has to be revisited.
+#
+#   (b) The two reads that score a card in HAND (`cardValue`, and `valueRanked`'s `playCard`
+#       branch). Measured over the whole catalog: `getCardPower` on a hand instance disagrees with
+#       printed power for 0 of 1968 characters, and 0 permanent power modifiers target a hand zone.
+#       Routing them through getCardPower is provably a no-op today, at the price of a
+#       permanent-effect sweep per hand card per decision -- the hot path the
+#       `permanent: getPermanentSetCost evaluates conditions it then discards` patch exists to keep
+#       cheap. Both facts are asserted by `hand-card power is printed power, so the two hand reads
+#       stay printed` in sim/puzzles.test.ts, so the day a card modifies power in hand the suite
+#       says so instead of this comment rotting.
+
+BOT_POWER_IMPORT_ANCHOR = """import { getCardForInstance, getPlayer } from "../shared.ts";"""
+
+BOT_POWER_IMPORT_FIX = (
+    """import { getCardForInstance, getCardPower, getPlayer } from "../shared.ts";"""
+)
+
+BOT_POWER_ANCHOR = """function getTotalPower(state: MatchState, instanceId: string): number {
+  const card = getCardForInstance(state, instanceId);
+  const base = card.cardType === "leader" || card.cardType === "character" ? (card.power ?? 0) : 0;
+  const instance = state.cards[instanceId];
+  const donBonus = instance ? instance.attachedDon * 1000 : 0;
+  return base + donBonus;
+}"""
+
+BOT_POWER_FIX = """/**
+ * OPCG-Go patch: the policy must compare the power a card PLAYS at, not the power it prints.
+ *
+ * This used to rebuild power as `printed + attachedDon * 1000`, so the whole decision layer was
+ * blind to every effect that changes power -- while `battle.ts` resolved the very attacks it was
+ * choosing between through `getCardPower`, and `counter-policy.ts` already consulted it for the
+ * DEFENDER's counter decision. This file imported it zero times.
+ * Attacker selection and DON!! concentration therefore disagreed with the outcome they were
+ * selecting for: on a board holding `OP10-005` (prints 3000, plays 6000 on its controller's turn)
+ * next to a vanilla 5000, every ladder strategy attacked with the body that cannot connect --
+ * `greedy` and `valueRanked` because of this helper, and `firstLegal`/`random`/`passOnly` because
+ * they never consult power at all.
+ *
+ * `getCardPower` is basePower + attached DON!! (credited only while its controller is the active
+ * seat, which is the rule the old arithmetic ignored) + power modifiers + permanent power
+ * modifiers. It throws on an unknown instance exactly as `getCardForInstance` already did, so this
+ * is not a new failure mode.
+ *
+ * Kept as a named wrapper rather than inlined: the call sites read as "total power", and this is
+ * where the defect was.
+ */
+function getTotalPower(state: MatchState, instanceId: string): number {
+  return getCardPower(state, instanceId);
+}"""
+
+
 PATCHES = [
     {
         "name": "bot-harness: resolve orderCards prompts",
@@ -1684,6 +1807,18 @@ PATCHES = [
         "apply": lambda s: s.replace(
             FIRST_TURN_ATTACK_FLAG_TYPE_ANCHOR, FIRST_TURN_ATTACK_FLAG_TYPE_FIX, 1
         ).replace(FIRST_TURN_ATTACK_FLAG_STATE_ANCHOR, FIRST_TURN_ATTACK_FLAG_STATE_FIX, 1),
+    },
+    {
+        "name": "bot-strategies: the policy compared PRINTED power, not the power a card plays at",
+        "relpath": "src/automation/bot-strategies.ts",
+        "anchor": BOT_POWER_ANCHOR,
+        "already": "OPCG-Go patch: the policy must compare the power a card PLAYS at",
+        # Import first, same reasoning as the counter-step patch: neither replacement contains the
+        # other's anchor, so order is not load-bearing, but a half-applied patch then names the
+        # missing symbol's module instead of failing on an unresolved identifier.
+        "apply": lambda s: s.replace(BOT_POWER_IMPORT_ANCHOR, BOT_POWER_IMPORT_FIX, 1).replace(
+            BOT_POWER_ANCHOR, BOT_POWER_FIX, 1
+        ),
     },
     {
         "name": "test-fixtures: a mid-game fixture is not turn 1, so it may attack",

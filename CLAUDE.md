@@ -258,7 +258,7 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   disjoint batches, for whole-corpus runs), `mutation_check_arena.py` (a different corpus
   entirely — `arena/log.test.ts`, not card encodings), and `mutation_check_engine.py`
   (added 2026-08-20: mutates the ENGINE patches in `tools/patch_engine.py` and the counter policy
-  they install, and checks `sim/puzzles.test.ts` notices — 14 mutants, 13 must die, 1 documented
+  they install, and checks `sim/puzzles.test.ts` notices — 15 mutants, 14 must die, 1 documented
   equivalent survivor).
   **The rule applies to our own test files as well: writing `tools/test_mutation_tools.py` produced
   a vacuous test on the first pass** — the no-files guard could be deleted with the test still
@@ -561,6 +561,107 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   point of the simulator. Attack target selection joins counter/blocker play (owned by
   `resolveBotPromptCommand`) as a thing that looks like a policy decision and is not; what is left
   policy-attributable is attacker choice, DON!! attachment, and command ordering.
+- **`sim/*.test.ts` and `bench/*.test.ts` are NEVER type-checked or format-checked by the suite —
+  `vp test run` passes regardless, because esbuild strips types without checking them.** They sit
+  outside `vite.config.ts`'s include list and are copied into `tests/cards/` by
+  `scripts/simulate.sh` at run time, so a type error in `sim/puzzles.test.ts` is invisible to every
+  gate this repo otherwise runs. Found 2026-08-21 on a sibling branch, where `bench/throughput.test.ts`
+  was carrying a type predicate that never narrowed (TS2345) plus a pre-existing unused destructure.
+  **Check them explicitly, and note the check is real** — a deliberately planted `TS2322` in
+  `sim/puzzles.test.ts` was caught, so this is not a vacuous gate:
+  ```bash
+  cp sim/puzzles.test.ts vendor/tcg-engines/submodules/one-piece/packages/engine/tests/cards/
+  cd vendor/tcg-engines/submodules/one-piece/packages/engine && ./node_modules/.bin/vp check tests/cards/puzzles.test.ts
+  ```
+  `vp check` runs format, lint AND type checks. Two caveats. (a) A bare `vp check` in the engine
+  reports 4 pre-existing formatting failures in `arena/*.ts` — those are UNTRACKED files our own
+  `scripts/arena.sh` copies in, not upstream's and not a gate you are breaking; scope the check to
+  the file you touched. (b) Establish a control before believing a failure is yours: the pre-change
+  `sim/puzzles.test.ts` was formatting-clean, which is how a formatting hit was correctly attributed.
+- **`battle.ts` has ALWAYS resolved combat through `getCardPower`, so power-changing effects have
+  always counted in the OUTCOME — a long-standing note in `docs/simulation.md` said otherwise and
+  miscredited the engine with a defect it never had.** The sentence was *"simulated combat has no
+  defensive interaction whatsoever — every battle resolves on printed power plus attached DON!!"*.
+  The first clause was about counters and blocks and was true when written; the second was simply
+  wrong, and it predates every current branch. Corrected 2026-08-21. **Why it matters more than a
+  wording fix:** anyone asking the obvious question — "does the simulator see card effects at all?"
+  — would have read that and concluded no. The real split is narrower and is the whole point of the
+  fix below: effects always reached the OUTCOME, and what read printed power was the POLICY, on the
+  attacker's side only.
+- **The bot's ATTACKER choice read PRINTED power — FIXED 2026-08-20 by the
+  `bot-strategies: the policy compared PRINTED power` patch. Do not re-derive, and
+  do not restate the grep that found it: on a patched tree that grep is not empty.**
+  `bot-strategies.ts`'s `getTotalPower` rebuilt power as `printed + attachedDon * 1000`, while
+  `battle.ts` resolves the very attack it was choosing through `getCardPower` (`basePower` + DON!!
+  *only while its controller is the active seat* + power modifiers + permanent power modifiers). So
+  **every power-changing effect in the game changed battle OUTCOMES while changing no policy
+  CHOICE** — attacker selection and DON!! concentration disagreed with the outcome they were
+  selecting for.
+  **Scope it precisely.** `bot-strategies.ts` imported `getCardPower` **zero** times. But
+  `grep -rn getCardPower src/automation/` is **NOT empty on a patched tree** —
+  `counter-policy.ts` (the `counter-policy: the defender's counter step` patch, Phase 1) already
+  does this right, so the **defender's** counter
+  decision could always see power-changing effects while the **attacker's** could not.
+  counter-policy.ts is the REFERENCE for how this looks, not something to change; the empty grep is
+  true only of an unpatched engine, where that file does not exist yet.
+  **Counted, not assumed: only 2 of the 5 rungs consult power at all** — `greedy` (1 read) and
+  `valueRanked` (4). `firstLegal`, `random` and `passOnly` have **zero** between them. So no rung
+  could see an effect-modified power, `random` is again **not** a control (it has no power-based
+  preference to be wrong about), and the reproduction puzzle fails for all five but for **two
+  different reasons** — only the two power-consuming rungs are fixed.
+  **Reproduced first, as `lethal-effective-power-attacker`** in `sim/puzzles.test.ts` (class
+  `lethal`, command mode). `OP10-005` Sanji **prints 3000 and plays 6000** on its controller's turn
+  (`[Your Turn] This Character gains +3000 power`) beside a vanilla 5000, against a 6000 Leader on 0
+  life: printed power ranks the two the wrong way round. **The fixture card was found by MEASUREMENT
+  — a probe asked the engine for `getCardPower` over every character with printed power ≤ 6000 and
+  reported the 7 that answer above their printed value** (largest gap wins), not by reading
+  encodings. Red arm **FAIL × 5**, green arm `valueRanked`+`greedy` **pass**; `valueRanked` lethal
+  **4/5 → 5/5**, and **all 14 pre-existing puzzles are byte-identical in both arms.**
+  **TWO READS ARE DELIBERATELY LEFT ON PRINTED POWER — both measured, both asserted, do not
+  "finish the job" by changing them.**
+  (a) `valueRanked`'s `attacker.power >= 5000` big-body bonus. It is **inert** for attacker choice:
+  a `declareAttack` scores `600 + 300*(Leader target) + 100*(gate) + 150*(is bestAttacker)`,
+  `bestAttacker` is a single instanceId so **exactly one** attack gets the 150, and **150 > 100** —
+  the gate cannot outvote it under *either* reading. Its only live effect is lifting `declareAttack`
+  (1150) above `attachDon` (1050), the swing-before-buff defect already recorded. On effective power
+  that defect fires SOONER (a body that just took one DON!! crosses 5000): A/B moved
+  `don-concentrate-to-reach` **pass → FAIL** and `valueRanked` donAllocation **2/3 → 1/3**, changing
+  nothing else. **The gate is mis-DESIGNED, not mis-sourced** — sequencing worklist, and the standing
+  rule not to reweight it without re-running the ladder still applies. `lethal-effective-power-attacker`
+  is the guard: its board is one where gate (printed) and bestAttacker (effective) point at different
+  bodies, so a reweighting that lets the gate win turns it red.
+  (b) The two reads scoring a card in HAND (`cardValue`, `valueRanked`'s `playCard`). Measured over
+  the catalog: `getCardPower` on a hand instance disagrees with printed power for **0 of 1968**
+  characters, and **0** permanent power modifiers target a hand zone. Routing them through
+  `getCardPower` is provably a no-op today at the price of a permanent-effect sweep per hand card per
+  decision — the hot path the `permanent: getPermanentSetCost evaluates conditions it then
+  discards` patch exists to keep cheap. Asserted by `hand-card power is printed
+  power, so the two hand reads stay printed`, so the day a card breaks this the suite says so.
+  **THE LADDER DID NOT MOVE, and this was ATTRIBUTED rather than assumed.** Full 10-pair round robin,
+  200 games each, `mihawk-green-proxy` mirror, against Phase 2's post-Phase-1 table as the control:
+  **8 of 10 pairs byte-identical**, and the two that move go **−1.00** (`valueRanked` vs `greedy`
+  57.50% → 56.50%) and **+1.50** (`greedy` vs `firstLegal` 47.50% → 49.00%) — both far inside their
+  ±7-point CIs. `random vs passOnly` is 200/200 timeouts either way. Phase 2's ordering stands
+  unchanged: **`valueRanked` > {`greedy` ≈ `firstLegal`} > {`random`, `passOnly`}, the last two
+  unordered.** The control is trustworthy because a re-run of pair 1 on this host reproduced Phase 2's
+  **57.50% [50.57%, 64.15%]** exactly — the ladder is seed-deterministic, so Phase 2's table IS the
+  control and a second full arm was redundant.
+  **No measurable throughput cost.** `bench/throughput.test.ts`, same host, back to back, nothing
+  else running: games/s **1.32 → 1.35** (synthetic), **1.17 → 1.22** (ST01), **0.51 → 0.55**
+  (oars-x4). Those look like speedups and cannot be, so they are noise — three repeats of the *same*
+  patched binary spread **1.35 / 1.45 / 1.55** on synthetic, i.e. ±15%, which swamps the whole
+  before/after delta. The decisive part: `cmds/game` is **identical** across arms on synthetic
+  (112.3) and ST01 (140.8), so on those two decks the patch changed no decision at all and the
+  comparison is pure cost — below the noise floor. (oars-x4 moved 134.0 → 130.3, so there the policy
+  did play differently.)
+  **The unpatched arm also settled the realism ratio, but do not read that story here** — the bench
+  fact further down this file owns it, and after PR #26 it carries a better version than this branch
+  had: a FRESH like-for-like pre-Phase-1 baseline (synthetic 51.9, ST01 96.9) rather than the older
+  session's 51.1/94.6 this branch reasoned from. What this branch contributed there is the
+  **control**: 1.11–1.18x patched and **1.12x/0.90x on an UNPATCHED arm**, which ATTRIBUTES the
+  collapse to Phase 1 instead of inferring it from the mechanism. The two sessions' AFTER figures
+  agreed to the decimal (112.3 / 140.8), which is what localises the old disagreement to the
+  baseline alone. Never difference a before from one run against an after from another.
   Full write-up: `docs/simulation.md`.
 - **The bot NOW COUNTERS — Phase 1, 2026-08-20, patch `bot-harness: resolve the counter step through
   the counter policy` plus `counter-policy: the defender's counter step, with every knob in a config
@@ -1110,7 +1211,7 @@ data/cards-OP16-en.json         imported OP16, 119 cards
 arena/log.ts                    decision corpus: append-only NDJSON, one record per decision
 arena/replay.ts                 replayMatch — reconstruct a recorded game from (config, commands)
 tools/mutation_check_arena.py   mutation harness for arena/log.test.ts (13 mutants, 0 may survive)
-tools/mutation_check_engine.py  mutation harness for the ENGINE patches + counter policy (14 mutants)
+tools/mutation_check_engine.py  mutation harness for the ENGINE patches + counter policy (15 mutants)
 tools/analyse_playdraw.py       play/draw split per arm + PAIRED differences between arms (Phase 2.2)
 bench/throughput.test.ts        throughput benchmark + 3 guards: patch-8 permanent-effect scaling,
                                 setBasePower overhead on a vanilla board (<=1.6x) and on a
@@ -1255,6 +1356,11 @@ The `tools/` tests are stdlib `unittest`, matching the tools' own stdlib-only co
       `docs/plans/engine-fidelity-and-derived-counter-policy.md`.** Neither player may attack on their
       own first turn; the bot counters, on a parameterised policy; blocking and [Trigger] declining
       are documented open surfaces. Engine suite unchanged at 3666 files / 6079 tests / 0 failures.
+      (**That 3666/6079 counts `bench/throughput.test.ts` copied into `tests/cards/`, which is not
+      part of the suite.** A clean tree with nothing copied in is **3665 files / 6078 tests / 2
+      skipped / 0 failures** — re-measured 2026-08-20. The recurring off-by-one in this file is
+      always the bench file; check `tests/cards/` for stray copies before treating a count as a
+      regression.)
       Both facts above are updated in place — read them, not this line.
    4. ~~**Phase 2: re-measure the baseline ONCE.**~~ — **DONE 2026-08-20.** The full 10-pair round
       robin, the play/draw split and the puzzle suite, all against the merged Phase 1 tree, with the
