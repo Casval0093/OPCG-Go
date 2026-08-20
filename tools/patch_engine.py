@@ -33,6 +33,121 @@ import sys
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ENGINE = os.path.join(REPO_ROOT, "vendor/tcg-engines/submodules/one-piece/packages/engine")
 
+
+# --- Anchor safety --------------------------------------------------------------------------
+#
+# A patch that makes SEVERAL edits used to chain bare `str.replace` calls, and `str.replace` on a
+# string that does not contain its target is a silent no-op. Only the patch's PRIMARY `anchor` was
+# verified, and only ONE `already` marker was checked -- and that marker lived in the first edit's
+# replacement text. So if upstream reworded the region a SECONDARY anchor matched:
+#
+#   1. the primary anchor still matched, so the patch was applied,
+#   2. the secondary replace silently did nothing,
+#   3. the marker was written anyway, and
+#   4. every later `--check` reported the whole patch as applied.
+#
+# For the three permanent-lookup callers that is invisible to the engine suite as well, because the
+# narrowing is result-preserving -- the optimisation would simply be gone. This is precisely the
+# "a check that cannot fail" defect class CLAUDE.md names as this project's most frequent, sitting
+# inside the tool whose entire job is to be the check. Reported by Codex on PR #28 and reproduced
+# before fixing: perturbing one line inside SETCOST_SOURCES_ANCHOR left getPermanentSetCost on the
+# old body while `--check` still said `ok`.
+#
+# Two changes close it, one at apply time and one at check time, because they catch different states:
+#
+#   * `replace_once` / `replace_every` raise instead of no-opping, so a moved anchor FAILS the patch
+#     and the file is never written.
+#   * `already` may be a LIST -- one marker per edit -- and `--check` requires all of them. A tree
+#     half-applied by an older build of this tool is then reported FAILED rather than ok.
+
+
+class PatchAnchorError(RuntimeError):
+    """A patch's anchor did not match the number of times the patch expects."""
+
+
+def describe_anchor(anchor: str, width: int = 78) -> str:
+    """The most identifying line of an anchor, for a failure message.
+
+    NOT `splitlines()[0]`: several anchors open on boilerplate like `try {` or `if (`, and naming
+    that tells the reader nothing about WHICH anchor moved. The longest of the first few lines is
+    almost always the distinctive one.
+    """
+    lines = [line.strip() for line in anchor.strip().splitlines()[:6] if line.strip()]
+    if not lines:
+        return "<blank anchor>"
+    return max(lines, key=len)[:width]
+
+
+def replace_once(source: str, anchor: str, fix: str) -> str:
+    """Replace `anchor` exactly once, or raise. Never a silent no-op."""
+    found = source.count(anchor)
+    if found != 1:
+        raise PatchAnchorError(
+            f"expected exactly 1 match for the anchor at "
+            f"{describe_anchor(anchor)!r} ({len(anchor.splitlines())} lines), found {found} — "
+            f"upstream changed this region; re-derive the patch"
+        )
+    return source.replace(anchor, fix, 1)
+
+
+def replace_every(source: str, old: str, new: str) -> str:
+    """Replace every occurrence of `old`, requiring at least one. Never a silent no-op."""
+    found = source.count(old)
+    if found == 0:
+        raise PatchAnchorError(
+            f"expected at least 1 match for {old!r}, found 0 — upstream changed this "
+            f"region; re-derive the patch"
+        )
+    return source.replace(old, new)
+
+
+def patch_anchors(patch: dict) -> list[str]:
+    """Every anchor a patch needs, primary first.
+
+    A multi-edit patch declares `anchors` so that ALL of them are verified before it is applied,
+    not just the primary one. This is the third leg of the Codex fix and the one that catches the
+    problem EARLIEST -- on a stock engine whose secondary anchor upstream has reworded, `--check`
+    now says FAILED ("anchor not found") instead of PENDING, so the tool never even attempts a
+    write it cannot complete.
+
+    It also fixes tools/test_patch_engine.py, whose `seed_stock()` seeded only primary anchors.
+    Those apply tests were green ONLY because the missing secondary replace silently no-opped --
+    the test suite was resting on the very bug under repair.
+    """
+    declared = patch.get("anchors")
+    if declared:
+        return list(declared) + anchors_every(patch)
+    # A CREATE patch has no anchor -- there is nothing in the tree to anchor to.
+    return ([patch["anchor"]] if "anchor" in patch else []) + anchors_every(patch)
+
+
+def anchors_every(patch: dict) -> list[str]:
+    """Anchors consumed by `replace_every`, i.e. expected MANY times rather than exactly once.
+
+    Kept separate from `anchors` because the two carry different contracts and the difference is
+    load-bearing for anything that reasons about the file: a `replace_once` anchor appearing twice
+    is an error, while a `replace_every` anchor appearing twice is the normal case. Only the Hibari
+    identifier swaps are of this kind today (`op11Franky012` occurs in the import line and at every
+    use site), and conflating them made tools/test_patch_engine.py build an unfaithful fixture --
+    one where the identifier existed ONLY inside the import line, so replacing the import removed
+    the very text the next edit was looking for.
+    """
+    declared = patch.get("anchors_multi", [])
+    return [declared] if isinstance(declared, str) else list(declared)
+
+
+def applied_markers(patch: dict) -> list[str]:
+    """The markers whose presence means this patch is FULLY applied (one per edit)."""
+    markers = patch["already"]
+    return [markers] if isinstance(markers, str) else list(markers)
+
+
+def absent_markers(patch: dict) -> list[str]:
+    """Text a fully-applied patch must have REMOVED. For edits that only delete."""
+    markers = patch.get("already_absent", [])
+    return [markers] if isinstance(markers, str) else list(markers)
+
+
 # --- the bot cannot resolve `orderCards` prompts ----------------------------------------------
 #
 # `resolveBotPromptCommand` branches on four of the six ChoiceKinds and lets `orderCards` fall
@@ -1727,7 +1842,265 @@ BOT_POWER_FIX = """/**
 function getTotalPower(state: MatchState, instanceId: string): number {
   return getCardPower(state, instanceId);
 }"""
+# --- three permanent lookups scan every card in the match, negation-check first ---------------
+#
+# `getCardPower` is the hottest read in the engine. Measured on a vanilla 10-body board, 200k calls
+# per function in ONE process: `getPermanentModifierTotal(state, id, "power")` cost 25.64us/call
+# while `getPermanentSetBasePower` -- added the same day, doing structurally identical work -- cost
+# 1.35us. The whole gap is two things the sibling does and these three did not.
+#
+#   1. LOOP DOMAIN. `Object.values(state.cards)` is every card in the match: both decks, both
+#      hands, both trashes, Life. ~72 on a normal board, of which at most 14 can be in play, and
+#      `sourceIsInPlay` discarded the other ~58 one line later. `inPlaySources` reads the three
+#      area lists directly.
+#   2. GUARD ORDER, and profiling says this is the dominant half, not the loop domain. Narrowing
+#      the loop alone moved the sibling's whole-call overhead 2.04x -> 1.91x; putting the cheap
+#      STRUCTURAL test -- does this source even carry an action of the kind being asked about --
+#      ahead of `sourceEffectsAreNegated` took it to 1.16x. The negation check is expensive: it
+#      scans `state.modifiers` and then re-enters `effectsNegatedByPermanentEffect`, which walks
+#      every permanent effect in play. Paying it per source on a board where nothing prints the
+#      action bought nothing.
+#
+# THIS IS NOT THE SIBLING COPIED. `getPermanentModifierTotal` and `getPermanentSetCost` carry a
+# `sourceIsSelfInHand` exception -- a card in HAND modifying its OWN cost -- and `inPlaySources`
+# cannot express it. That is how every "give this card in your hand -N cost" ability works:
+# OP15-013 Pincers, OP16-005 Thatch, OP07-064 Sanji, PRB02-014 Sabo and OP15-021 through
+# `modifyCost`, OP11-023 Arlong through `setCost`. Losing it raises no error and fails no type
+# check; it just silently switches those abilities off. `permanentSources` is `inPlaySources` plus
+# that one instance.
+#
+# `getPermanentKeywords` gets the same two fixes but NOT the exception, deliberately: it never had
+# one, no card in the 2,537-card catalog grants a keyword to a card in hand, and adding it would be
+# a behaviour change rather than a narrowing. It is also the worst of the three today -- it has no
+# structural prefilter at all, so it evaluates the conditions of every permanent effect in play
+# even when the effect grants no keyword.
+#
+# Result-preserving by construction in all three: every guard on the path to a contribution is
+# conjunctive, so a source the new structural test rejects could not have contributed. And the
+# narrowed source set is provably the same SET -- `sourceIsInPlay`, which every caller still runs,
+# accepts a card only when it is listed in a leader/character/stage slot, and those lists are
+# exactly what `inPlaySources` reads.
 
+PERM_SOURCES_ANCHOR = """function sourceEffectsAreNegatedByModifier(state: MatchState, sourceInstanceId: string): boolean {"""
+
+PERM_SOURCES_FIX = """/**
+ * OPCG-Go patch: the source set the permanent lookups scan.
+ *
+ * `Object.values(state.cards)` is every card in the match -- both decks, both hands, both trashes,
+ * Life, roughly 72 on a normal board -- and all but at most 14 of them are thrown away by
+ * `sourceIsInPlay` a line later. This reads the three area lists instead.
+ *
+ * PLUS the one source those lists cannot express: a card in HAND modifying its OWN cost. That is
+ * how every "give this card in your hand -N cost" ability works -- OP15-013 Pincers, OP16-005
+ * Thatch, OP07-064 Sanji, PRB02-014 Sabo and OP15-021 through `modifyCost`, OP11-023 Arlong (the
+ * catalog's only one) through `setCost`. Dropping it raises no error and fails no type check; it
+ * silently switches those abilities off, which is why this helper exists instead of a bare
+ * `inPlaySources` call at each site.
+ *
+ * Callers keep their own `sourceIsInPlay(...) || sourceIsSelfInHand` guard, and that is what makes
+ * the narrowing provably result-preserving rather than merely plausible: `sourceIsInPlay` accepts a
+ * card only when it is listed in a leader, character or stage slot, and those lists are exactly
+ * what `inPlaySources` reads.
+ *
+ * The hand instance is appended only when it is not already yielded. A stale area-list entry
+ * pointing at a card whose own `zone` field says `hand` would otherwise be scanned twice, and
+ * `getPermanentModifierTotal` SUMS over its sources.
+ */
+function permanentSources(state: MatchState, targetInstanceId: string): CardInstance[] {
+  const sources = inPlaySources(state);
+  const target = state.cards[targetInstanceId];
+  if (
+    target?.zone === "hand" &&
+    !sources.some((source) => source.instanceId === targetInstanceId)
+  ) {
+    sources.push(target);
+  }
+  return sources;
+}
+
+function sourceEffectsAreNegatedByModifier(state: MatchState, sourceInstanceId: string): boolean {"""
+
+# The bench's A/B re-implements the pre-narrowing body in-process, which needs both predicates.
+# They are pure, argument-only reads of state; exporting them adds no capability.
+PERM_EXPORT_INPLAY_ANCHOR = """function sourceIsInPlay(state: MatchState, sourceInstanceId: string): boolean {"""
+PERM_EXPORT_INPLAY_FIX = """// OPCG-Go patch: exported for bench/throughput.test.ts, which re-implements the pre-narrowing
+// body of getPermanentModifierTotal in-process to measure this patch as a ratio. A pure predicate.
+export function sourceIsInPlay(state: MatchState, sourceInstanceId: string): boolean {"""
+
+PERM_EXPORT_NEGATED_ANCHOR = """function sourceEffectsAreNegated(state: MatchState, sourceInstanceId: string): boolean {"""
+PERM_EXPORT_NEGATED_FIX = """// OPCG-Go patch: exported for the same bench A/B as sourceIsInPlay above. This is the EXPENSIVE
+// guard the patch moves behind the structural test -- it scans state.modifiers and then every
+// permanent effect in play -- so the old body cannot be re-implemented faithfully without it.
+export function sourceEffectsAreNegated(state: MatchState, sourceInstanceId: string): boolean {"""
+
+MODIFIER_TOTAL_ANCHOR = """  try {
+    let total = 0;
+    for (const source of Object.values(state.cards)) {
+      const sourceIsSelfInHand = source.instanceId === targetInstanceId && source.zone === "hand";
+      if (
+        (!sourceIsInPlay(state, source.instanceId) && !sourceIsSelfInHand) ||
+        sourceEffectsAreNegated(state, source.instanceId)
+      ) {
+        continue;
+      }
+
+      const card = getCard(source.cardId);
+      for (const effect of card.effects?.permanentEffects ?? []) {"""
+
+MODIFIER_TOTAL_FIX = """  try {
+    let total = 0;
+    // OPCG-Go patch: the STRUCTURAL test first, then the expensive guards, over a source set
+    // narrowed from every card in the match to the slots that can hold a permanent effect. See
+    // `permanentSources` for why this is not a bare `inPlaySources` -- the self-in-hand exception
+    // below is load-bearing and the area lists cannot express it. Measured 25.64us/call before,
+    // against 1.35us for the getPermanentSetBasePower sibling that already did it this way.
+    //
+    // Result-preserving: every guard on the path to `total +=` is conjunctive, so a source with no
+    // action of this `type` contributed 0 whether or not its effects were negated.
+    for (const source of permanentSources(state, targetInstanceId)) {
+      const effects = getCard(source.cardId).effects?.permanentEffects;
+      if (
+        !effects?.some((effect) =>
+          effect.actions.some((action) => actionIsDynamicModifier(action, type)),
+        )
+      ) {
+        continue;
+      }
+      const sourceIsSelfInHand = source.instanceId === targetInstanceId && source.zone === "hand";
+      if (
+        (!sourceIsInPlay(state, source.instanceId) && !sourceIsSelfInHand) ||
+        sourceEffectsAreNegated(state, source.instanceId)
+      ) {
+        continue;
+      }
+
+      for (const effect of effects) {"""
+
+SETCOST_SOURCES_ANCHOR = """  try {
+    for (const source of Object.values(state.cards)) {
+      const sourceIsSelfInHand = source.instanceId === targetInstanceId && source.zone === "hand";
+      if (
+        (!sourceIsInPlay(state, source.instanceId) && !sourceIsSelfInHand) ||
+        sourceEffectsAreNegated(state, source.instanceId)
+      ) {
+        continue;
+      }
+      const card = getCard(source.cardId);
+      for (const effect of card.effects?.permanentEffects ?? []) {"""
+
+# The anchor deliberately stops SHORT of the earlier setCost-prefilter patch's comment. Including
+# it made this anchor carry another patch's `already` marker, so seeding this anchor in
+# tools/test_patch_engine.py made that patch report `ok` on a stock engine. The block is unique
+# without it -- getPermanentModifierTotal's twin has `let total = 0;` in between.
+
+SETCOST_SOURCES_FIX = """  try {
+    // OPCG-Go patch: the same two fixes as getPermanentModifierTotal -- a source set narrowed to
+    // the in-play slots plus the self-in-hand exception, and the structural test ahead of the
+    // negation check. The per-EFFECT prefilter below (the earlier patch) is still needed: this one
+    // asks whether the SOURCE carries a `setCost` anywhere, that one whether THIS effect does.
+    // OP11-023 Arlong is the catalog's only permanent `setCost` reached through hand, so
+    // `permanentSources` rather than `inPlaySources` is what keeps it working.
+    for (const source of permanentSources(state, targetInstanceId)) {
+      const effects = getCard(source.cardId).effects?.permanentEffects;
+      if (!effects?.some((effect) => effect.actions.some((a) => a.action === "setCost"))) {
+        continue;
+      }
+      const sourceIsSelfInHand = source.instanceId === targetInstanceId && source.zone === "hand";
+      if (
+        (!sourceIsInPlay(state, source.instanceId) && !sourceIsSelfInHand) ||
+        sourceEffectsAreNegated(state, source.instanceId)
+      ) {
+        continue;
+      }
+      for (const effect of effects) {"""
+
+KEYWORDS_SOURCES_ANCHOR = """    const keywords = new Set<Keyword>();
+    for (const source of Object.values(state.cards)) {
+      if (
+        !sourceIsInPlay(state, source.instanceId) ||
+        sourceEffectsAreNegated(state, source.instanceId)
+      ) {
+        continue;
+      }
+      const card = getCard(source.cardId);
+      for (const effect of card.effects?.permanentEffects ?? []) {"""
+
+KEYWORDS_SOURCES_FIX = """    const keywords = new Set<Keyword>();
+    // OPCG-Go patch: the same two fixes again, and this function was the worst of the three -- it
+    // had NO structural prefilter at all, so it ran `evaluateConditions` for every permanent effect
+    // in play even when that effect grants no keyword.
+    //
+    // `inPlaySources`, NOT `permanentSources`: no self-in-hand exception here, on purpose. This
+    // function never had one, no card in the catalog grants a keyword to a card in hand, and the
+    // `sourceIsInPlay` guard below already excluded that case -- so adding the exception would be a
+    // behaviour change rather than a narrowing, and belongs to whoever finds a card that needs it.
+    for (const source of inPlaySources(state)) {
+      const effects = getCard(source.cardId).effects?.permanentEffects;
+      if (!effects?.some((effect) => effect.actions.some((a) => a.action === "grantKeyword"))) {
+        continue;
+      }
+      if (
+        !sourceIsInPlay(state, source.instanceId) ||
+        sourceEffectsAreNegated(state, source.instanceId)
+      ) {
+        continue;
+      }
+      for (const effect of effects) {"""
+
+# --- OP11-023 Arlong, the catalog's only permanent setCost reached through hand ----------------
+#
+# It had no test. So the `sourceIsSelfInHand` exception in `getPermanentSetCost` -- the thing patch
+# 25 above has to carry over by hand and the thing whose loss is silent -- was guarded by nothing
+# in the 6111-test suite. The `modifyCost` twin of the same exception IS covered, by
+# op07-064-sanji.test.ts and prb02-014-sabo.test.ts; the `setCost` twin was not.
+#
+# Both sides of the threshold, because CLAUDE.md's OP06-054 Borsalino lesson is that a one-sided
+# boundary test is exactly what lets a wrong comparison hide: 5 rested cards discounts, 4 does not.
+
+ARLONG_TEST_SOURCE = '''import { describe, expect, test } from "vite-plus/test";
+import { op03Arlong022, op11Arlong023 } from "@tcg/op-cards";
+
+import { OnePieceTestEngine } from "../../../src/index.ts";
+
+// OPCG-Go patch: OP11-023 is the ONLY card in the catalog whose PERMANENT `setCost` is reached
+// through the hand, and it shipped with no test -- so the `sourceIsSelfInHand` exception in
+// getPermanentSetCost had no coverage at all. It is the kind of exception whose loss is silent:
+// no error, no type failure, the ability simply stops applying.
+//
+// Both sides of the rested-card threshold are asserted. A one-sided boundary test is what let
+// OP06-054 Borsalino's inverted Blocker threshold pass for a year.
+const cost = (engine: OnePieceTestEngine, instanceId: string) =>
+  engine.getView("south").players.south.hand.find((card) => card.instanceId === instanceId)?.cost;
+
+describe("OP11-023 Arlong", () => {
+  test("costs 3 in hand with a Fish-Man Leader, 3 Life and 5 rested opposing cards", () => {
+    const engine = OnePieceTestEngine.create(
+      { leaderCardId: op03Arlong022.id, hand: [op11Arlong023], life: 3 },
+      { restedDon: 5 },
+    );
+    const arlongId = engine.findCardInZone("south", "hand", op11Arlong023);
+
+    expect(cost(engine, arlongId)).toBe(3);
+  });
+
+  test("costs its printed 7 with only 4 rested opposing cards", () => {
+    const engine = OnePieceTestEngine.create(
+      { leaderCardId: op03Arlong022.id, hand: [op11Arlong023], life: 3 },
+      { restedDon: 4 },
+    );
+    const arlongId = engine.findCardInZone("south", "hand", op11Arlong023);
+
+    expect(cost(engine, arlongId)).toBe(7);
+  });
+
+  test("costs its printed 7 with a Leader that is not a Fish-Man", () => {
+    const engine = OnePieceTestEngine.create({ hand: [op11Arlong023], life: 3 }, { restedDon: 5 });
+    const arlongId = engine.findCardInZone("south", "hand", op11Arlong023);
+
+    expect(cost(engine, arlongId)).toBe(7);
+  });
+});
+'''
 
 PATCHES = [
     {
@@ -1735,36 +2108,41 @@ PATCHES = [
         "relpath": "src/automation/bot-harness.ts",
         "anchor": ORDERCARDS_ANCHOR,
         "already": 'prompt.choiceKind === "orderCards"',
-        "apply": lambda s: s.replace(ORDERCARDS_ANCHOR, ORDERCARDS_FIX, 1),
+        "apply": lambda s: replace_once(s, ORDERCARDS_ANCHOR, ORDERCARDS_FIX),
     },
     {
         "name": "resolution: search-to-hand must not require open character slots",
         "relpath": "src/effects/resolution.ts",
         "anchor": SEARCH_SLOTS_ANCHOR,
         "already": 'OPCG-Go patch: only a search that PLAYS what it reveals',
-        "apply": lambda s: s.replace(SEARCH_SLOTS_ANCHOR, SEARCH_SLOTS_FIX, 1),
+        "apply": lambda s: replace_once(s, SEARCH_SLOTS_ANCHOR, SEARCH_SLOTS_FIX),
     },
     {
         "name": "vite.config: run the per-card tests under src/cards",
         "relpath": "vite.config.ts",
         "anchor": SRC_CARDS_TESTS_ANCHOR,
         "already": '"src/cards/**/*.test.ts"',
-        "apply": lambda s: s.replace(SRC_CARDS_TESTS_ANCHOR, SRC_CARDS_TESTS_FIX, 1),
+        "apply": lambda s: replace_once(s, SRC_CARDS_TESTS_ANCHOR, SRC_CARDS_TESTS_FIX),
     },
     {
         "name": "state: first player places 1 DON!! on their first turn, not 2",
         "relpath": "src/state.ts",
         "anchor": FIRST_TURN_DON_ANCHOR,
         "already": "isFirstPlayersFirstTurn",
-        "apply": lambda s: s.replace(FIRST_TURN_DON_ANCHOR, FIRST_TURN_DON_FIX, 1),
+        "apply": lambda s: replace_once(s, FIRST_TURN_DON_ANCHOR, FIRST_TURN_DON_FIX),
     },
     {
         "name": "tests: two upstream cases assert the pre-fix first-turn DON!! count",
         "relpath": "tests/index.test.ts",
         "anchor": MULLIGAN_DON_ANCHOR,
-        "already": "south wins 猜拳 and chooses itself first",
-        "apply": lambda s: s.replace(MULLIGAN_DON_ANCHOR, MULLIGAN_DON_FIX, 1).replace(
-            STAGE_TURN_ANCHOR, STAGE_TURN_FIX, 1
+        "anchors": [MULLIGAN_DON_ANCHOR, STAGE_TURN_ANCHOR],
+        # One marker per edit: --check requires BOTH, so a half-applied file reads FAILED, not ok.
+        "already": [
+            "south wins 猜拳 and chooses itself first",
+            "stage's power projection, not the opening DON!! count",
+        ],
+        "apply": lambda s: replace_once(
+            replace_once(s, MULLIGAN_DON_ANCHOR, MULLIGAN_DON_FIX), STAGE_TURN_ANCHOR, STAGE_TURN_FIX
         ),
     },
     {
@@ -1772,39 +2150,49 @@ PATCHES = [
         "relpath": "tests/cards/characters/op06-054-borsalino.test.ts",
         "anchor": BORSALINO_ANCHOR,
         "already": 'test("does not gain Blocker with six cards in hand"',
-        "apply": lambda s: s.replace(BORSALINO_ANCHOR, BORSALINO_FIX, 1),
+        "apply": lambda s: replace_once(s, BORSALINO_ANCHOR, BORSALINO_FIX),
     },
     {
         "name": "tests: OP07-030 Pappag asserted a condition that is always true",
         "relpath": "tests/cards/characters/op07-030-pappag.test.ts",
         "anchor": PAPPAG_ANCHOR,
         "already": 'expect(() => withoutCamie.pendingDecision("battleBlocker", "south")).toThrow();',
-        "apply": lambda s: s.replace(PAPPAG_ANCHOR, PAPPAG_FIX, 1),
+        "apply": lambda s: replace_once(s, PAPPAG_ANCHOR, PAPPAG_FIX),
     },
     {
         "name": "tests: EB03-008 Hibari used a non-SWORD card as its SWORD body",
         "relpath": "tests/cards/characters/eb03-008-hibari.test.ts",
         "anchor": HIBARI_ANCHOR,
-        "already": "op11Helmeppo092",
+        "anchors": [HIBARI_ANCHOR],
+        # Identifier swaps: many occurrences each, so replace_EVERY rather than replace_once.
+        "anchors_multi": ["op11Franky012", "frankyId"],
+        "already": [
+            "OP11-092 Helmeppo is really Navy/SWORD",
+            "op11Helmeppo092",
+            "helmeppoId",
+        ],
         # The comment goes in first, anchored on the original import line; only then can the
         # remaining identifiers be swapped wholesale, or the anchor would already be gone.
-        "apply": lambda s: s.replace(HIBARI_ANCHOR, HIBARI_FIX, 1)
-        .replace("op11Franky012", "op11Helmeppo092")
-        .replace("frankyId", "helmeppoId"),
+        # The identifier swaps are replace_EVERY (many occurrences each), not replace_once.
+        "apply": lambda s: replace_every(
+            replace_every(replace_once(s, HIBARI_ANCHOR, HIBARI_FIX), "op11Franky012", "op11Helmeppo092"),
+            "frankyId",
+            "helmeppoId",
+        ),
     },
     {
         "name": "permanent: getPermanentSetCost evaluates conditions it then discards",
         "relpath": "src/effects/permanent.ts",
         "anchor": SETCOST_PREFILTER_ANCHOR,
         "already": "OPCG-Go patch: skip the effect before evaluating its conditions",
-        "apply": lambda s: s.replace(SETCOST_PREFILTER_ANCHOR, SETCOST_PREFILTER_FIX, 1),
+        "apply": lambda s: replace_once(s, SETCOST_PREFILTER_ANCHOR, SETCOST_PREFILTER_FIX),
     },
     {
         "name": "battle: neither player may attack on their own first turn",
         "relpath": "src/battle.ts",
         "anchor": FIRST_TURN_ATTACK_ANCHOR,
         "already": "OPCG-Go patch: NEITHER player may attack on their own first turn",
-        "apply": lambda s: s.replace(FIRST_TURN_ATTACK_ANCHOR, FIRST_TURN_ATTACK_FIX, 1),
+        "apply": lambda s: replace_once(s, FIRST_TURN_ATTACK_ANCHOR, FIRST_TURN_ATTACK_FIX),
     },
     {
         "name": "counter-policy: the defender's counter step, with every knob in a config object",
@@ -1816,33 +2204,55 @@ PATCHES = [
         "name": "bot-harness: resolve the counter step through the counter policy",
         "relpath": "src/automation/bot-harness.ts",
         "anchor": COUNTER_CALL_ANCHOR,
-        "already": "OPCG-Go patch: the COUNTER STEP is a decision, not a default",
+        "anchors": [COUNTER_CALL_ANCHOR, COUNTER_IMPORT_ANCHOR],
+        "already": [
+            "OPCG-Go patch: the COUNTER STEP is a decision, not a default",
+            'import { decideCounter } from "./counter-policy.ts";',
+        ],
         # The import goes in first: COUNTER_CALL_FIX does not contain the import anchor, so order is
         # not load-bearing, but keeping the import edit first means a half-applied patch still names
         # the module that is missing rather than failing on an unresolved symbol.
-        "apply": lambda s: s.replace(COUNTER_IMPORT_ANCHOR, COUNTER_IMPORT_FIX, 1).replace(
-            COUNTER_CALL_ANCHOR, COUNTER_CALL_FIX, 1
+        "apply": lambda s: replace_once(
+            replace_once(s, COUNTER_IMPORT_ANCHOR, COUNTER_IMPORT_FIX),
+            COUNTER_CALL_ANCHOR,
+            COUNTER_CALL_FIX,
         ),
     },
     {
         "name": "types: an opt-in flag letting a mid-game FIXTURE attack on its first turn",
         "relpath": "src/types.ts",
         "anchor": FIRST_TURN_ATTACK_FLAG_TYPE_ANCHOR,
-        "already": "allowFirstTurnAttacks?: boolean;",
-        "apply": lambda s: s.replace(
-            FIRST_TURN_ATTACK_FLAG_TYPE_ANCHOR, FIRST_TURN_ATTACK_FLAG_TYPE_FIX, 1
-        ).replace(FIRST_TURN_ATTACK_FLAG_STATE_ANCHOR, FIRST_TURN_ATTACK_FLAG_STATE_FIX, 1),
+        "anchors": [
+            FIRST_TURN_ATTACK_FLAG_TYPE_ANCHOR,
+            FIRST_TURN_ATTACK_FLAG_STATE_ANCHOR,
+        ],
+        "already": [
+            "allowFirstTurnAttacks?: boolean;",
+            "allowFirstTurnAttacks rides in the OPTIONAL half on purpose",
+        ],
+        "apply": lambda s: replace_once(
+            replace_once(s, FIRST_TURN_ATTACK_FLAG_TYPE_ANCHOR, FIRST_TURN_ATTACK_FLAG_TYPE_FIX),
+            FIRST_TURN_ATTACK_FLAG_STATE_ANCHOR,
+            FIRST_TURN_ATTACK_FLAG_STATE_FIX,
+        ),
     },
     {
         "name": "bot-strategies: the policy compared PRINTED power, not the power a card plays at",
         "relpath": "src/automation/bot-strategies.ts",
         "anchor": BOT_POWER_ANCHOR,
-        "already": "OPCG-Go patch: the policy must compare the power a card PLAYS at",
+        "anchors": [BOT_POWER_ANCHOR, BOT_POWER_IMPORT_ANCHOR],
+        "already": [
+            "OPCG-Go patch: the policy must compare the power a card PLAYS at",
+            # The import edit adds no comment, so its own text is the marker.
+            'import { getCardForInstance, getCardPower, getPlayer } from "../shared.ts";',
+        ],
         # Import first, same reasoning as the counter-step patch: neither replacement contains the
         # other's anchor, so order is not load-bearing, but a half-applied patch then names the
         # missing symbol's module instead of failing on an unresolved identifier.
-        "apply": lambda s: s.replace(BOT_POWER_IMPORT_ANCHOR, BOT_POWER_IMPORT_FIX, 1).replace(
-            BOT_POWER_ANCHOR, BOT_POWER_FIX, 1
+        "apply": lambda s: replace_once(
+            replace_once(s, BOT_POWER_IMPORT_ANCHOR, BOT_POWER_IMPORT_FIX),
+            BOT_POWER_ANCHOR,
+            BOT_POWER_FIX,
         ),
     },
     {
@@ -1850,9 +2260,7 @@ PATCHES = [
         "relpath": "src/testing/test-fixtures.ts",
         "anchor": FIRST_TURN_ATTACK_FIXTURE_ANCHOR,
         "already": "allowFirstTurnAttacks: true,",
-        "apply": lambda s: s.replace(
-            FIRST_TURN_ATTACK_FIXTURE_ANCHOR, FIRST_TURN_ATTACK_FIXTURE_FIX, 1
-        ),
+        "apply": lambda s: replace_once(s, FIRST_TURN_ATTACK_FIXTURE_ANCHOR, FIRST_TURN_ATTACK_FIXTURE_FIX),
     },
     {
         # The one patch that reaches outside packages/engine: the Action union lives in
@@ -1862,87 +2270,172 @@ PATCHES = [
         "relpath": "../types/src/effect/action.ts",
         "anchor": SETBASEPOWER_UNION_ANCHOR,
         "already": "  | SetBasePowerAction",
-        "apply": lambda s: s.replace(SETBASEPOWER_UNION_ANCHOR, SETBASEPOWER_UNION_FIX, 1),
+        "apply": lambda s: replace_once(s, SETBASEPOWER_UNION_ANCHOR, SETBASEPOWER_UNION_FIX),
     },
     {
         "name": "types: SetBasePowerAction — set base power to a literal",
         "relpath": "../types/src/effect/action.ts",
         "anchor": SETBASEPOWER_TYPE_ANCHOR,
         "already": "export interface SetBasePowerAction {",
-        "apply": lambda s: s.replace(SETBASEPOWER_TYPE_ANCHOR, SETBASEPOWER_TYPE_FIX, 1),
+        "apply": lambda s: replace_once(s, SETBASEPOWER_TYPE_ANCHOR, SETBASEPOWER_TYPE_FIX),
     },
     {
         "name": "types: a modifier may carry a literal base power",
         "relpath": "src/types.ts",
         "anchor": SETBASEPOWER_MODIFIER_ANCHOR,
         "already": '"power" | "setBasePower" | "cost"',
-        "apply": lambda s: s.replace(SETBASEPOWER_MODIFIER_ANCHOR, SETBASEPOWER_MODIFIER_FIX, 1),
+        "apply": lambda s: replace_once(s, SETBASEPOWER_MODIFIER_ANCHOR, SETBASEPOWER_MODIFIER_FIX),
     },
     {
         "name": "shared: import the permanent half of setBasePower",
         "relpath": "src/shared.ts",
         "anchor": SETBASEPOWER_IMPORT_ANCHOR,
         "already": "  getPermanentSetBasePower,",
-        "apply": lambda s: s.replace(SETBASEPOWER_IMPORT_ANCHOR, SETBASEPOWER_IMPORT_FIX, 1),
+        "apply": lambda s: replace_once(s, SETBASEPOWER_IMPORT_ANCHOR, SETBASEPOWER_IMPORT_FIX),
     },
     {
         "name": "shared: getCardPower substitutes a set base power for the printed one",
         "relpath": "src/shared.ts",
         "anchor": SETBASEPOWER_GETCARDPOWER_ANCHOR,
         "already": "export function getEffectiveBasePower(",
-        "apply": lambda s: s.replace(
-            SETBASEPOWER_GETCARDPOWER_ANCHOR, SETBASEPOWER_GETCARDPOWER_FIX, 1
-        ),
+        "apply": lambda s: replace_once(s, SETBASEPOWER_GETCARDPOWER_ANCHOR, SETBASEPOWER_GETCARDPOWER_FIX),
     },
     {
         "name": "permanent: getPermanentSetBasePower, the setCost twin for base power",
         "relpath": "src/effects/permanent.ts",
         "anchor": SETBASEPOWER_PERMANENT_ANCHOR,
         "already": "export function getPermanentSetBasePower(",
-        "apply": lambda s: s.replace(
-            SETBASEPOWER_PERMANENT_ANCHOR, SETBASEPOWER_PERMANENT_FIX, 1
-        ),
+        "apply": lambda s: replace_once(s, SETBASEPOWER_PERMANENT_ANCHOR, SETBASEPOWER_PERMANENT_FIX),
     },
     {
         "name": "actions: resolve the setBasePower action",
         "relpath": "src/effects/actions.ts",
         "anchor": SETBASEPOWER_ACTION_ANCHOR,
         "already": 'case "setBasePower": {',
-        "apply": lambda s: s.replace(SETBASEPOWER_ACTION_ANCHOR, SETBASEPOWER_ACTION_FIX, 1),
+        "apply": lambda s: replace_once(s, SETBASEPOWER_ACTION_ANCHOR, SETBASEPOWER_ACTION_FIX),
     },
     {
         "name": "actions: swap the basePower import for getEffectiveBasePower",
         "relpath": "src/effects/actions.ts",
         "anchor": SETTERS_EFFECTIVE_IMPORT_ANCHOR,
-        "already": "OPCG-Go patch: `basePower` is gone from this file",
+        "anchors": [SETTERS_EFFECTIVE_IMPORT_ANCHOR, SETTERS_EFFECTIVE_ADD_ANCHOR],
+        "already": [
+            "OPCG-Go patch: `basePower` is gone from this file",
+            "\n  getEffectiveBasePower,\n",
+        ],
         # Two edits, one patch: drop the now-unused `basePower` and add `getEffectiveBasePower`.
         # Splitting them would leave the file un-typecheckable between the two.
-        "apply": lambda s: s.replace(
-            SETTERS_EFFECTIVE_IMPORT_ANCHOR, SETTERS_EFFECTIVE_IMPORT_FIX, 1
-        ).replace(SETTERS_EFFECTIVE_ADD_ANCHOR, SETTERS_EFFECTIVE_ADD_FIX, 1),
+        "apply": lambda s: replace_once(
+            replace_once(s, SETTERS_EFFECTIVE_IMPORT_ANCHOR, SETTERS_EFFECTIVE_IMPORT_FIX),
+            SETTERS_EFFECTIVE_ADD_ANCHOR,
+            SETTERS_EFFECTIVE_ADD_FIX,
+        ),
     },
     {
         "name": "actions: setBasePowerFrom/copyPower/swapBasePower measure from the effective base",
         "relpath": "src/effects/actions.ts",
         "anchor": SETTERS_EFFECTIVE_SWAP_ANCHOR,
-        "already": "OPCG-Go patch: EFFECTIVE base, not printed. Swapping base powers",
-        "apply": lambda s: s.replace(SETTERS_EFFECTIVE_SWAP_ANCHOR, SETTERS_EFFECTIVE_SWAP_FIX, 1)
-        .replace(SETTERS_EFFECTIVE_FROM_ANCHOR, SETTERS_EFFECTIVE_FROM_FIX, 1)
-        .replace(SETTERS_EFFECTIVE_COPY_ANCHOR, SETTERS_EFFECTIVE_COPY_FIX, 1),
+        "anchors": [
+            SETTERS_EFFECTIVE_SWAP_ANCHOR,
+            SETTERS_EFFECTIVE_FROM_ANCHOR,
+            SETTERS_EFFECTIVE_COPY_ANCHOR,
+        ],
+        "already": [
+            "OPCG-Go patch: EFFECTIVE base, not printed. Swapping base powers",
+            "both sides read the EFFECTIVE base rather than the printed one",
+            "OPCG-Go patch: EFFECTIVE base. `copyPower` replaces the bearer's base power",
+        ],
+        "apply": lambda s: replace_once(
+            replace_once(
+                replace_once(s, SETTERS_EFFECTIVE_SWAP_ANCHOR, SETTERS_EFFECTIVE_SWAP_FIX),
+                SETTERS_EFFECTIVE_FROM_ANCHOR,
+                SETTERS_EFFECTIVE_FROM_FIX,
+            ),
+            SETTERS_EFFECTIVE_COPY_ANCHOR,
+            SETTERS_EFFECTIVE_COPY_FIX,
+        ),
     },
     {
         "name": "permanent: setBasePowerFrom is a replacement, not a power delta",
         "relpath": "src/effects/permanent.ts",
         "anchor": PERM_SETBASEPOWERFROM_ANCHOR,
+        "anchors": [
+            PERM_SETBASEPOWERFROM_ANCHOR,
+            PERM_SETBASEPOWERFROM_BRANCH_ANCHOR + "\n",
+        ],
         "already": "OPCG-Go patch: `setBasePowerFrom` used to be folded in here as a power delta",
+        # The second edit only DELETES, so it has no text to look for. Its completion is asserted as
+        # an ABSENCE instead -- the branch must be gone -- which is the same per-edit guarantee the
+        # `already` lists above give, expressed the only way a deletion can express it.
+        "already_absent": PERM_SETBASEPOWERFROM_BRANCH_ANCHOR,
         # Two edits, one patch: narrow relevantActions AND delete the branch it used to admit.
         # Splitting them would leave either dead code or a filter with no handler.
-        "apply": lambda s: s.replace(PERM_SETBASEPOWERFROM_ANCHOR, PERM_SETBASEPOWERFROM_FIX, 1)
         # `+ "\n"` so the deletion takes the branch's own trailing newline with it. Without that
         # the closing brace's line break survives as a blank line and `vp check` fails on format.
-        .replace(
-            PERM_SETBASEPOWERFROM_BRANCH_ANCHOR + "\n", PERM_SETBASEPOWERFROM_BRANCH_FIX, 1
+        "apply": lambda s: replace_once(
+            replace_once(s, PERM_SETBASEPOWERFROM_ANCHOR, PERM_SETBASEPOWERFROM_FIX),
+            PERM_SETBASEPOWERFROM_BRANCH_ANCHOR + "\n",
+            PERM_SETBASEPOWERFROM_BRANCH_FIX,
         ),
+    },
+    {
+        "name": "permanent: sourceIsInPlay/sourceEffectsAreNegated, exported for the bench A/B",
+        "relpath": "src/effects/permanent.ts",
+        "anchor": PERM_EXPORT_INPLAY_ANCHOR,
+        "anchors": [PERM_EXPORT_INPLAY_ANCHOR, PERM_EXPORT_NEGATED_ANCHOR],
+        "already": [
+            "OPCG-Go patch: exported for bench/throughput.test.ts",
+            "OPCG-Go patch: exported for the same bench A/B as sourceIsInPlay above",
+        ],
+        # Two edits, one patch: the bench's re-implemented old body needs BOTH predicates, and
+        # exporting one without the other leaves it un-importable.
+        "apply": lambda s: replace_once(
+            replace_once(s, PERM_EXPORT_INPLAY_ANCHOR, PERM_EXPORT_INPLAY_FIX),
+            PERM_EXPORT_NEGATED_ANCHOR,
+            PERM_EXPORT_NEGATED_FIX,
+        ),
+    },
+    {
+        "name": "permanent: narrow the source set and put the structural test first",
+        "relpath": "src/effects/permanent.ts",
+        "anchor": PERM_SOURCES_ANCHOR,
+        "anchors": [
+            PERM_SOURCES_ANCHOR,
+            MODIFIER_TOTAL_ANCHOR,
+            SETCOST_SOURCES_ANCHOR,
+            KEYWORDS_SOURCES_ANCHOR,
+        ],
+        # FOUR markers, one per caller. Codex flagged the single-marker version on PR #28: with
+        # only the helper's marker checked, a moved SETCOST_SOURCES_ANCHOR left getPermanentSetCost
+        # on the old body while `--check` still reported ok -- and because the narrowing is
+        # result-preserving, the engine suite could not see it either. Reproduced, then fixed.
+        "already": [
+            "OPCG-Go patch: the source set the permanent lookups scan",
+            "OPCG-Go patch: the STRUCTURAL test first, then the expensive guards",
+            "OPCG-Go patch: the same two fixes as getPermanentModifierTotal",
+            "OPCG-Go patch: the same two fixes again, and this function was the worst",
+        ],
+        # Four edits, one patch, and they cannot be split: `permanentSources` is dead code without
+        # its three callers, and each caller is un-typecheckable without the helper.
+        "apply": lambda s: replace_once(
+            replace_once(
+                replace_once(
+                    replace_once(s, PERM_SOURCES_ANCHOR, PERM_SOURCES_FIX),
+                    MODIFIER_TOTAL_ANCHOR,
+                    MODIFIER_TOTAL_FIX,
+                ),
+                SETCOST_SOURCES_ANCHOR,
+                SETCOST_SOURCES_FIX,
+            ),
+            KEYWORDS_SOURCES_ANCHOR,
+            KEYWORDS_SOURCES_FIX,
+        ),
+    },
+    {
+        "name": "tests: OP11-023 Arlong, the only permanent setCost reached through hand",
+        "relpath": "tests/cards/characters/op11-023-arlong.test.ts",
+        "create": ARLONG_TEST_SOURCE,
+        "already": "OPCG-Go patch: OP11-023 is the ONLY card in the catalog",
     },
 ]
 
@@ -1982,8 +2475,15 @@ def main(argv: list[str] | None = None) -> int:
         # nothing to anchor to. Its three states: absent (PENDING, and applying writes it), present
         # carrying our marker (ok), or present WITHOUT the marker, which means something else
         # occupies the path and writing over it would destroy that file (FAILED, never overwrite).
+        markers = applied_markers(patch)
+        forbidden = absent_markers(patch)
+        present = [m for m in markers if m in source]
+        removed = [m for m in forbidden if m not in source]
+        fully_applied = len(present) == len(markers) and len(removed) == len(forbidden)
+        partly_applied = not fully_applied and bool(present)
+
         if "create" in patch:
-            if exists and patch["already"] in source:
+            if exists and fully_applied:
                 print(f"  ok       {patch['name']} (already applied)")
                 continue
             if exists:
@@ -2008,14 +2508,35 @@ def main(argv: list[str] | None = None) -> int:
             failed += 1
             continue
 
-        if patch["already"] in source:
+        if fully_applied:
             print(f"  ok       {patch['name']} (already applied)")
             continue
 
-        if patch["anchor"] not in source:
+        # HALF APPLIED. Before per-edit markers this state printed `ok`: only the first edit's
+        # marker was checked, so a secondary anchor that upstream had moved left its edit undone and
+        # nothing said so. Never re-apply from here -- the edits that DID land are already in the
+        # file, so a second pass would either no-op or double-apply. Report it and stop.
+        if partly_applied:
+            missing = [describe_anchor(m, 60) for m in markers if m not in source]
+            missing += [
+                f"(should be gone) {describe_anchor(m, 44)}" for m in forbidden if m in source
+            ]
             print(
-                f"  FAILED   {patch['name']}: anchor text not found — upstream changed, "
-                f"re-derive this patch against {path}"
+                f"  FAILED   {patch['name']}: PARTIALLY applied — "
+                f"{len(present)}/{len(markers)} edits present. Missing: "
+                + "; ".join(missing)
+                + f". Re-derive this patch against {path}, then re-clone the engine."
+            )
+            failed += 1
+            continue
+
+        absent_anchors = [a for a in patch_anchors(patch) if a not in source]
+        if absent_anchors:
+            print(
+                f"  FAILED   {patch['name']}: "
+                f"{len(absent_anchors)} of {len(patch_anchors(patch))} anchor(s) not found "
+                f"({'; '.join(describe_anchor(a, 52) for a in absent_anchors)}) — upstream "
+                f"changed, re-derive this patch against {path}"
             )
             failed += 1
             continue
@@ -2025,8 +2546,17 @@ def main(argv: list[str] | None = None) -> int:
             pending += 1
             continue
 
+        # A moved SECONDARY anchor now raises here rather than silently no-opping, so the file is
+        # never written half-patched. That is the apply-time half of the Codex fix; the
+        # partly_applied branch above is the check-time half.
+        try:
+            patched = patch["apply"](source)
+        except PatchAnchorError as exc:
+            print(f"  FAILED   {patch['name']}: {exc}")
+            failed += 1
+            continue
         with open(path, "w", encoding="utf-8") as fh:
-            fh.write(patch["apply"](source))
+            fh.write(patched)
         print(f"  applied  {patch['name']}")
 
     if failed:
