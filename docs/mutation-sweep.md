@@ -4,6 +4,11 @@
 mutation-checked. Until now `tools/mutation_check.py` resolved cards from `<repo>/cards/`, which
 holds OP15/OP16 only, so every encoding the vendored engine owns was outside its reach.
 
+> **Superseded instrument, standing baseline.** This page records the five-operator measurement.
+> The widened eleven-operator re-sweep (2026-08-21, kill rate **74.3 %**) is in
+> *The widened instrument* below; the per-file records it produced have replaced the ones this
+> run wrote, which are archived under `runs/v2/`.
+
 ## Headline
 
 | corpus | cards | mutants | killed | kill rate | cards where **no** mutant died |
@@ -219,3 +224,113 @@ from the repo root until that is fixed:
 ```bash
 python3 tools/patch_engine.py && python3 tools/correct_cards.py
 ```
+
+---
+
+## The widened instrument — run 2026-08-21
+
+The six top-ranked proposals in `docs/mutation-operators.md` are now implemented operators in
+`tools/mutation_check.py`: player flip, delete a condition, negative-value sign/step, zones narrow,
+amount −1, and keyword drop. The five original operators are unchanged, so the 62.3 % baseline
+above still means what it meant — this section is a separate measurement with a wider instrument,
+not a correction of it.
+
+**Run conditions.** Measured on the `origin/main` patch-25 tree in a pristine worktree (the shared
+checkout's vendor tree was dirty and 20 baseline tests were red there — measuring against it would
+have attributed foreign breakage to survivors). Suite: **3,666 files / 6,111 pass / 2 skipped /
+0 fail**. The batched runner was re-verified against the serial `mutation_check.py` on this tree
+before the sweep: 10 cards / 86 mutants, **10/10 card-for-card and label-for-label**. Clone
+cleanliness was verified afterwards (`diff -rq` per clone against the worktree's cards dir).
+
+### Headline
+
+| corpus | cards with mutants | mutants | killed | kill rate | cards where **no** mutant died | zero-mutant cards |
+|---|---:|---:|---:|---:|---:|---:|
+| pre-OP15, five operators (2026-08-19) | 1,419 | 4,307 | 2,685 | 62.3 % | 177 | 352 |
+| pre-OP15, eleven operators (2026-08-21) | 1,750 | 9,237 | 6,862 | **74.3 %** | **16** | **21** |
+
+OP15/OP16 were deliberately **not** re-swept — their `runs/*.jsonl` records are contended by
+another live session and remain the old-instrument measurement.
+
+The wider instrument kills a *larger* share of a *larger* corpus. That is not a contradiction of
+the baseline: the new sites (player scoping, amounts, keywords) are exactly the ones upstream's
+fixtures happen to exercise, because driving a test through the engine requires getting targets
+and counts right. The old sites (filters, comparisons) are where a test can look thorough while
+sitting on a boundary — and those operators' kill rates barely moved.
+
+**Drift check.** The original five operators alone produce exactly 4,307 mutants on this tree —
+the same count as the 2026-08-19 run — and 1,619 of them survive, a 62.4 % kill rate against the
+recorded 62.3 %. Aggregate engine drift between the two trees is ~0.1 pp; card-level drift was not
+re-measured.
+
+### Per-operator, measured
+
+| operator | mutants | survived | killed |
+|---|---:|---:|---:|
+| `zone: "field"` → `"character"` | 15 | 15 | **0 %** |
+| delete a `condition` object *(new)* | 1,179 | 573 | **51.4 %** |
+| drop `oncePerTurn` | 223 | 106 | 52.5 % |
+| delete a `filter` object | 2,350 | 1,047 | 55.4 % |
+| `value: N` → `N−1000` | 507 | 139 | 72.6 % |
+| `comparison` flip | 1,212 | 312 | 74.3 % |
+| `zones: […]` drop `"leader"` *(new)* | 245 | 40 | 83.7 % |
+| `amount: N` → `N−1` *(new)* | 347 | 22 | 93.7 % |
+| `player` self ↔ opponent *(new)* | 2,633 | 92 | 96.5 % |
+| drop a `keywords` member *(new)* | 230 | 8 | 96.5 % |
+| `value: -N` sign flip / step *(new)* | 296 | 9 | 97.0 % |
+| **total** | **9,237** | **2,366 labelled** | **74.3 %** |
+
+Labelled survivors sum to 2,366; the headline arithmetic gives 2,375 (9,237 − 6,862). The gap is
+9 mutants on the 3 cards with no runnable test (`ST04-003`, `ST04-005_p1`, `PRB02-006_p2`), which
+are recorded once per card rather than once per mutant.
+
+Three readings:
+
+- **`zone: "field"` → `"character"` is still 15/15 unkillable.** The new `zones:` narrow operator
+  was expected to be the same story and is not: 83.7 % of `"leader"`-dropping mutants die. The
+  corpus does exercise Leader-inclusion through the array spelling — just never through the
+  singular one.
+- **Condition objects are the new largest finding surface.** 573 surviving deletions — gates no
+  test consults — nearly matching the filter-deletion surface (1,047) at half the sites. This is
+  the "never consulted" defect class in its second spelling, now measured for the first time.
+- **Player flips almost always die (96.5 %).** Targeting the wrong side of the board is the one
+  defect class upstream's tests reliably catch — plausible, since a fixture's chosen target simply
+  is not there for the flipped mutant. The 92 survivors are the interesting residue, not the rate.
+
+### The 21 zero-mutant cards
+
+`OP01-008`, `OP01-093`, `OP01-113`, `OP02-075`, `OP02-104`, `OP03-059`, `OP03-100`, `OP04-113`,
+`OP05-073`, `OP05-105`, `OP06-099`, `OP08-058`, `OP08-063`, `OP08-068`, `OP09-068`, `OP09-076`,
+`ST12-012`, `OP14-023`, `OP14-056`, `EB02-053`, `ST20-003`.
+
+These are honestly thin, not operator misses: their entire decision surface is a `playThisCard`
+trigger, an `addDon amount: 1, upTo: true` (the amount operator skips both guards deliberately),
+or a self-targeted grant with no condition. They become reachable only with rank 7 (delete a
+cost), which remains an open proposal.
+
+### Runner changes in this run
+
+`tools/mutation_sweep.py` gained three things, each in response to an observed stall:
+
+- **Per-card record flushing** plus a **persistent mid-card progress file**
+  (`runs/<SET>.jsonl.progress.json`, transient, not committed): a card's partial tally survives a
+  budget stop, so re-runs resume mid-card instead of restarting it.
+- **Batches sorted by mutant count ascending.** Batch depth is near-uniform; without the sort, a
+  deep batch exceeded the 300 s execution window and was restarted forever by `--resume`.
+- **`--cap 16`** (was effectively 120): records are written per *completed* batch, and a 120-card
+  batch costs `(1 + max-mutants)` full-union vitest runs — over 10 minutes on this host — so no
+  batch ever finished inside a budget window. At 16 a batch is ~100 s. Disjointness, the
+  correctness property, is cap-independent.
+
+The driver is `runs/sweep_wide.sh` (8 workers, `SWEEP_BUDGET=270` per invocation, per-PID waits).
+Total wall time was ~3.5 h across the bounded invocations.
+
+### Loose ends
+
+- `runs/all-results.json` is stale — it merges the old-instrument jsonls. Regenerate it only once
+  OP15/OP16 are re-swept with the widened instrument, or regenerate it from the current files with
+  those two sets labelled old-instrument.
+- The 16 fully-vacuous cards (`EB02-037`, `EB03-018`, `OP03-110`, `OP04-102`, `OP04-058`,
+  `OP06-002`, `OP06-110`, `OP06-109`, `ST04-005_p1`, `OP09-103`, `OP10-113`, `OP10-043`,
+  `OP12-072`, `OP13-106`, `PRB02-006_p2`, `ST04-003`) are the priority adjudication list — down
+  from 177. `runs/triage/group*.json` still reflects the old list.

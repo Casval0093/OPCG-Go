@@ -148,6 +148,13 @@ def main() -> int:
 
     runnable = [t for t in todo if sw.attr.get(t[0])]
     skipped = [t for t in todo if not sw.attr.get(t[0])]
+    # Sort by mutant count so a batch's depth (its max) sits close to its members' average.
+    # A batch costs (1 + depth) vitest runs; in corpus order one 17-mutant card sets the depth
+    # for 15 near-empty neighbours, and on a slow host such a batch can exceed a bounded run
+    # window outright. Sorting cuts total runs by ~40 %. Order-only: verdicts and the
+    # disjointness invariant are unaffected, and recorded cards from an unsorted partial run
+    # remain valid under --resume.
+    runnable.sort(key=lambda t: len(t[2]))
     order = [t[0] for t in runnable]
     info = {c: (p, m) for c, p, m in runnable}
     batches = _batches(order, sw.attr, args.cap)
@@ -158,6 +165,30 @@ def main() -> int:
     a_inert = sw.inert_attr
     results: dict[str, dict] = {}
     originals: dict[str, str] = {}
+
+    # Mid-card progress, persisted per set: card -> {"k": next mutant index, "killed", "surv"}.
+    # Records are only written per COMPLETED batch... was the old design, and it made a batch's
+    # full depth payable inside ONE run window: a depth-17 batch is 18 vitest runs ≈ 4.5 min on
+    # a slow host, longer than any bounded window, so every pause restarted it and its cards made
+    # zero progress forever. Progress turns the per-card verdict loop resumable at any step. It
+    # is verdict-neutral: a card's verdict for mutant k depends only on its own test files and
+    # its own mutant, and every batch it runs inside is disjoint by construction.
+    progress_path = (args.jsonl + ".progress.json") if args.jsonl else None
+    progress: dict[str, dict] = {}
+    if args.resume and progress_path and os.path.exists(progress_path):
+        try:
+            with open(progress_path, encoding="utf-8") as fh:
+                progress = {c: p for c, p in json.load(fh).items() if c not in done}
+        except Exception:
+            progress = {}
+
+    def save_progress() -> None:
+        if not progress_path:
+            return
+        tmp = progress_path + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as fh:
+            json.dump(progress, fh)
+        os.replace(tmp, progress_path)
 
     class Paused(Exception):
         pass
@@ -218,6 +249,7 @@ def main() -> int:
                     results[c] = {"card": c, "status": "baseline-red", "killed": 0,
                                   "mutants": len(info[c][1]),
                                   "survivors": [f"baseline red: {', '.join(bad)}"]}
+                    progress.pop(c, None)
                     if sink:
                         sink.write(json.dumps(results[c]) + "\n")
                 if sink:
@@ -229,31 +261,50 @@ def main() -> int:
                     restore()
                     continue
 
-            killed = {c: 0 for c in batch}
-            surv = {c: [] for c in batch}
-            depth = max(len(info[c][1]) for c in batch)
-            for k in range(depth):
-                active = [c for c in batch if k < len(info[c][1])]
-                for c in active:
-                    with open(info[c][0], "w", encoding="utf-8") as fh:
-                        fh.write(info[c][1][k].source)
-                res = sw.run(sorted({f for c in active for f in sw.attr[c]}))
-                for c in active:
-                    if any(not res.get(f, True) for f in sw.attr[c]):
-                        killed[c] += 1
-                    else:
-                        surv[c].append(info[c][1][k].label)
-                    with open(info[c][0], "w", encoding="utf-8") as fh:
-                        fh.write(originals[info[c][0]])
-            restore()
-            for c in batch:
+            killed = {c: int(progress.get(c, {}).get("killed", 0)) for c in batch}
+            surv = {c: list(progress.get(c, {}).get("surv", [])) for c in batch}
+            next_k = {c: int(progress.get(c, {}).get("k", 0)) for c in batch}
+            recorded: set[str] = set()
+
+            def record_card(c: str) -> None:
+                """A card's verdict is final the moment its LAST mutant has run — a pause after
+                that point must not discard it."""
                 n = len(info[c][1])
                 results[c] = {"card": c, "status": "ok" if killed[c] == n else "survivors",
                               "killed": killed[c], "mutants": n, "survivors": surv[c]}
                 if sink:
                     sink.write(json.dumps(results[c]) + "\n")
-            if sink:
-                sink.flush()
+                    sink.flush()
+                progress.pop(c, None)
+                save_progress()
+                recorded.add(c)
+
+            # Each step advances EVERY unfinished card by one mutant in a single vitest run.
+            # Cards need not be at the same index: the run writes each card's own current
+            # mutant, and the verdict is read back per card from its own files.
+            while True:
+                active = [c for c in batch
+                          if c not in recorded and next_k[c] < len(info[c][1])]
+                if not active:
+                    break
+                for c in active:
+                    with open(info[c][0], "w", encoding="utf-8") as fh:
+                        fh.write(info[c][1][next_k[c]].source)
+                res = sw.run(sorted({f for c in active for f in sw.attr[c]}))
+                for c in active:
+                    if any(not res.get(f, True) for f in sw.attr[c]):
+                        killed[c] += 1
+                    else:
+                        surv[c].append(info[c][1][next_k[c]].label)
+                    with open(info[c][0], "w", encoding="utf-8") as fh:
+                        fh.write(originals[info[c][0]])
+                    next_k[c] += 1
+                    progress[c] = {"k": next_k[c], "killed": killed[c], "surv": surv[c]}
+                save_progress()
+                for c in active:
+                    if next_k[c] == len(info[c][1]):
+                        record_card(c)
+            restore()
             print(f"batch {bi}/{len(batches)}: {len(batch)} cards, "
                   f"{sum(killed.values())}/{sum(len(info[c][1]) for c in batch)} killed", flush=True)
     except Paused:

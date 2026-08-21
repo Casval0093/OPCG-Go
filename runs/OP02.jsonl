@@ -1,0 +1,99 @@
+{"card": "OP02-001", "status": "ok", "killed": 1, "mutants": 1, "survivors": []}
+{"card": "OP02-012", "status": "ok", "killed": 1, "mutants": 1, "survivors": []}
+{"card": "OP02-014", "status": "ok", "killed": 1, "mutants": 1, "survivors": []}
+{"card": "OP02-029", "status": "ok", "killed": 1, "mutants": 1, "survivors": []}
+{"card": "OP02-038", "status": "ok", "killed": 1, "mutants": 1, "survivors": []}
+{"card": "OP02-065", "status": "ok", "killed": 1, "mutants": 1, "survivors": []}
+{"card": "OP02-081", "status": "ok", "killed": 1, "mutants": 1, "survivors": []}
+{"card": "OP02-108", "status": "ok", "killed": 1, "mutants": 1, "survivors": []}
+{"card": "OP02-057", "status": "ok", "killed": 2, "mutants": 2, "survivors": []}
+{"card": "OP02-074", "status": "ok", "killed": 2, "mutants": 2, "survivors": []}
+{"card": "OP02-082", "status": "ok", "killed": 2, "mutants": 2, "survivors": []}
+{"card": "OP02-087", "status": "ok", "killed": 2, "mutants": 2, "survivors": []}
+{"card": "OP02-106", "status": "ok", "killed": 2, "mutants": 2, "survivors": []}
+{"card": "OP02-067", "status": "ok", "killed": 2, "mutants": 2, "survivors": []}
+{"card": "OP02-048", "status": "ok", "killed": 2, "mutants": 2, "survivors": []}
+{"card": "OP02-031", "status": "ok", "killed": 3, "mutants": 3, "survivors": []}
+{"card": "OP02-071", "status": "survivors", "killed": 2, "mutants": 3, "survivors": ["delete condition:turn @L49"]}
+{"card": "OP02-042", "status": "ok", "killed": 3, "mutants": 3, "survivors": []}
+{"card": "OP02-064", "status": "survivors", "killed": 1, "mutants": 3, "survivors": ["delete filter:cost @L57", "delete condition:donAttached @L35"]}
+{"card": "OP02-079", "status": "ok", "killed": 3, "mutants": 3, "survivors": []}
+{"card": "OP02-094", "status": "survivors", "killed": 2, "mutants": 3, "survivors": ["delete condition:donAttached @L40"]}
+{"card": "OP02-095", "status": "ok", "killed": 3, "mutants": 3, "survivors": []}
+{"card": "OP02-099", "status": "ok", "killed": 3, "mutants": 3, "survivors": []}
+{"card": "OP02-114", "status": "ok", "killed": 3, "mutants": 3, "survivors": []}
+{"card": "OP02-086", "status": "ok", "killed": 2, "mutants": 2, "survivors": []}
+{"card": "OP02-092", "status": "ok", "killed": 2, "mutants": 2, "survivors": []}
+{"card": "OP02-059", "status": "ok", "killed": 3, "mutants": 3, "survivors": []}
+{"card": "OP02-073", "status": "survivors", "killed": 2, "mutants": 3, "survivors": ["delete filter:cardCategory @L65"]}
+{"card": "OP02-076", "status": "ok", "killed": 3, "mutants": 3, "survivors": []}
+{"card": "OP02-022", "status": "ok", "killed": 3, "mutants": 3, "survivors": []}
+{"card": "OP02-011", "status": "ok", "killed": 4, "mutants": 4, "survivors": []}
+{"card": "OP02-013", "status": "ok", "killed": 4, "mutants": 4, "survivors": []}
+{"card": "OP02-034", "status": "ok", "killed": 4, "mutants": 4, "survivors": []}
+{"card": "OP02-035", "status": "survivors", "killed": 2, "mutants": 4, "survivors": ["delete filter:cardCategory @L60", "comparison eq->gte @L57"]}
+{"card": "OP02-083", "status": "ok", "killed": 4, "mutants": 4, "survivors": []}
+{"card": "OP02-085", "status": "survivors", "killed": 3, "mutants": 4, "survivors": ["delete condition:turn @L66"]}
+{"card": "OP02-100", "status": "survivors", "killed": 3, "mutants": 4, "survivors": ["zone field->character @L36"]}
+{"card": "OP02-120", "status": "ok", "killed": 4, "mutants": 4, "survivors": []}
+{"card": "OP02-091", "status": "survivors", "killed": 2, "mutants": 4, "survivors": ["comparison gte->lte @L48", "delete condition:donFieldCount @L45"]}
+{"card": "OP02-118", "status": "survivors", "killed": 2, "mutants": 4, "survivors": ["delete filter:cost @L66", "comparison lte->gte @L68"]}
+{"card": "OP02-096", "status": "ok", "killed": 3, "mutants": 3, "survivors": []}
+{"card": "OP02-098", "status": "ok", "killed": 3, "mutants": 3, "survivors": []}
+{"card": "OP02-105", "status": "ok", "killed": 3, "mutants": 3, "survivors": []}
+{"card": "OP02-058", "status": "ok", "killed": 4, "mutants": 4, "survivors": []}
+{"card": "OP02-110", "status": "ok", "killed": 4, "mutants": 4, "survivors": []}
+{"card": "OP02-049", "status": "survivors", "killed": 3, "mutants": 5, "survivors": ["comparison eq->gte @L51", "delete condition:handCount @L48"]}
+{"card": "OP02-072", "status": "ok", "killed": 5, "mutants": 5, "survivors": []}
+{"card": "OP02-005", "status": "survivors", "killed": 1, "mutants": 5, "survivors": ["delete filter:cost @L47", "delete filter:color @L52", "delete filter:cardCategory @L56", "comparison eq->gte @L49"]}
+{"card": "OP02-009", "status": "ok", "killed": 5, "mutants": 5, "survivors": []}
+{"card": "OP02-016", "status": "survivors", "killed": 4, "mutants": 5, "survivors": ["delete filter:color @L45"]}
+{"card": "OP02-019", "status": "ok", "killed": 5, "mutants": 5, "survivors": []}
+{"card": "OP02-032", "status": "survivors", "killed": 4, "mutants": 5, "survivors": ["delete filter:cost @L56"]}
+{"card": "OP02-056", "status": "survivors", "killed": 4, "mutants": 5, "survivors": ["delete condition:donAttached @L45"]}
+{"card": "OP02-063", "status": "ok", "killed": 5, "mutants": 5, "survivors": []}
+{"card": "OP02-111", "status": "survivors", "killed": 4, "mutants": 5, "survivors": ["zone field->character @L37"]}
+{"card": "OP02-115", "status": "ok", "killed": 5, "mutants": 5, "survivors": []}
+{"card": "OP02-103", "status": "ok", "killed": 3, "mutants": 3, "survivors": []}
+{"card": "OP02-015", "status": "survivors", "killed": 2, "mutants": 5, "survivors": ["delete filter:color @L50", "delete filter:cost @L54", "comparison eq->gte @L56"]}
+{"card": "OP02-050", "status": "ok", "killed": 5, "mutants": 5, "survivors": []}
+{"card": "OP02-112", "status": "ok", "killed": 5, "mutants": 5, "survivors": []}
+{"card": "OP02-066", "status": "ok", "killed": 5, "mutants": 5, "survivors": []}
+{"card": "OP02-068", "status": "ok", "killed": 5, "mutants": 5, "survivors": []}
+{"card": "OP02-117", "status": "ok", "killed": 5, "mutants": 5, "survivors": []}
+{"card": "OP02-070", "status": "ok", "killed": 5, "mutants": 5, "survivors": []}
+{"card": "OP02-002", "status": "survivors", "killed": 5, "mutants": 6, "survivors": ["delete condition:turn @L52"]}
+{"card": "OP02-008", "status": "survivors", "killed": 4, "mutants": 6, "survivors": ["delete condition:donAttached @L34", "delete condition:leaderTrait @L48"]}
+{"card": "OP02-017", "status": "survivors", "killed": 5, "mutants": 6, "survivors": ["amount 2->1 @L52"]}
+{"card": "OP02-018", "status": "ok", "killed": 6, "mutants": 6, "survivors": []}
+{"card": "OP02-027", "status": "ok", "killed": 6, "mutants": 6, "survivors": []}
+{"card": "OP02-036", "status": "survivors", "killed": 3, "mutants": 6, "survivors": ["delete filter:excludeName @L104", "delete filter:trait @L108", "player self->opponent @L96"]}
+{"card": "OP02-062", "status": "survivors", "killed": 5, "mutants": 6, "survivors": ["delete filter:cost @L65"]}
+{"card": "OP02-101", "status": "ok", "killed": 6, "mutants": 6, "survivors": []}
+{"card": "OP02-102", "status": "ok", "killed": 4, "mutants": 4, "survivors": []}
+{"card": "OP02-010", "status": "survivors", "killed": 2, "mutants": 6, "survivors": ["delete filter:cost @L55", "delete filter:color @L60", "delete filter:cardCategory @L64", "comparison eq->gte @L57"]}
+{"card": "OP02-044", "status": "survivors", "killed": 4, "mutants": 6, "survivors": ["delete filter:excludeName @L46", "delete filter:cardCategory @L60"]}
+{"card": "OP02-061", "status": "ok", "killed": 6, "mutants": 6, "survivors": []}
+{"card": "OP02-113", "status": "ok", "killed": 6, "mutants": 6, "survivors": []}
+{"card": "OP02-121", "status": "ok", "killed": 6, "mutants": 6, "survivors": []}
+{"card": "OP02-023", "status": "ok", "killed": 6, "mutants": 6, "survivors": []}
+{"card": "OP02-119", "status": "ok", "killed": 6, "mutants": 6, "survivors": []}
+{"card": "OP02-026", "status": "survivors", "killed": 5, "mutants": 7, "survivors": ["player self->opponent @L60", "delete condition:zoneCount @L58"]}
+{"card": "OP02-037", "status": "survivors", "killed": 5, "mutants": 7, "survivors": ["delete filter:cost @L46", "delete filter:cardCategory @L66"]}
+{"card": "OP02-040", "status": "survivors", "killed": 5, "mutants": 7, "survivors": ["delete filter:cost @L46", "delete filter:cardCategory @L66"]}
+{"card": "OP02-052", "status": "survivors", "killed": 6, "mutants": 7, "survivors": ["zone field->character @L37"]}
+{"card": "OP02-078", "status": "survivors", "killed": 4, "mutants": 7, "survivors": ["delete filter:cost @L55", "delete filter:cardCategory @L65", "comparison lte->gte @L57"]}
+{"card": "OP02-047", "status": "survivors", "killed": 6, "mutants": 7, "survivors": ["delete filter:state @L65"]}
+{"card": "OP02-069", "status": "survivors", "killed": 5, "mutants": 7, "survivors": ["value 6000->5000 @L42", "amount 2->1 @L48"]}
+{"card": "OP02-090", "status": "survivors", "killed": 5, "mutants": 7, "survivors": ["comparison gte->lte @L59", "delete condition:donFieldCount @L56"]}
+{"card": "OP02-030", "status": "survivors", "killed": 3, "mutants": 8, "survivors": ["delete filter:cost @L83", "delete filter:color @L88", "delete filter:cardCategory @L97", "comparison eq->gte @L85", "drop oncePerTurn @L67"]}
+{"card": "OP02-041", "status": "survivors", "killed": 6, "mutants": 8, "survivors": ["delete filter:trait @L74", "delete filter:cardCategory @L81"]}
+{"card": "OP02-051", "status": "survivors", "killed": 5, "mutants": 8, "survivors": ["delete filter:trait @L75", "delete filter:cardCategory @L80", "amount 3->2 @L52"]}
+{"card": "OP02-089", "status": "survivors", "killed": 6, "mutants": 8, "survivors": ["comparison gte->lte @L59", "delete condition:donFieldCount @L56"]}
+{"card": "OP02-004", "status": "survivors", "killed": 7, "mutants": 9, "survivors": ["delete condition:donAttached @L79", "amount 2->1 @L81"]}
+{"card": "OP02-021", "status": "survivors", "killed": 8, "mutants": 9, "survivors": ["delete condition:leaderTrait @L32"]}
+{"card": "OP02-046", "status": "survivors", "killed": 7, "mutants": 9, "survivors": ["delete filter:cost @L73", "delete filter:cardCategory @L78"]}
+{"card": "OP02-025", "status": "survivors", "killed": 4, "mutants": 10, "survivors": ["delete filter:trait @L67", "delete filter:cardCategory @L72", "delete filter:cost @L76", "drop oncePerTurn @L88", "player self->opponent @L51", "delete condition:zoneCount @L49"]}
+{"card": "OP02-045", "status": "survivors", "killed": 8, "mutants": 12, "survivors": ["delete filter:cost @L59", "delete filter:cardCategory @L64", "comparison lte->gte @L61", "value 6000->5000 @L42"]}
+{"card": "OP02-024", "status": "survivors", "killed": 11, "mutants": 12, "survivors": ["zones drop \"leader\" @L57"]}
+{"card": "OP02-093", "status": "survivors", "killed": 5, "mutants": 14, "survivors": ["delete filter:cost @L86", "delete filter:cost @L92", "comparison eq->gte @L86", "comparison eq->gte @L92", "drop oncePerTurn @L98", "player self->opponent @L84", "delete condition:donAttached @L49", "delete condition:compound @L78", "delete condition:existsOnField @L82"]}

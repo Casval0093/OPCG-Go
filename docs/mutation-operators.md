@@ -66,19 +66,46 @@ Reach is measured, not estimated. Type validity was checked against the union de
 
 | rank | operator | site | perturbation | reach (cards / mutants, all sets) | models |
 |---|---|---|---|---|---|
-| 1 | **player flip** | `player: "self"\|"opponent"`, excluding objects with `self: true` and `shuffleDeck` | swap | ~1,640 / ~2,950 | targeting the wrong side of the board |
-| 2 | **delete a condition** | `{ condition: "…" … }` under `conditions`/`condition` | delete the element, or the whole key for the singular form | ~837 / ~1,183 | a gate no test consults — operator 1's shape, different spelling |
-| 3 | **negative value sign / step** | `value: -N` | `-N → N`, and `-N ∓ 1000` for power | ~163 / ~178 and ~106 / ~118 | the documented lost-`−` defect |
-| 4 | **zones narrow** | `zones: [ … ]`, length ≥ 2 | drop `"leader"` | ~219 / ~518 | C1/C2, in the spelling the corpus actually uses |
-| 5 | **amount ± 1** | `amount:` outside `upTo` blocks | `N → N−1` (N ≥ 2) | ~526 sites | "up to 2" encoded as "up to 1" |
-| 6 | **drop a keyword** | `keywords: [ … ]` | remove one member | ~229 / ~230 | a missing or spurious `[Blocker]`/`[Rush]` |
+| 1 | **player flip** ✅ | `player: "self"\|"opponent"`, excluding objects with `self: true` and `shuffleDeck` | swap | ~1,640 / ~2,950 | targeting the wrong side of the board |
+| 2 | **delete a condition** ✅ | `{ condition: "…" … }` under `conditions`/`condition` | delete the element, or the whole key for the singular form | ~837 / ~1,183 | a gate no test consults — operator 1's shape, different spelling |
+| 3 | **negative value sign / step** ✅ | `value: -N` | `-N → N`, and `-N ∓ 1000` for power | ~163 / ~178 and ~106 / ~118 | the documented lost-`−` defect |
+| 4 | **zones narrow** ✅ | `zones: [ … ]`, length ≥ 2 | drop `"leader"` | ~219 / ~518 | C1/C2, in the spelling the corpus actually uses |
+| 5 | **amount ± 1** ✅ | `amount:` outside `upTo` blocks | `N → N−1` (N ≥ 2) | ~526 sites | "up to 2" encoded as "up to 1" |
+| 6 | **drop a keyword** ✅ | `keywords: [ … ]` | remove one member | ~229 / ~230 | a missing or spurious `[Blocker]`/`[Rush]` |
+
+**Ranks 1–6 were adopted on 2026-08-21** (`claude/mutation-operators-widened`). Measured reach on the
+pre-OP15 corpus, against the estimates above:
+
+| rank | estimated mutants | measured mutants (pre-OP15) | killed |
+|---|---:|---:|---:|
+| 1 player flip | ~2,950 | 2,633 | **96.5 %** |
+| 2 delete condition | ~1,183 | 1,179 | **51.4 %** |
+| 3 negative value | ~296 | 296 | **97.0 %** |
+| 4 zones narrow | ~518 | 245 | 83.7 % |
+| 5 amount −1 | ~526 | 347 | 93.7 % |
+| 6 keyword drop | ~230 | 230 | 96.5 % |
+
+Ranks 2, 3 and 6 landed almost exactly on the estimates. Rank 1 came in ~11 % under (the
+`self: true`/`shuffleDeck` exclusions bite more than the window count suggested). Rank 4 is the
+outlier at about half the estimate: the estimate counted every `zones:` array of length ≥ 2, but
+the operator only fires where `"leader"` is actually a member — 245 such sites exist, the rest are
+`["character", "stage"]`-type arrays where narrowing models nothing. Rank 5's guard (skip
+`upTo: true` objects, skip `amount: 1`) removes about a third of the raw `amount:` sites the
+estimate counted.
+
+**The zero-mutant set fell from 352 to 21, not to ~2.** The ~2 estimate assumed ranks 1–6 *plus*
+rank 7 (delete a cost). Without rank 7, a card whose only decision surface is a cost — a
+`playThisCard` trigger with no filter, an `addDon` with `amount: 1, upTo: true` (amount −1 skips
+both guards), a self-targeted grant with no condition — still produces no mutant. The 21 are
+listed in `docs/mutation-sweep.md`; they are honestly thin, not operator misses.
 | 7 | **delete a cost** | `{ cost: "…" … }` | delete the element | ~598 / ~698 | a printed cost never charged |
 | 8 | **boundary shift** | `(self)?comparison: "lte"\|"gte"` | `lte→lt`, `gte→gt` | ~983 files | ruling #962/#963, without touching the threshold |
 | 9 | **match flip** | `match: "includes"` | `→ "exact"` | ~621 / ~768 | ties directly to the open trait-matching work |
 | 10 | **duration swap** (guarded) | `duration: "thisTurn"\|"thisBattle"` outside `permanentEffects` | swap | ~679 / ~814 | a temporary buff encoded as permanent |
 
-Adopting ranks 1–6 takes the zero-mutant set from 352 to about 2 and roughly triples the corpus
-(4,297 → ~14,000 mutants, so ~3x runtime — about 1.5–2h with the batched runner).
+Adopting ranks 1–6 took the pre-OP15 corpus from 4,307 to 9,237 mutants (~2.1x, not the ~3x the
+all-sets estimate implied) and the zero-mutant set from 352 to 21. The sweep took ~3.5 h with the
+batched runner across 8 clones. Ranks 7–10 remain open proposals.
 
 ### Type-validity traps found while checking
 
@@ -119,10 +146,12 @@ but usually because the mutant removes a prompt the test's command queue expects
 anything asserts optionality. Keep it — it is a named defect class — but do not read its kill rate
 as evidence about ruling conformance.
 
-## Why this is a separate branch
+## Why this was a separate branch
 
-Adding operators changes what the kill rate means, so the 62.4 % baseline in `docs/mutation-sweep.md`
-should stand as measured before the instrument is widened. It is also an instrument change with its
-own verification burden: each new operator needs its reach counted, its type validity shown, and its
-equivalent-mutant class argued, and the batched runner's agreement with the serial one re-checked
-afterwards.
+Adding operators changes what the kill rate means, so the 62.3 % baseline in
+`docs/mutation-sweep.md` was left standing as measured before the instrument was widened. The
+widening landed on `claude/mutation-operators-widened` with its own verification burden discharged:
+each new operator's reach counted (table above), its type validity shown (a fully-mutated tree
+passes `tsc` with zero diff against the baseline diagnostics), its guards mutation-verified
+red-when-removed, and the batched runner's agreement with the serial one re-checked afterwards
+(10 cards / 86 mutants, card-for-card and label-for-label, on the same tree the sweep ran on).
