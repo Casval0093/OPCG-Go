@@ -53,9 +53,11 @@ between encodings and tests authored from the same text.
 print. Same-direction text+encode errors are invisible to data-audit, mutation sweep, and the
 suite.
 
-**Mitigation already chosen:** N4 print-confirms the *simulated* lists, not the catalog.
-Mutation sweep (on `main`: 62.3% detectability) is the instrument for "would a test notice,"
-not for "is it right."
+**Mitigation already chosen:** Now #2 print-confirms the five frozen lists (Ace, Nami,
+G/B Luffy, Enel, Teach) **before** Now #1. A firing miss blocks that matchup until parked
+or fixed. Cosmetic or variant-text-only misses do not. The rest of the 1,771-card catalog
+stays Later. Mutation sweep (on `main`: 62.3% detectability) is the instrument for "would
+a test notice," not for "is it right."
 
 **Do not:** quote 6,118 passing tests as a conformance baseline; call the suite doubled
 coverage (1,594 of those tests are `assert.ok(true)`).
@@ -93,8 +95,8 @@ Phase 2 named search AI; `main` has a cheap policy and an arena, not a search.
 lever. Throughput buys precision on whatever policy you already have. A policy that cannot
 use `OP17-005`'s discount or Rakuyo's K.O. will report those slots dead with tight CIs.
 
-**Mitigation:** N1 first. Pick A–D only if calibration shows *distortion*, not noise. An LLM
-is not the runtime policy at tech-slot sample sizes (`docs/policy-proposals.md`).
+**Mitigation:** Now #2, then N1. Pick A–D only if calibration shows *distortion*, not noise.
+An LLM is not the runtime policy at tech-slot sample sizes (`docs/policy-proposals.md`).
 
 ### 5. OP17 date slip (or spoiler churn)
 
@@ -118,7 +120,7 @@ gate is red for a known reason.
 
 - A crew merges or rebases it "to help" and fights a 31-commit (and growing) drift, or
   implements on the held branch.
-- A crew blocks N1/N2/N4 on "waiting for the re-sweep," which those milestones do not need.
+- A crew blocks N2/N1/N3 on "waiting for the re-sweep," which those milestones do not need.
 
 **Mitigation:** work around it. Quote 62.3% while it is held. After Ping releases it, run the
 After-#32 pickup from *that* `main`. Do not "fix" `runs/OP15.jsonl` from an unrelated branch.
@@ -188,7 +190,8 @@ Stop *shipping slot recommendations* (keep building) when:
 |---|---|
 | N1 cannot be run because the opposing field's encodings will not finish games | Fix legality / parked clauses on *those* lists; do not invent WRs |
 | N1 runs and the miss is explained by a blind surface the slot depends on (no character targets for a removal tech, no Event-counter targeting, etc.) | Do not publish ΔEV. Name the surface. Ping decides whether to reopen it |
-| Print-confirm (N4) finds the field or Ace list is fiction on a load-bearing card | Fix that card (text+encode+tests) before the slot A/B |
+| Now #2 finds a **firing** miss on a unique effect-text card on one of the five lists | Park or fix that encoding. **Block that matchup.** Do not run it dirty. Cosmetic / variant-text-only misses do not block. |
+| A crew starts Now #1 on a matchup Now #2 has not cleared | Stop. Print-confirm the five lists, then calibrate. |
 | Official OP17 text contradicts the thesis (`OP17-005` missing, not a buff, or Ace-incompatible) | Re-read research §5 from the official list. Do not preserve the spoiler thesis by reasoning |
 | A crew starts audit A/B/C/D or an LLM runtime policy without a distortion result from N1 | Stop that crew. Throughput and model calls are not the path |
 | Someone merges or implements on #32 while it is held | Revert to `main` @ the last released SHA. The After-#32 list is not a license |
@@ -207,13 +210,14 @@ OP17 date is not a kill.
 | "The mutation gate is red, the repo is broken" | Known stale OP15/OP16 records vs widened operators. Do not fix from the side |
 | "6118 tests, encodings are fine" | Self-consistency. Pre-OP15 semantics are unverified |
 | "Search AI is charter Phase 2, we are late" | Engine half of Phase 2 landed. Search is gated on N1 |
-| "#32 is the only open PR, it must be next" | It is held. Next on `main` is N1 / N2 / N4 |
+| "#32 is the only open PR, it must be next" | It is held. Next on `main` is Now #2 then Now #1 |
 
 ## What this file is not
 
 It is not a license to reopen: deck choice, engine choice, objective function, no-sideboard
 maths, local-only `orderCards`, the standing no-upstream-issues rule, the "no 集换社
-scraper" call, or the **Now #1 calibration locks** (field, frozen lists, 400 paired games,
-blended WR vs the ladder cell, play/draw recorded separately, timeouts dropped, results stay
-in the simulation track). If a risk seems to demand one of those, it demands a write-up to
-Ping, not a quiet reversal.
+scraper" call, or the **Now #1 / Now #2 locks** (five frozen lists; print-confirm then calibrate; Limitless
++ SC rulings, no aggregators; firing miss blocks that matchup; 400 paired games; blended WR
+vs the ladder cell; play/draw recorded separately; timeouts dropped; results stay in the
+simulation track). If a risk seems to demand one of those, it demands a write-up to Ping,
+not a quiet reversal.

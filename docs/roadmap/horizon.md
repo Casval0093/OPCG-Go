@@ -57,13 +57,17 @@ A slip does not move these rows to Later — it only delays the Next gate.
 **Constraint in force the whole window:** PR #32 is held. Nothing in Now may merge, rebase, or
 implement on `claude/mutation-operators-widened`.
 
+**Locked order:** print-confirm the five lists (N2 / Now #2), then run calibration
+(N1 / Now #1). Do not run a dirty matchup.
+
 ### Milestone N1 — first meta calibration (locked, Ping 2026-08-21)
 
-**Pick for a policy/sim crew. Stays Now #1. Do not hold it for 集换社 / SC shares.**
+**Pick for a policy/sim crew. Stays Now #1. Do not hold it for 集换社 / SC shares.
+Do hold each matchup for N2.**
 
 This is charter validation layer 3: the first cross-deck sims, compared to the EN ladder
 matrix. Mirror-only history is not calibration. The first run is a **measurement, not a
-gate**. A miss does not block N2–N5, does not pick audit A–D, and does not flip Ace.
+gate**. A miss does not block N3–N5, does not pick audit A–D, and does not flip Ace.
 
 | Lock | Decision |
 |---|---|
@@ -82,52 +86,56 @@ on this run.
 
 Do not: calibrate on ST01; use `mihawk-green-proxy` as a fifth opponent or as the play/draw
 instrument; fetch a fresh Limitless list on run day; swap in a Limitless Ace list; hold the
-run for 集换社; treat `random` as a control for attack-target choice (it uses the same helper).
+run for 集换社; run a matchup that still has a Now #2 firing miss; treat `random` as a
+control for attack-target choice (it uses the same helper).
 
-### Milestone N2 — The two scopable primitives are built, or explicitly re-parked with a new reason
+### Milestone N2 — print-confirm the five lists (locked, Ping 2026-08-21)
 
-**Pick for an encoding/DSL crew that should not touch calibration.**
+**Pick first. This gates N1.** Print-confirm Ace, Nami, G/B Luffy, Enel, and Teach
+**before** the first 400-paired-game calibration run. Do not run a dirty matchup.
+
+| Lock | Decision |
+|---|---|
+| Lists | The same five frozen lists N1 uses: `sim/decks/ace-op16.json` plus Limitless modal lists for Nami, G/B Luffy, Enel, Teach. |
+| Who fires | Every **unique** card on those lists with printed effect text. Vanilla (no printed effect) is out of scope. |
+| Do not filter | Do not drop a card because the current policy cannot play it. |
+| Print source | **Limitless** card text. **SC rulings** when a clause is ambiguous (`tools/parse_rulings.py --card`). **No aggregators.** Official Bandai EN is a **tie-break only**. |
+| Firing miss | DSL does not match that print. **Blocks that matchup** until the encoding is parked or fixed. |
+| Does not block | Cosmetic misses; variant-text-only misses (base text is the encoding source; see `tools/variant_audit.py`). |
+| After a miss | Park the clause or fix text+encoding+tests. Cleared matchups may run; a dirty one may not. |
+
+This is encoding-semantics work the encoding audit never did (it compared data-to-data and
+text-to-text). A card whose text and encoding are wrong in the same direction is invisible
+to the green suite and to the mutation sweep.
+
+**Still Later, not Now:** an unbounded 1,771-card reread, and "fixing" OP01–OP08 / EB01–EB03
+stub tests as a programme. Those five lists are not Later. They are Now #2.
+
+### Milestone N3 — The two scopable primitives are built, or explicitly re-parked with a new reason
+
+**Pick for an encoding/DSL crew that is not on Now #2.**
 
 Order is locked: **`giveDonSourcePlayer` (10 clauses, all OP15) then `attachedDonTargetFilter`
-(7).** See `data/parked-clauses.json`. Neither blocks OP17.
+(7).** See `data/parked-clauses.json`. Neither blocks OP17. Neither gates N1.
 
 - Same batch discipline as OP15/OP16 (`docs/plans/BATCH-AGENT-BRIEF.md`, `cards/ENCODING.md`).
 - Mutation-check every newly encoded card (`tools/mutation_check.py --set OP15`).
 - Leave the remaining parked primitives parked. They are singletons (or the two-card
   `returnDonStateRestriction`). OP17 will add more singletons; it will not make them scopable.
 
-### Milestone N3 — Catalog leftovers that silently change play are closed or scoped out
+### Milestone N4 — Catalog leftovers that silently change play are closed or scoped out
 
 **Pick for a catalog crew.** From `docs/encoding-audit.md` remaining order (items 3–6),
-item 3 (trait matching) is already done.
+item 3 (trait matching) is already done. This is **not** the five-list print-confirm (that
+is N2).
 
 | Leftover | Why it is Now | Done looks like |
 |---|---|---|
 | Ten missing `[Trigger]`s (7 Standard-legal) | Text without encoding routes the card to resolution with no block. Text+encoding+tests in one batch. Prefer the 7 legal ones. | Each card has printed trigger, encoded trigger, and a mutation-checked test |
 | `OP13-084` | The suspected wrong encoding. `setBasePower` unblocked it. Text fix + replace the fabricated `[On Play]` + new tests, together. | Do not "fix the existing test" (`docs/mutation-triage.md`) |
-| EB04's 31 missing cards | Largest competitive catalog hole. Only if a calibration or Ace/Mihawk list would play them. | Import/define what the field needs; do not boil the 445-card ocean |
+| EB04's 31 missing cards | Largest competitive catalog hole. Only if a Now #1 list would play them and N2 has not already forced the card. | Import/define what the field needs; do not boil the 445-card ocean |
 
 `ST10`–`ST36` absences stay out of Now. No current sim deck draws on them.
-
-### Milestone N4 — Print-confirm the *simulated* cards, not the catalog
-
-**Pick for a fidelity crew.** This is the start of encoding-semantics work, which the encoding
-audit never did (it compared data-to-data and text-to-text).
-
-Scope, on purpose:
-
-- Ace list: the same frozen `sim/decks/ace-op16.json` N1 uses.
-- Opponent lists: the same four frozen Limitless modal lists N1 uses (Nami, G/B Luffy, Enel,
-  Teach). Not a live fetch, and not a different “field representative” stand-in.
-- Any parked clause on those lists, surfaced as a caveat rather than silently played
-  (`data/parked-clauses.json`: `coverage: partial` is the dangerous state).
-
-Method: printed text (base printing, not variant) + SC rulings (`tools/parse_rulings.py --card`)
-against the DSL body. One card whose text and encoding are wrong in the same direction is
-invisible to the green suite and to the mutation sweep.
-
-Out of Now: a 1,771-card reread; "fixing" OP01–OP08 / EB01–EB03 stub tests as a programme
-(those 1,129 files are `assert.ok(true)` — a later project, not a Now milestone).
 
 ### Milestone N5 — Research watch, not a build
 
@@ -175,9 +183,9 @@ The unit is a card slot, not a leader row. Common random numbers; timeouts are d
 report play/draw split. Weight with SC shares if Ping has pasted them, otherwise EN proxy,
 labelled.
 
-This milestone is only as trustworthy as N1 (calibration), N4 (print-confirm), and the policy's
-ability to *use* `OP17-005`'s discount and Rakuyo's K.O. A policy that cannot use a conditional
-card will report that every tech card is bad, and that looks like a clean answer.
+This milestone is only as trustworthy as N2 (print-confirm) then N1 (calibration), and the
+policy's ability to *use* `OP17-005`'s discount and Rakuyo's K.O. A policy that cannot use a
+conditional card will report that every tech card is bad, and that looks like a clean answer.
 
 ### Milestone X5 — After #32, and only after #32
 
@@ -210,21 +218,22 @@ cheap policy is the lie.
 | Oracle agreement (deep search on a sample) | A lever that can actually run offline | Dissolves "ISMCTS is 100× out of reach" for *grading*, not for playing every game |
 | Human benchmark (Ping, 10–20 games) | A bot that is supposed to be the opponent | If a first-time pilot crushes it, stop measuring and fix play |
 | Arena Swiss / clock / corpus retrieval | A human or LLM play loop is the thing under test | `docs/arena.md` "What is not done" |
-| Unbounded pre-OP15 print-confirmation | N4 showed the field-relevant slice is clean enough that the long tail matters | OP01–OP08 and EB01–EB03 have stub tests; that programme is Later |
+| Unbounded pre-OP15 print-confirmation | Now #2 has cleared the five calibration lists | The rest of the 1,771-card catalog, and OP01–OP08 / EB01–EB03 stub tests, stay Later. The five lists are not Later. |
 | Next set after OP17 | Official list | Same loop as X1–X4. Re-read the tripwire. Do not freeze a list between rotations unless an event appears |
 
 ## What a crew should pick this week (without #32, without official OP17)
 
-In this order, matching `CLAUDE.md`:
+In this order:
 
-1. **Meta calibration (N1)** — locked as specified above. Do not wait on 集换社.
-2. **`giveDonSourcePlayer` then `attachedDonTargetFilter` (N2)** — if the crew is an encoding
-   crew, not a sim crew.
-3. **N3 leftovers that a planned N1 deck would actually play** — Triggers / `OP13-084` / EB04
-   only as needed, not as a catalog completion project.
-4. **N4 print-confirm** of those same lists, in parallel with N1 if two crews exist.
+1. **Print-confirm the five lists (N2 / Now #2)** — locked as specified above. Gates N1.
+2. **Meta calibration (N1 / Now #1)** — on matchups N2 has cleared. Do not wait on 集换社.
+   Do not run a dirty matchup.
+3. **`giveDonSourcePlayer` then `attachedDonTargetFilter` (N3)** — if a second crew is not
+   on Now #2. Does not gate N1.
+4. **N4 leftovers** — Triggers / `OP13-084` / EB04 only as needed, not as a catalog
+   completion project.
 5. **N5 watch** — anyone, continuously, until Bandai publishes.
 
 Do not pick: search AI; merging #32; encoding OP17 from spoilers; reweighting `valueRanked`'s
 +100 printed-power bonus; flipping `useEventCounters`; writing a 集换社 scraper; filing
-upstream issues.
+upstream issues; starting Now #1 on a matchup Now #2 has not cleared.

@@ -37,11 +37,11 @@ flowchart TD
     Data48[48 pre-OP15 data corrections]
   end
 
-  subgraph nowWork [Now, unblocked]
+  subgraph nowWork [Now]
+    Print[N2 print-confirm five lists]
     Cal[N1 meta calibration]
-    Prim[N2 giveDon then attachedDon]
-    Trig[N3 Triggers / OP13-084 / needed EB04]
-    Print[N4 print-confirm simulated cards]
+    Prim[N3 giveDon then attachedDon]
+    Trig[N4 Triggers / OP13-084 / needed EB04]
     Watch[N5 OP17 / Mihawk watch]
   end
 
@@ -53,14 +53,14 @@ flowchart TD
     Sweep32[OP15/OP16 widened re-sweep]
   end
 
-  Enc1516 --> Cal
+  Enc1516 --> Print
   Enc1516 --> Harness
   SBP --> Enc17
   Harness --> Cal
   Floor --> Cal
   Data48 --> Print
+  Print --> Cal
   Cal --> Slot
-  Print --> Slot
   Prim -.-> Enc17
   Watch --> Imp
   Bandai --> Imp
@@ -78,13 +78,13 @@ hard gates.
 **The path that produces the first trustworthy slot number is:**
 
 official OP17 → import → encode (using `setBasePower` already on main) → Ace OP17 list →
-slot A/B, weighted by SC shares if present else labelled EN proxy, interpreted against a
-calibration (N1) and a print-confirmed slice of the cards in those games (N4).
+slot A/B, weighted by SC shares if present else labelled EN proxy, interpreted against
+print-confirm then calibration (N2 then N1) of the five frozen lists.
 
 **Today that path is blocked on Bandai, not on an encoding backlog and not on #32.**
 
-Work that can run *beside* the wait: N1, N2, N3, N4, N5. Those do not unlock OP17, but N1 and N4
-are what later decide whether the slot number is real.
+Work that can run *beside* the OP17 wait: N2 then N1, plus N3–N5. Those do not unlock OP17.
+N2 gates N1. Do not run a dirty matchup.
 
 ## Waiting on what
 
@@ -96,8 +96,8 @@ are what later decide whether the slot number is real.
 | OP17 encoding batch | Import | #32; giveDon / attachedDon (neither is on this path) | Stay on Now |
 | SC-weighted EV | Ping's 集换社 paste (pie + top-cut + event size/date) | A scraper. There is not one to build | Keep EN Limitless shares; say so every time |
 | SC vs JP/EN OP17 list parity | Official SC list (charter open question) | Banlist/rotation parity (already confirmed) | Do not assume the lists are identical |
-| Meta calibration (N1) | Frozen `ace-op16.json` + frozen Limitless modal lists for Nami, G/B Luffy, Enel, Teach | Official OP17; #32; **集换社 / SC shares**; search AI; a Limitless Ace list | Run it. Do not hold. |
-| Print-confirmation of the *field* | Time / a fidelity crew | Mutation re-sweep (#32). Detectability ≠ fidelity | Calibrate anyway; treat misses as maybe-encoding |
+| Print-confirm the five lists (N2) | Frozen `ace-op16.json` + frozen Limitless modal lists for Nami, G/B Luffy, Enel, Teach | Official OP17; #32; 集换社; a 1,771-card reread; filtering by what the policy can play | A firing miss **blocks that matchup**. Cosmetic / variant-text-only misses do not. |
+| Meta calibration (N1) | **N2 clear on that matchup** + the same five frozen lists | Official OP17; #32; **集换社 / SC shares**; search AI; a Limitless Ace list | Do not hold for 集换社. **Do hold** a matchup that still has a firing miss. |
 | Widened-instrument project record | **Ping releases #32** | Any Now milestone | Do not merge it. Keep quoting 62.3% as the `main` figure |
 | OP15/OP16 mutation records on the new instrument | Same release, then a `--set --fresh` sweep | "Fixing" `runs/OP15.jsonl` on today's `main` | Leave the red gate alone |
 | Fidelity-plan Phase 3 (counter weights) | A decision that derived weights are still the right next policy move; honesty about attack-target bias | OP17 | Size against Phase 2, not pre-Phase-1 |
@@ -127,36 +127,47 @@ Needs:
   report a timeout rate.
 
 Does not need: official OP17, #32, 集换社 / SC shares, a new search policy, Phase 3 weights.
-A miss is a measurement, not a gate.
+**Does need N2 clear on that matchup.** A calibration miss is a measurement, not a gate.
+A Now #2 firing miss is a block.
 
 Will be *biased by*: no character attack targets; no blocks; always-on Triggers; first-N on
-non-counter `selectCards`; parked clauses silently absent; unconfirmed pre-OP15 encodings of
-whatever those frozen lists actually play. Report those as the instrument, not as afterthoughts.
+non-counter `selectCards`; parked clauses still silently absent. Report those as the
+instrument, not as afterthoughts. Do not treat an unconfirmed encoding on these five lists
+as an afterthought — that is a dirty matchup.
 
-### N2 — `giveDonSourcePlayer` then `attachedDonTargetFilter`
+### N2 — Print-confirm the five lists (locked)
+
+Needs:
+
+- The same five frozen lists N1 uses.
+- Every unique card on those lists with printed effect text. Vanilla is out of scope.
+- Do not filter by what the current policy can play.
+- Print source: Limitless card text; SC rulings when a clause is ambiguous; no aggregators;
+  official Bandai EN as tie-break only.
+
+Does not need: #32, 集换社, a 1,771-card reread. A surviving mutant means the test would not
+catch a bad encode; a killed mutant does not mean the encode matches the print.
+
+A firing miss **blocks that matchup** until parked or fixed. Cosmetic or variant-text-only
+misses do not. Do not run a dirty matchup.
+
+### N3 — `giveDonSourcePlayer` then `attachedDonTargetFilter`
 
 Needs: isolated engine clone per batch; SC rulings for the blocked cards; mutation_check on
 each newly encoded id. `giveDon` with `player: "any"` is wrong, not approximate (rulings
 #854–#874). `attachedDonTargetFilter` for `OP15-031` must compare a candidate's attached DON!!
 to *that candidate's own cost*.
 
-Does not need: calibration, OP17, #32.
+Does not need: calibration, OP17, #32. Does not gate N1.
 
-### N3 — Triggers / `OP13-084` / needed EB04
+### N4 — Triggers / `OP13-084` / needed EB04
 
 Needs: Limitless or Bandai text (base printing); encoding and printed trigger in the same
 change; tests that can fail (`mutation_check.py`). `OP13-084` needs the fabricated `[On Play]`
 replaced, not a text-only correction.
 
 Does not need: #32. Do not wait for the widened sweep to fix a known wrong encoding.
-
-### N4 — Print-confirm simulated cards
-
-Needs: the exact decklists N1 will run; `tools/parse_rulings.py --card`; base text, not
-variant text (`tools/variant_audit.py` is why).
-
-Does not need: #32. A surviving mutant means the test would not catch a bad encode; a killed
-mutant does not mean the encode matches the print.
+If the card sits on a Now #1 list, N2 will force it anyway.
 
 ### N5 — Watch
 
@@ -195,8 +206,10 @@ Say this out loud so it does not get staffed as if it were:
 
 If two implementation crews are available before OP17:
 
-- **Crew A (sim/policy):** N1 meta calibration. This is the locked next step.
-- **Crew B (encoding/catalog):** N2 primitives, or N3/N4 on the *same lists* Crew A will run.
+- **Crew A (fidelity):** Now #2 — print-confirm the five lists. This is first.
+- **Crew B (sim/policy):** Now #1 — calibration, **only** on matchups Crew A has cleared.
+  Do not start a dirty matchup “in parallel.”
+- A third crew, if any: N3 primitives or N4 leftovers. Those do not gate N1.
 
-Do not give either crew #32. Do not give either crew "build search AI." Do not give either
-crew "encode OP17 from spoilers."
+Do not give any crew #32. Do not give any crew "build search AI." Do not give any crew
+"encode OP17 from spoilers."

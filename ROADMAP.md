@@ -52,6 +52,7 @@ These are already decided. The roadmap sequences *around* them.
 | Attack-target selection was deferred (2026-08-19). Blocking and `[Trigger]` declining are open surfaces by decision, not oversights. | Fidelity plan; `docs/simulation.md` |
 | Do not calibrate on ST01. Do not use `mihawk-green-proxy` to measure play/draw. Quote `ace-op16` −2.50 pts for that split. | `CLAUDE.md`; Phase 2 |
 | **Now #1 (first meta calibration) is locked** — field, lists, scoring, sample. See the Now section. Do not hold it for 集换社. | Ping, grill 2026-08-21 |
+| **Now #2 (print-confirm the five lists) is locked** and **gates Now #1**. Execution order: print-confirm, then calibrate. Do not run a dirty matchup. | Ping, grill 2026-08-21 |
 
 ---
 
@@ -126,11 +127,14 @@ Full tables: [`docs/roadmap/horizon.md`](docs/roadmap/horizon.md).
 
 Work a crew can start **without** #32 and **without** the official OP17 list.
 
+**Locked order:** print-confirm the five lists (Now #2), then run the first calibration
+(Now #1). Do not run a dirty matchup.
+
 #### Now #1 — first meta calibration (locked, Ping 2026-08-21)
 
-It stays Now #1. Do not hold it for 集换社 or any other SC share table. This run is a
-**measurement, not a gate**: a miss does not block Now #2–#5, does not pick a search lever, and
-does not flip Ace.
+It stays Now #1. Do not hold it for 集换社 or any other SC share table. **Do hold each
+matchup for Now #2.** This run is a **measurement, not a gate**: a miss does not block
+Now #3–#5, does not pick a search lever, and does not flip Ace.
 
 | Lock | Decision |
 |---|---|
@@ -145,12 +149,30 @@ does not flip Ace.
 
 Full milestone text: [`docs/roadmap/horizon.md`](docs/roadmap/horizon.md) § N1.
 
+#### Now #2 — print-confirm the five lists (locked, Ping 2026-08-21)
+
+This **gates Now #1**. Print-confirm Ace, Nami, G/B Luffy, Enel, and Teach **before** the
+first 400-paired-game run. A firing miss blocks **that matchup** until the encoding is
+parked or fixed. Cosmetic or variant-text-only misses do not block. Do not run a dirty
+matchup.
+
+| Lock | Decision |
+|---|---|
+| Lists | The same five frozen lists Now #1 uses: `sim/decks/ace-op16.json` plus the Limitless modal lists for Nami, G/B Luffy, Enel, Teach. |
+| Who fires | Every **unique** card on those lists that has printed effect text. Vanilla (no printed effect) is out of scope. |
+| Do not filter | Do not drop a card because the current policy cannot play it. |
+| Print source | **Limitless** card text. **SC rulings** when a clause is ambiguous. **No aggregators.** Official Bandai EN is a **tie-break only**. |
+| Firing miss | Encoding does not match that print. **Blocks that matchup** until parked or fixed. |
+| Does not block | Cosmetic misses; variant-text-only misses (base text is the encoding source). |
+| After a miss | Park the clause or fix text+encoding+tests. Then that matchup may run. Other cleared matchups may run. |
+
+Full milestone text: [`docs/roadmap/horizon.md`](docs/roadmap/horizon.md) § N2.
+
 | Pick | What | Why it is Now | Do not |
 |---|---|---|---|
-| **2. Scoped primitives** | `giveDonSourcePlayer` (10 OP15 clauses), then `attachedDonTargetFilter` (7). | The two remaining primitives that can be scoped from real cases. Not on the OP17 critical path. | Leave the other parked primitives parked. |
-| **3. Catalog leftovers that bias play** | Ten missing `[Trigger]`s, **7 Standard-legal** (text **and** encoding together); `OP13-084` (correction + encoding + tests, now unblocked by `setBasePower`); EB04's 31 missing cards if a sim deck needs them. | Encoding-audit remaining order, items 4–6. A missing Trigger silently skips; text-only is a regression. | Do not add Trigger *text* without the encoding. |
-| **4. Print-confirm the cards that will actually be simulated** | Read DSL against printed text + SC rulings for `sim/decks/ace-op16.json` and the four frozen Limitless modal lists from Now #1. | Pre-OP15 is encoded but not print-confirmed. The green suite is self-consistency. Mutation kill rate is detectability, not fidelity. | Do not launch an unbounded 1,771-card reread. Do not quote the suite as a conformance baseline. |
-| **5. Research watch (not implementation)** | Recheck OP17 spoilers for Mihawk support. Watch Bandai for the official OP17 list. | CLAUDE.md next-action #1. Absence from spoilers is not absence from the set. | Do not encode OP17 from spoilers. Do not flip §4 to "Mihawk viable" without support. Do not hold Now #1 for this. |
+| **3. Scoped primitives** | `giveDonSourcePlayer` (10 OP15 clauses), then `attachedDonTargetFilter` (7). | The two remaining primitives that can be scoped from real cases. Not on the OP17 critical path. | Leave the other parked primitives parked. |
+| **4. Catalog leftovers that bias play** | Ten missing `[Trigger]`s, **7 Standard-legal** (text **and** encoding together); `OP13-084` (correction + encoding + tests, now unblocked by `setBasePower`); EB04's 31 missing cards if a sim deck needs them. | Encoding-audit remaining order, items 4–6. A missing Trigger silently skips; text-only is a regression. | Do not add Trigger *text* without the encoding. |
+| **5. Research watch (not implementation)** | Recheck OP17 spoilers for Mihawk support. Watch Bandai for the official OP17 list. | CLAUDE.md next-action #1. Absence from spoilers is not absence from the set. | Do not encode OP17 from spoilers. Do not flip §4 to "Mihawk viable" without support. Do not hold Now #1 for this, or for 集换社. |
 
 Ping-owned, not crew-owned: 集换社 share pie + top-cut lists, pasted into the research track.
 That paste weights later slot EV. **It does not gate Now #1.** Until it lands, every
@@ -179,7 +201,8 @@ share-weighted number stays an EN proxy and must be labelled as one.
 - Arena Swiss runner, clock, decision-corpus retrieval — only if a human/LLM play loop is the
   thing being measured. An LLM is not the runtime policy at tech-slot sample sizes
   (`docs/policy-proposals.md`).
-- Unbounded pre-OP15 print-confirmation remains later, not now.
+- Unbounded pre-OP15 print-confirmation (the rest of the catalog, not the five Now #2
+  lists) remains later, not now.
 
 ---
 
@@ -221,13 +244,13 @@ Bandai date                                    setBasePower         ΔEV = Σ sh
                                                                        ▼
 SC shares (集换社, Ping) ── or EN proxy, labelled ──► weighting
 policy that can use a conditional card ──► whether ΔWR is real
-meta calibration ──► whether sim WRs match the ladder at all
-print-faithful encodings of the cards in those games ──► whether the bias is silent
+Now #2 print-confirm (five lists) ──► Now #1 calibration ──► whether sim WRs match the ladder
 ```
 
 **Today the binding constraints on a *slot* number are policy honesty and missing OP17
-data, not throughput and not an encoding backlog in published sets.** Now #1 is not one of
-those waits: it runs on the frozen EN lists below, without 集换社.
+data, not throughput and not an encoding backlog in published sets.** Now #1 still does
+not wait on 集换社. It **does** wait on Now #2: print-confirm the five lists, then
+calibrate; do not run a dirty matchup.
 
 What is waiting on what is tabulated in [`docs/roadmap/path.md`](docs/roadmap/path.md).
 
