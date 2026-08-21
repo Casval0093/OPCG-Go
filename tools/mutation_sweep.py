@@ -133,7 +133,8 @@ def main() -> int:
         for cid, path, _fn in mc._encoded_defs(cards_root, set_id):
             if want is not None and cid not in want:
                 continue
-            muts = mc._mutants(open(path, encoding="utf-8").read())
+            with open(path, encoding="utf-8") as fh:
+                muts = mc._mutants(fh.read())
             if muts:
                 todo.append((cid, path, muts))
 
@@ -221,7 +222,8 @@ def main() -> int:
         for bi, batch in enumerate(batches, 1):
             files = sorted({f for c in batch for f in sw.attr[c]})
             for c in batch:
-                originals[info[c][0]] = open(info[c][0], encoding="utf-8").read()
+                with open(info[c][0], encoding="utf-8") as fh:
+                    originals[info[c][0]] = fh.read()
 
             base = sw.run(files)
             red = {f for f, ok in base.items() if not ok}
@@ -283,6 +285,16 @@ def main() -> int:
             # Cards need not be at the same index: the run writes each card's own current
             # mutant, and the verdict is read back per card from its own files.
             while True:
+                # Finalize terminal cards FIRST. `save_progress()` below persists `k` one step
+                # before `record_card` writes the row, and the pause handler raises between any
+                # two bytecodes, so a pause can land in that window with `k == depth` on disk and
+                # no row. Such a card is in neither `done` (no row) nor `active` (`k` is not
+                # `< depth`), so a resume that computed `active` first would drop it here and
+                # every time after — silently, with exit 0. Recording from the sidecar is exact:
+                # `killed`/`surv` were persisted alongside `k`.
+                for c in batch:
+                    if c not in recorded and next_k[c] == len(info[c][1]):
+                        record_card(c)
                 active = [c for c in batch
                           if c not in recorded and next_k[c] < len(info[c][1])]
                 if not active:
@@ -301,9 +313,6 @@ def main() -> int:
                     next_k[c] += 1
                     progress[c] = {"k": next_k[c], "killed": killed[c], "surv": surv[c]}
                 save_progress()
-                for c in active:
-                    if next_k[c] == len(info[c][1]):
-                        record_card(c)
             restore()
             print(f"batch {bi}/{len(batches)}: {len(batch)} cards, "
                   f"{sum(killed.values())}/{sum(len(info[c][1]) for c in batch)} killed", flush=True)
