@@ -415,20 +415,38 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
     live exactly when the opponent is the active player, which is exactly when the opponent plays
     removal. There is no legal line in which its controller plays a K.O. into their own live Fuza,
     so the "on your own turn" half is unreachable through any real card.
-  - **STILL NOT FIXED: the TIMED `setBasePowerFrom` / `copyPower` / `swapBasePower` path, which is
-    ruling #762's own worked example.** Those three still `addModifier(type: "power", value:
+  - **FIXED 2026-08-21: the TIMED `setBasePowerFrom` / `copyPower` / `swapBasePower` path, which is
+    ruling #762's own worked example.** Those three used to `addModifier(type: "power", value:
     desired - effectiveBase)` in `effects/actions.ts` — a delta on TOTAL power, not a replacement
-    of the base — so `getEffectiveBasePower` cannot see them and this filter change does nothing
-    for them. Measured on the merged tree with all patches: Shuraiya attacking a 6000-power Leader
-    (`OP11-040`) gives `getCardPower` **6000** and `getEffectiveBasePower` **4000**. The PERMANENT
-    half was fixed by #26's `permanent: setBasePowerFrom is a replacement, not a power delta`
+    of the base — so `getEffectiveBasePower` could not see them and the #31 filter change did
+    nothing for them. Measured on main: Shuraiya attacking a 6000-power Leader (`OP11-040`) gave
+    `getCardPower` **6000** and `getEffectiveBasePower` **4000**. The PERMANENT half was already
+    fixed by #26's `permanent: setBasePowerFrom is a replacement, not a power delta`
     (`OP14EB04-053` Vista, the only permanent user). **10 cards use the three verbs** —
     `EB01-061`, `OP04-069`, `OP06-009`, `OP14EB04-009`, `OP14EB04-053`, `OP14EB04-017`,
     `OP14EB04-001`, **`OP16-036`**, **`OP16-055`**, `OP16-104` — and the two bold ones are
-    Standard-legal Mr.2 Bon Kurei printings, so this is not OP06 archaeology. The fix is to store a
-    replacement on the timed path the way `setBasePower` does; own branch, because it changes three
-    verbs' storage representation and the stacking semantics with it (two `copyPower`s currently
-    stack as two deltas, which is independently wrong).
+    Standard-legal Mr.2 Bon Kurei printings. The fix is the patch NAMED
+    `actions: timed setBasePowerFrom/copyPower/swapBasePower store a setBasePower replacement`:
+    each verb now stores `type: "setBasePower"` with the replacement literal, the same storage
+    `setBasePower` uses, so `getSetBasePowerModifier` (latest id wins) makes them visible to
+    `getEffectiveBasePower` and to a later `basePower` filter. The duration map is copied from
+    `setBasePower` / `modifyPower`, the only complete one in the file. Stacking changes with
+    the storage: two `copyPower`s used to stack as two deltas (`printed + (P1 - printed) +
+    (P2 - printed)`); they now SELECT, latest id wins, the `setBasePower` contract. Pinned by
+    `tests/cards/characters/timed-base-power-replacement.test.ts` (Shuraiya vs `OP11-040` both
+    directions with DON!! discrimination — current 6000 / base 4000 before the clause, then
+    current 8000 / base 6000; Carina+Shuraiya ruling #762; Chambres swap as one atomic pair of
+    snapshots, not two live links; two `copyPower`s latest-id-win at 10000 not 15000) and by
+    `getEffectiveBasePower` assertions on `OP16-036` (DON!! 5: current 6000 still base 1000
+    until the copy, then base 6000 / power 11000 and a `basePower gte 6000` pool), `OP16-055`
+    (`copyPower` of CURRENT 7000 is the new base, own +1000 DON!! stacked on top), `OP16-106`
+    (a `copyPower` over Sanjuan's `setBasePower` 7000 reads base 10000). All four catalog
+    `copyPower` printings (`OP04-069`, `EB01-061`, `OP16-055`, `OP16-104`) say "this Character's
+    base power becomes the same as [X's] power" — none left as total-power. All verified
+    red first. Timed replacements go through `getSetBasePowerModifier` (modifiers only, no
+    targeting) so they do not create a new cycle; `permanentBasePowerMemo` still bounds the
+    permanent path. Do not restore `BASE_POWER_POOL_KEY`; the cycle-probe memo wording from #33 is
+    not this change.
   - **Patch numbers in this file are POSITIONAL and therefore branch-local.** This work was
     authored against an 18-patch tree, rebased onto a 24-patch one, and every "patch N" reference
     in it rotted. Cite patches by NAME. The bench probe's own error message did too, and was

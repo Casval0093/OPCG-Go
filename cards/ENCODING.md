@@ -944,8 +944,10 @@ replacement is then suppressed entirely by `replacementActionIsAvailable` and th
 assertion that goes red instantly at `amount: 1`. The same fixture proves already-rested cards are out
 of the pool.
 
-**`setBasePowerFrom` copies the source's PRINTED base power**, so attaching DON!! or adding modifiers to
-the source changes nothing. To prove `player: "opponent"` you need the two Leaders to differ in printed
+**`setBasePowerFrom` copies the source's EFFECTIVE base power** (`getEffectiveBasePower`), so a
+source whose base was itself set by an effect is copied at that new base (ruling #762). Attaching
+DON!! or adding +/-power modifiers to the source still changes nothing — those are not base power.
+To prove `player: "opponent"` you need the two Leaders to differ in printed
 power — and only four real Leaders are not 5000: `op02EdwardNewgate001` (6000),
 `op11MonkeyDLuffy040` (6000), `op13PortgasDAce002` (6000), `op13GolDRoger003` (7000).
 
@@ -982,8 +984,11 @@ issue, and never applies. Watch for it on anything printed "your Leader gains +N
 **`copyPower` vs `setBasePowerFrom` vs `setBasePower` vs `setPower` is decided by one phrase of printed
 text, and there are four verbs, not two.** `copyPower` reads `getCardPower(source)` (current, with
 modifiers) and always applies to the card bearing the effect; `setBasePowerFrom` reads
-`basePower(source)` (printed) and takes an explicit target; `setBasePower` takes a LITERAL and an
-explicit target; `setPower` takes a literal too but sets TOTAL power. Tell:
+`getEffectiveBasePower(source)` (the source's base after any "base power becomes" effect) and takes
+an explicit target; `setBasePower` takes a LITERAL and an explicit target; `setPower` takes a literal
+too but sets TOTAL power. The three base-power verbs all store a `type: "setBasePower"` replacement
+of the new base — timed `copyPower` / `setBasePowerFrom` / `swapBasePower` used to store a
+`type: "power"` delta, which `getEffectiveBasePower` could not see. Tell:
 *"the power of X"* → `copyPower` (`OP04-069`, `OP16-055`, `OP16-104`); *"the same as X's base power"* →
 `setBasePowerFrom` (`OP06-009`, `OP14-053`); *"base power becomes N"* → `setBasePower` (`OP15-070`,
 `OP15-071`, `OP15-092`, `OP16-015`, `OP16-058`, `OP16-106`); *"set the power of X to N"* → `setPower`,
@@ -1365,10 +1370,12 @@ the ones a green suite will NOT ask you for, and both were missing on the first 
    every other assertion. Template: `cards/tests/OP15/034-yorki.test.ts`.
 
 And one thing to test that is not about the primitive at all: **that it composes with the three older
-base-power setters.** `copyPower`, `setBasePowerFrom` and `swapBasePower` add a delta measured from a
-base power, so a card carrying a literal AND one of those deltas is where replacement semantics
-either hold or silently stop holding. `cards/tests/OP16/106-sanjuan-wolf.test.ts` pins it with
-Sanjuan → Catarina Devon; that test caught a real 14000-instead-of-10000 defect.
+base-power setters.** `copyPower`, `setBasePowerFrom` and `swapBasePower` now store a `setBasePower`
+replacement of the new base, so a card carrying a literal AND one of those is where latest-id-wins
+either holds or silently stops holding. `cards/tests/OP16/106-sanjuan-wolf.test.ts` pins it with
+Sanjuan → Catarina Devon (7000 then 10000, both `getCardPower` and `getEffectiveBasePower`); that
+test caught a real 14000-instead-of-10000 defect when the older verbs still measured from printed
+base, and a 7000-effective-after-copying-10000 defect when they still stored a power delta.
 
 Measured on the batch that built it: **26 mutants across the 6 cards, all killed**, inside
 **542/542 across all 213 encoded OP15/OP16 cards**. Two mutants deserve naming because they were
