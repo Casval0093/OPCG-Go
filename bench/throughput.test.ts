@@ -883,11 +883,13 @@ test("bench", () => {
           `${cycleMs.toFixed(1)}ms, limit ${CYCLE_MS_LIMIT}ms ` +
           `(curve so far ${cycleTimings.join(" ")}). getPermanentSetBasePower is re-entering ` +
           `itself across sibling instances. Check the patch NAMED ` +
-          `"permanent: bound the basePower filter's re-entry into getPermanentSetBasePower" is ` +
-          `applied, and that BASE_POWER_POOL_KEY still spans BOTH candidatePoolForTarget calls. ` +
-          `Do not "simplify" that marker into the per-instance setBasePower:\${id} key: dropping ` +
-          `the instance bounds this walk but severs the setBasePowerFrom copy chain (OP14EB04-053 ` +
-          `Vista then reads a printed base), and adding the source to it is strictly weaker.`,
+          `"permanent: memoise getPermanentSetBasePower so the basePower filter cannot fan out" ` +
+          `is applied, and that permanentBasePowerMemo is still a per-state map created and torn ` +
+          `down only by the outermost getPermanentSetBasePower read. The only remaining ` +
+          `null-suppress is the per-instance setBasePower:\${id} key while that instance is in ` +
+          `activeEvaluations -- do not coarsen that key (dropping the instance bounds this walk ` +
+          `but severs the setBasePowerFrom copy chain: OP14EB04-053 Vista then reads a printed ` +
+          `base), and adding the source to it is strictly weaker.`,
       );
     }
   }
