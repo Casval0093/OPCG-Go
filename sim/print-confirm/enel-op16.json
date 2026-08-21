@@ -1,0 +1,103 @@
+{
+  "list": "sim/decks/enel-op16.json",
+  "leader": "OP15-058",
+  "freeze": "Limitless modal complete list (L6345, Fabian Godglück 1st Utrecht). Freeze 2026-08-22. Not a mean.",
+  "compared": "2026-08-22",
+  "source": "Limitless print; SC rulings when ambiguous; no aggregators. Bandai EN tie-break only.",
+  "verdict": "clear",
+  "blocks_matchup": false,
+  "counts": {
+    "unique_effect": 16,
+    "match": 15,
+    "cosmetic": 0,
+    "parked": 1,
+    "firing_miss": 0,
+    "vanilla_out": 0
+  },
+  "vanilla_out": [],
+  "cards": [
+    {
+      "id": "OP15-058",
+      "name": "Enel",
+      "result": "parked",
+      "primitive": "donDeckSizeRule + turnNumberCondition",
+      "notes": "Both leader clauses already parked. Not reopened. Known fiction for Ace-vs-Enel."
+    },
+    {
+      "id": "OP05-077",
+      "name": "Gamma Knife",
+      "result": "match"
+    },
+    {
+      "id": "OP09-072",
+      "name": "Franky",
+      "result": "match"
+    },
+    {
+      "id": "OP10-067",
+      "name": "Senor Pink",
+      "result": "match"
+    },
+    {
+      "id": "OP12-063",
+      "name": "Vinsmoke Reiju",
+      "result": "match"
+    },
+    {
+      "id": "OP12-071",
+      "name": "Charlotte Pudding",
+      "result": "match"
+    },
+    {
+      "id": "OP13-076",
+      "name": "Divine Departure",
+      "result": "match"
+    },
+    {
+      "id": "OP15-061",
+      "name": "Ohm",
+      "result": "match"
+    },
+    {
+      "id": "OP15-066",
+      "name": "Satori",
+      "result": "match"
+    },
+    {
+      "id": "OP15-067",
+      "name": "Shura",
+      "result": "match"
+    },
+    {
+      "id": "OP15-074",
+      "name": "Varie",
+      "result": "match"
+    },
+    {
+      "id": "OP15-075",
+      "name": "El Thor",
+      "result": "match"
+    },
+    {
+      "id": "OP15-076",
+      "name": "Lightning Beast Kiten",
+      "result": "match"
+    },
+    {
+      "id": "OP15-077",
+      "name": "Lightning Dragon",
+      "result": "match"
+    },
+    {
+      "id": "OP15-078",
+      "name": "Mamaragan",
+      "result": "match"
+    },
+    {
+      "id": "OP15-118",
+      "name": "Enel",
+      "result": "match"
+    }
+  ],
+  "notes": "Now #2 Enel list is clear. Parked OP15-058 stays parked. Ace-vs-Enel may run."
+}
