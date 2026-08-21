@@ -51,6 +51,7 @@ These are already decided. The roadmap sequences *around* them.
 | Singleton parked primitives stay parked. Next scoped primitives, in this order: `giveDonSourcePlayer` then `attachedDonTargetFilter`. | `CLAUDE.md`; `data/parked-clauses.json` |
 | Attack-target selection was deferred (2026-08-19). Blocking and `[Trigger]` declining are open surfaces by decision, not oversights. | Fidelity plan; `docs/simulation.md` |
 | Do not calibrate on ST01. Do not use `mihawk-green-proxy` to measure play/draw. Quote `ace-op16` −2.50 pts for that split. | `CLAUDE.md`; Phase 2 |
+| **Now #1 (first meta calibration) is locked** — field, lists, scoring, sample. See the Now section. Do not hold it for 集换社. | Ping, grill 2026-08-21 |
 
 ---
 
@@ -125,16 +126,35 @@ Full tables: [`docs/roadmap/horizon.md`](docs/roadmap/horizon.md).
 
 Work a crew can start **without** #32 and **without** the official OP17 list.
 
+#### Now #1 — first meta calibration (locked, Ping 2026-08-21)
+
+It stays Now #1. Do not hold it for 集换社 or any other SC share table. This run is a
+**measurement, not a gate**: a miss does not block Now #2–#5, does not pick a search lever, and
+does not flip Ace.
+
+| Lock | Decision |
+|---|---|
+| Field | Ace vs **Nami, G/B Luffy, Enel, and Teach**. Those four only. |
+| Ace list | Freeze current `sim/decks/ace-op16.json` (the engine-buildable proxy). **Not** a Limitless Ace list. |
+| Opponent lists | Freeze the **Limitless modal** lists for those four. Snapshot them before the run. Do not fetch live Limitless on the day of the run. |
+| Sample | **400 paired games** per matchup. |
+| Headline number | **Blended** sim WR vs the matching cell in the EN ladder matrix. |
+| Play/draw | Record separately. Do not substitute either seat for the blended comparison. |
+| Timeouts | **Drop timed-out games entirely.** Do not fold them in as double losses. Do not report a timeout rate. |
+| Where results go | Simulation track only (`docs/simulation.md`, `sim/results/`). **Do not** write sim numbers into `docs/research-findings.md`. |
+
+Full milestone text: [`docs/roadmap/horizon.md`](docs/roadmap/horizon.md) § N1.
+
 | Pick | What | Why it is Now | Do not |
 |---|---|---|---|
-| **1. Meta calibration** | Simulated matchup WRs vs the 213k-game EN ladder matrix. Charter validation layer 3. First real cross-deck sims. | Standing next step of the locked policy-quality sequence. OP15/OP16 encodings made it possible; it has simply not been run. | Do not mix results into `docs/research-findings.md`. Do not treat a miss as "Ace is wrong." |
 | **2. Scoped primitives** | `giveDonSourcePlayer` (10 OP15 clauses), then `attachedDonTargetFilter` (7). | The two remaining primitives that can be scoped from real cases. Not on the OP17 critical path. | Leave the other parked primitives parked. |
 | **3. Catalog leftovers that bias play** | Ten missing `[Trigger]`s, **7 Standard-legal** (text **and** encoding together); `OP13-084` (correction + encoding + tests, now unblocked by `setBasePower`); EB04's 31 missing cards if a sim deck needs them. | Encoding-audit remaining order, items 4–6. A missing Trigger silently skips; text-only is a regression. | Do not add Trigger *text* without the encoding. |
-| **4. Print-confirm the cards that will actually be simulated** | Read DSL against printed text + SC rulings for Ace, Mihawk, and the EN-proxy field they face (Nami / G/B Luffy / Enel / Teach at minimum). | Pre-OP15 is encoded but not print-confirmed. The green suite is self-consistency. Mutation kill rate is detectability, not fidelity. | Do not launch an unbounded 1,771-card reread. Do not quote the suite as a conformance baseline. |
-| **5. Research watch (not implementation)** | Recheck OP17 spoilers for Mihawk support. Watch Bandai for the official OP17 list. | CLAUDE.md next-action #1. Absence from spoilers is not absence from the set. | Do not encode OP17 from spoilers. Do not flip §4 to "Mihawk viable" without support. |
+| **4. Print-confirm the cards that will actually be simulated** | Read DSL against printed text + SC rulings for `sim/decks/ace-op16.json` and the four frozen Limitless modal lists from Now #1. | Pre-OP15 is encoded but not print-confirmed. The green suite is self-consistency. Mutation kill rate is detectability, not fidelity. | Do not launch an unbounded 1,771-card reread. Do not quote the suite as a conformance baseline. |
+| **5. Research watch (not implementation)** | Recheck OP17 spoilers for Mihawk support. Watch Bandai for the official OP17 list. | CLAUDE.md next-action #1. Absence from spoilers is not absence from the set. | Do not encode OP17 from spoilers. Do not flip §4 to "Mihawk viable" without support. Do not hold Now #1 for this. |
 
 Ping-owned, not crew-owned: 集换社 share pie + top-cut lists, pasted into the research track.
-Until that lands, every share-weighted number stays an EN proxy and must be labelled as one.
+That paste weights later slot EV. **It does not gate Now #1.** Until it lands, every
+share-weighted number stays an EN proxy and must be labelled as one.
 
 ### Next — first rotation, and anything gated on a release
 
@@ -205,8 +225,9 @@ meta calibration ──► whether sim WRs match the ladder at all
 print-faithful encodings of the cards in those games ──► whether the bias is silent
 ```
 
-**Today the binding constraints are policy honesty and missing OP17/SC-field inputs, not
-throughput and not an encoding backlog in published sets.**
+**Today the binding constraints on a *slot* number are policy honesty and missing OP17
+data, not throughput and not an encoding backlog in published sets.** Now #1 is not one of
+those waits: it runs on the frozen EN lists below, without 集换社.
 
 What is waiting on what is tabulated in [`docs/roadmap/path.md`](docs/roadmap/path.md).
 

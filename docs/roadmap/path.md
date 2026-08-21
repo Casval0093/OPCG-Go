@@ -96,7 +96,7 @@ are what later decide whether the slot number is real.
 | OP17 encoding batch | Import | #32; giveDon / attachedDon (neither is on this path) | Stay on Now |
 | SC-weighted EV | Ping's 集换社 paste (pie + top-cut + event size/date) | A scraper. There is not one to build | Keep EN Limitless shares; say so every time |
 | SC vs JP/EN OP17 list parity | Official SC list (charter open question) | Banlist/rotation parity (already confirmed) | Do not assume the lists are identical |
-| Meta calibration (N1) | Encoded field decks that can finish games | Official OP17; #32; SC shares; search AI | — already unblocked |
+| Meta calibration (N1) | Frozen `ace-op16.json` + frozen Limitless modal lists for Nami, G/B Luffy, Enel, Teach | Official OP17; #32; **集换社 / SC shares**; search AI; a Limitless Ace list | Run it. Do not hold. |
 | Print-confirmation of the *field* | Time / a fidelity crew | Mutation re-sweep (#32). Detectability ≠ fidelity | Calibrate anyway; treat misses as maybe-encoding |
 | Widened-instrument project record | **Ping releases #32** | Any Now milestone | Do not merge it. Keep quoting 62.3% as the `main` figure |
 | OP15/OP16 mutation records on the new instrument | Same release, then a `--set --fresh` sweep | "Fixing" `runs/OP15.jsonl` on today's `main` | Leave the red gate alone |
@@ -111,22 +111,27 @@ are what later decide whether the slot number is real.
 
 ## Prerequisite stacks (read before starting a Now pick)
 
-### N1 — Meta calibration
+### N1 — Meta calibration (locked)
 
 Needs:
 
 - Bootstrapped, patched engine (`./scripts/bootstrap.sh` from repo root so patches actually apply).
-- Legal 50-card lists for Ace and the opposing field. Prefer real Block 2+ lists, not
-  `mihawk-green-proxy`, not ST01.
-- The EN matrix (`data/op16-matchup-matrix.json`) as the comparison, labelled EN ladder.
+- Ace: current `sim/decks/ace-op16.json`, frozen. Not a Limitless Ace list.
+- Opponents: frozen Limitless **modal** lists for Nami, G/B Luffy, Enel, Teach. Snapshot
+  before the run; do not hit live Limitless on run day. Not ST01, not `mihawk-green-proxy`.
+- The EN matrix (`data/op16-matchup-matrix.json`) as the comparison cell per matchup.
 - Seat assignment to control play/draw (north leads; `MatchConfig.firstPlayer` is discarded).
-- Timeout as double loss.
+  Record play/draw separately; the headline is the **blended** WR.
+- **400 paired games** per matchup.
+- Timed-out games **dropped**. Do not score them as double losses on this run, and do not
+  report a timeout rate.
 
-Does not need: official OP17, #32, SC shares, a new search policy, Phase 3 weights.
+Does not need: official OP17, #32, 集换社 / SC shares, a new search policy, Phase 3 weights.
+A miss is a measurement, not a gate.
 
 Will be *biased by*: no character attack targets; no blocks; always-on Triggers; first-N on
 non-counter `selectCards`; parked clauses silently absent; unconfirmed pre-OP15 encodings of
-whatever the field actually plays. Report those as the instrument, not as afterthoughts.
+whatever those frozen lists actually play. Report those as the instrument, not as afterthoughts.
 
 ### N2 — `giveDonSourcePlayer` then `attachedDonTargetFilter`
 
@@ -180,7 +185,7 @@ Say this out loud so it does not get staffed as if it were:
 | Person | Only they can | Crew substitute |
 |---|---|---|
 | Ping | Release or kill #32 | None. Work around it |
-| Ping | Paste 集换社 pie + top-cut | EN proxy, labelled |
+| Ping | Paste 集换社 pie + top-cut | EN proxy, labelled. Does not gate N1. |
 | Ping | Reopen attack-target / blocking / Trigger-decline | Leave them pinned unimplemented |
 | Ping | Call the tripwire (abandon Ace) | Report mechanism-level breakage; do not flip the archetype on EV rank |
 | Bandai | Publish OP17 | Wait. Spoilers stay provisional |

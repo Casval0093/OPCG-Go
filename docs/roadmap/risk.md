@@ -21,7 +21,7 @@ Say so in the write-up; do not silently "correct" toward the decks the EV table 
 | Parked clauses will not sit on the Ace OP17 list, or will be caveated | `data/parked-clauses.json` is the registry | A `coverage: partial` card in a reported WR is a specific, knowable lie |
 | Official OP17 text will still contain `OP17-005`'s On Play as a buff | Re-added 2026-08-17 from Limitless; spoiler-stage | Diff after import. Do not revive the 08-16 rejection by reasoning |
 | Cost is outside the objective (no acquisition ceiling) | Ping 2026-08-19, later than the charter's "TBD" | Cost still must not sneak back in as a slot tiebreak unless Ping says so |
-| No event means no list-freeze | Charter, answered 2026-08-17 | If an event appears, re-read the 30-minute clock and Bo1 variance *before* freezing |
+| No event means no *competitive* list-freeze | Charter, answered 2026-08-17 | If an event appears, re-read the 30-minute clock and Bo1 variance *before* freezing a list for it. **N1 is a different freeze:** snapshot `ace-op16.json` and the four Limitless modal lists so the run is repeatable. That is not an event lock. |
 
 ## Unknowns that are allowed to stay unknown
 
@@ -33,7 +33,7 @@ Say so in the write-up; do not silently "correct" toward the decks the EV table 
 | Whether #32's 74.3% / 9,237 figures become project record | Ping (held PR) | Merging, rebasing, or implementing on `claude/mutation-operators-widened` |
 | Whether heuristic play *distorts* matchup WRs | N1 calibration | Picking audit A–D in the abstract |
 | Absolute policy skill | Oracle / human, both deferred | Reading the ladder or a plausible play/draw split as a skill test |
-| Turns-to-minutes (timeout column vs a 30-minute round) | Unmeasured | Treating `SIM_TURN_BUDGET` timeouts as real-world timeout rate |
+| Turns-to-minutes (clock vs a 30-minute round) | Unmeasured | Treating `SIM_TURN_BUDGET` timeouts as a real-world timeout rate. **N1 does not report a timeout rate:** timed-out games are dropped, not scored. |
 | Whether SC and EN printed text diverge on a card that matters | Rulings corpus is SC; importer is EN Bandai mirror | Authoring OP17 from variant text or an aggregator |
 | How `OP14-020` Mihawk's five surviving mutants would move under the widened instrument | #32 not released; card was never on a worklist | Re-encoding Mihawk "to be safe" |
 
@@ -81,7 +81,8 @@ identical. 集换社 has the pie and the top-cut lists; they are app-only; Ping 
 breaks even on EN aggro share can be a tax or a steal on the SC field.
 
 **Mitigation:** label every share-weighted number EN until the paste exists. Do not invent
-SC shares. Do not build a scraper.
+SC shares. Do not build a scraper. **Do not hold N1 for the paste** — Ping locked the first
+calibration to the EN ladder cells and the four frozen lists.
 
 ### 4. Undecided search-AI lever, used as if it were decided
 
@@ -211,6 +212,8 @@ OP17 date is not a kill.
 ## What this file is not
 
 It is not a license to reopen: deck choice, engine choice, objective function, no-sideboard
-maths, local-only `orderCards`, the standing no-upstream-issues rule, or the "no 集换社
-scraper" call. If a risk seems to demand one of those, it demands a write-up to Ping, not a
-quiet reversal.
+maths, local-only `orderCards`, the standing no-upstream-issues rule, the "no 集换社
+scraper" call, or the **Now #1 calibration locks** (field, frozen lists, 400 paired games,
+blended WR vs the ladder cell, play/draw recorded separately, timeouts dropped, results stay
+in the simulation track). If a risk seems to demand one of those, it demands a write-up to
+Ping, not a quiet reversal.

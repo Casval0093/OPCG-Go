@@ -57,23 +57,32 @@ A slip does not move these rows to Later — it only delays the Next gate.
 **Constraint in force the whole window:** PR #32 is held. Nothing in Now may merge, rebase, or
 implement on `claude/mutation-operators-widened`.
 
-### Milestone N1 — Charter validation layer 3 has a first number
+### Milestone N1 — first meta calibration (locked, Ping 2026-08-21)
 
-**Pick for a policy/sim crew.**
+**Pick for a policy/sim crew. Stays Now #1. Do not hold it for 集换社 / SC shares.**
 
-- Run the first **cross-deck** matchups the harness can now express (Ace and at least the
-  EN-proxy field: Nami, G/B Luffy, Enel, Teach). Mirror-only history is not calibration.
-- Compare simulated WRs to the 213k-game EN ladder matrix in `data/op16-matchup-matrix.json`.
-- Write the result only to `docs/simulation.md` / `sim/results/`. Label every share as EN proxy.
-- Report whether the heuristic's miss is noise, a policy-blindness (attack target, no blocks,
-  no Trigger decline, first-N prompts), or an encoding fiction.
+This is charter validation layer 3: the first cross-deck sims, compared to the EN ladder
+matrix. Mirror-only history is not calibration. The first run is a **measurement, not a
+gate**. A miss does not block N2–N5, does not pick audit A–D, and does not flip Ace.
 
-Success is a *labelled comparison*, not a close match. A large miss that names its mechanism is
-the intended output. That miss is what later decides audit options A–D — it does not decide them
-now.
+| Lock | Decision |
+|---|---|
+| Field | Ace vs **Nami, G/B Luffy, Enel, and Teach**. Those four only. |
+| Ace list | Freeze current `sim/decks/ace-op16.json` — the engine-buildable proxy. **Not** a Limitless Ace list. |
+| Opponent lists | Freeze the **Limitless modal** lists for those four leaders. Snapshot them before the run. Do not use live Limitless on the day of the run. |
+| Sample | **400 paired games** per matchup. |
+| Headline | **Blended** sim WR against the matching cell in `data/op16-matchup-matrix.json`. |
+| Play/draw | Record separately. Do not replace the blended comparison with one seat. |
+| Timeouts | **Drop timed-out games entirely.** Do not score them as double losses on this run. Do not report a timeout rate. |
+| Write-up | Simulation track only (`docs/simulation.md`, `sim/results/`). **Do not** write sim numbers into `docs/research-findings.md`. |
 
-Do not: calibrate on ST01; use `mihawk-green-proxy` as the play/draw instrument; average puzzle
-batch-1 and batch-2; treat `random` as a control for attack-target choice (it uses the same helper).
+A large miss that names its mechanism (noise vs policy-blindness vs encoding fiction) is a
+valid result. That miss is what later *informs* audit options A–D — it does not decide them
+on this run.
+
+Do not: calibrate on ST01; use `mihawk-green-proxy` as a fifth opponent or as the play/draw
+instrument; fetch a fresh Limitless list on run day; swap in a Limitless Ace list; hold the
+run for 集换社; treat `random` as a control for attack-target choice (it uses the same helper).
 
 ### Milestone N2 — The two scopable primitives are built, or explicitly re-parked with a new reason
 
@@ -107,8 +116,9 @@ audit never did (it compared data-to-data and text-to-text).
 
 Scope, on purpose:
 
-- Ace list (`sim/decks/ace-op16.json`) and Mihawk (`OP14-020` + the list actually simulated).
-- The EN-proxy field those lists will be calibrated against (at least the top shares and Teach).
+- Ace list: the same frozen `sim/decks/ace-op16.json` N1 uses.
+- Opponent lists: the same four frozen Limitless modal lists N1 uses (Nami, G/B Luffy, Enel,
+  Teach). Not a live fetch, and not a different “field representative” stand-in.
 - Any parked clause on those lists, surfaced as a caveat rather than silently played
   (`data/parked-clauses.json`: `coverage: partial` is the dangerous state).
 
@@ -207,7 +217,7 @@ cheap policy is the lie.
 
 In this order, matching `CLAUDE.md`:
 
-1. **Meta calibration (N1)** — the locked next policy-quality step, now possible.
+1. **Meta calibration (N1)** — locked as specified above. Do not wait on 集换社.
 2. **`giveDonSourcePlayer` then `attachedDonTargetFilter` (N2)** — if the crew is an encoding
    crew, not a sim crew.
 3. **N3 leftovers that a planned N1 deck would actually play** — Triggers / `OP13-084` / EB04
