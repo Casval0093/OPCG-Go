@@ -1,11 +1,11 @@
 import { describe, expect, test } from "vite-plus/test";
-import type { CharacterCard } from "@tcg/op-types";
+import type { CharacterCard, StageCard } from "@tcg/op-types";
 import {
   eb02DonAccino004,
   op02Atmos003,
+  op02MobyDick024,
   op03Namule007,
   op05BartholomewKuma011,
-  st01GuardPoint014,
   st12EmporioIvankov010,
 } from "@tcg/op-cards";
 
@@ -43,7 +43,7 @@ registerCards([setActiveHelper]);
 
 const FILLER = [op02Atmos003, op03Namule007, op02Atmos003, op03Namule007, op02Atmos003];
 
-function playIvankov(deck: Array<(typeof op05BartholomewKuma011) | (typeof op03Namule007) | (typeof st01GuardPoint014) | (typeof op02Atmos003)>, handExtra: Array<typeof op05BartholomewKuma011> = []) {
+function playIvankov(deck: Array<CharacterCard | StageCard>, handExtra: CharacterCard[] = []) {
   return OnePieceTestEngine.create({
     hand: [st12EmporioIvankov010, ...handExtra],
     deck,
@@ -51,7 +51,10 @@ function playIvankov(deck: Array<(typeof op05BartholomewKuma011) | (typeof op03N
   });
 }
 
-function attackWithIvankov(handSize: number, extraCharacters: Array<{ card: CharacterCard; playedOnTurn?: number }> = []) {
+function attackWithIvankov(
+  handSize: number,
+  extraCharacters: Array<{ card: CharacterCard; playedOnTurn?: number }> = [],
+) {
   const engine = OnePieceTestEngine.create(
     {
       character: [{ card: st12EmporioIvankov010, playedOnTurn: 0 }, ...extraCharacters],
@@ -156,10 +159,12 @@ describe("ST12-010 Emporio.Ivankov", () => {
     expect(engine.getView("south").prompts).toHaveLength(0);
   });
 
-  test("an Event on top offers no play, only the remainder choice", () => {
-    // Pins `cardCategory: "character"`. Delete that filter and Guard Point becomes playable.
-    const engine = playIvankov([st01GuardPoint014, op02Atmos003]);
-    const revealedId = engine.findCardInZone("south", "deck", st01GuardPoint014);
+  test("a cost-2 Stage on top offers no play, only the remainder choice", () => {
+    // Pins `cardCategory: "character"` by itself. The play verb already refuses Events
+    // (`cardType` must be character or stage), so a cost-2 Event is an equivalent
+    // mutant. A Stage is a legal play target: delete the filter and Moby Dick is offered.
+    const engine = playIvankov([op02MobyDick024, op02Atmos003]);
+    const revealedId = engine.findCardInZone("south", "deck", op02MobyDick024);
 
     engine.playCard(st12EmporioIvankov010, "south");
 
@@ -183,10 +188,13 @@ describe("ST12-010 Emporio.Ivankov", () => {
   });
 
   test("[Once Per Turn]: a second attack the same turn does not draw", () => {
-    const { engine, ivankovId, defenderId } = attackWithIvankov(6, [
+    // Start at 5 so the first draw lands on 6 -- still `lte 6`. Starting at 6 draws
+    // to 7, after which the handCount condition itself blocks a second draw and
+    // `oncePerTurn` can be deleted without the test noticing.
+    const { engine, ivankovId, defenderId } = attackWithIvankov(5, [
       { card: setActiveHelper, playedOnTurn: 0 },
     ]);
-    expect(engine.getView("south").players.south.hand).toHaveLength(7);
+    expect(engine.getView("south").players.south.hand).toHaveLength(6);
 
     const helperId = engine.findCardInZone("south", "character", setActiveHelper);
     engine.activateEffect(helperId, "activateMain", "south");
@@ -197,7 +205,7 @@ describe("ST12-010 Emporio.Ivankov", () => {
     expect(engine.getState().cards[ivankovId]?.rested).toBe(false);
 
     engine.declareAttack(ivankovId, defenderId, "south");
-    // Drop `oncePerTurn` and this second attack draws to 8.
-    expect(engine.getView("south").players.south.hand).toHaveLength(7);
+    // Drop `oncePerTurn` and this second attack draws to 7.
+    expect(engine.getView("south").players.south.hand).toHaveLength(6);
   });
 });

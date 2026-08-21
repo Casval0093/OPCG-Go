@@ -1,10 +1,5 @@
 import { describe, expect, test } from "vite-plus/test";
-import {
-  op02Atmos003,
-  op02Kingdew006,
-  op03Namule007,
-  st30Mr3Galdino014,
-} from "@tcg/op-cards";
+import { op02Atmos003, op02Kingdew006, op03Namule007, st30Mr3Galdino014 } from "@tcg/op-cards";
 
 import { OnePieceTestEngine } from "../../../src/index.ts";
 
@@ -68,15 +63,16 @@ describe("ST30-014 Mr.3(Galdino)", () => {
         view.players.south.characters.find((card) => card?.instanceId === atmosId)?.attachedDon,
       ).toBe(2);
     }
-    expect(view.players.south.characters.find((card) => card?.instanceId === namuleId)?.attachedDon).toBe(
-      1,
-    );
+    expect(
+      view.players.south.characters.find((card) => card?.instanceId === namuleId)?.attachedDon,
+    ).toBe(1);
     expect(
       view.players.south.characters.find((card) => card?.instanceId === kingdewId)?.attachedDon,
     ).toBe(0);
-    expect(view.players.north.characters.find((card) => card?.instanceId === opponentAtmosId)?.attachedDon).toBe(
-      0,
-    );
+    expect(
+      view.players.north.characters.find((card) => card?.instanceId === opponentAtmosId)
+        ?.attachedDon,
+    ).toBe(0);
     expect(view.players.south.restedDon).toBe(0);
     expect(view.prompts).toHaveLength(0);
   });

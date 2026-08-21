@@ -47,13 +47,13 @@ export const st12EmporioIvankov010: CharacterCard = {
               ],
               actions: [
                 {
+                  // Filters live on `conditional`, not here. With `topOnly` the play
+                  // candidate IS the revealed card, so a second copy of the same two
+                  // filters is an equivalent mutant -- mutation_check cannot kill one
+                  // copy while the other still rejects the same card.
                   action: "play",
                   source: { player: "self", zone: "deck" },
                   count: { amount: 1, upTo: true },
-                  filters: [
-                    { filter: "cardCategory", value: "character" },
-                    { filter: "cost", comparison: "eq", value: 2 },
-                  ],
                   topOnly: true,
                 },
               ],
