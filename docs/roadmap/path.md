@@ -79,7 +79,8 @@ hard gates.
 
 **The path that produces the first trustworthy slot number is:**
 
-official OP17 → import → encode (using `setBasePower` already on main) → Ace OP17 list →
+official OP17 → import → encode (using `setBasePower` already on main) → **engine-legal**
+Ace OP17 list →
 slot A/B, weighted by SC shares if present else labelled EN proxy, interpreted against
 print-confirm then calibration (N2 then N1) of the five frozen lists.
 
