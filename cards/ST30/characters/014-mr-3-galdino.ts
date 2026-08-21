@@ -27,37 +27,13 @@ export const st30Mr3Galdino014: CharacterCard = {
   attribute: "special",
   effect:
     "[Activate: Main] You may rest this Character: Give up to 2 of your Characters with 6000 base power up to 2 rested DON!! cards each.",
-  effects: {
-    effects: [
-      {
-        trigger: "activateMain",
-        costs: [{ cost: "restThisCard" }],
-        actions: [
-          {
-            // Own DON!!, own Characters -- ordinary `giveDon`, not `giveDonSourcePlayer`
-            // (that parked primitive hands the opponent's DON!! to a source-player target).
-            // `distribution: "each"` is the existing give-N-to-each-of-M verb (OP08-001
-            // Chopper: up to 3 Characters, 1 rested DON!! each). The each-path pays
-            // `count.amount` per selected target and ignores `count.upTo`, so Chopper
-            // prints "up to 1 each" as `{ amount: 1 }` with no upTo; this card mirrors
-            // that as `{ amount: 2 }`.
-            // Ruling #255: "原本的力量为6000" is exactly 6000, `basePower eq`, not current
-            // power and not a gte/lte band.
-            action: "giveDon",
-            target: {
-              player: "self",
-              zones: ["character"],
-              count: { amount: 2, upTo: true },
-              filters: [{ filter: "basePower", comparison: "eq", value: 6000 }],
-            },
-            count: { amount: 2 },
-            donState: "rested",
-            distribution: "each",
-          },
-        ],
-        optional: true,
-      },
-    ],
-  },
+  // PARKED -- the whole [Activate: Main] is NOT encoded. `giveDon` `distribution: "each"`
+  // attaches `count.amount` exactly (effects/actions.ts) and never reads `count.upTo`.
+  // `count.upTo` is only the single-target `effectGiveDonCount` path, so
+  // `{ amount: 2, upTo: true }` is one shared 0..2 for one body, not 0..2 independently
+  // per selected Character. Encoding `{ amount: 2 }` each would fire exactly 2 and call
+  // that encoded. restThis, own-side giveDon (not giveDonSourcePlayer), and
+  // `basePower eq 6000` (ruling #255) are all expressible; the miss is the per-target
+  // magnitude. Primitive: `giveDonPerTargetUpTo` in data/parked-clauses.json.
   i18n: st30Mr3Galdino014I18n,
 };

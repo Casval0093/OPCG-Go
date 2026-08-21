@@ -193,6 +193,15 @@
       "blocks": [
         "OP15-093"
       ]
+    },
+    {
+      "id": "giveDonPerTargetUpTo",
+      "summary": "giveDon that attaches 0..N DON!! independently to each selected target.",
+      "detail": "giveDon distribution:'each' attaches count.amount exactly (effects/actions.ts) and never reads count.upTo. count.upTo is only the single-target effectGiveDonCount path -- one shared 0..N for one body, not 0..N per selected Character. { amount: 2, upTo: true } + each would still give exactly 2. Own DON!! / own Characters; not giveDonSourcePlayer. ST30-014 needs 0..2 independently on up to 2 basePower-eq-6000 Characters (ruling #255).",
+      "wanted_rank": 19,
+      "blocks": [
+        "ST30-014"
+      ]
     }
   ],
   "parked": [
@@ -539,6 +548,17 @@
       "primitive": "grantAttribute",
       "rulings": [],
       "note": "The power half of the same sentence IS encoded and tested."
+    },
+    {
+      "card": "ST30-014",
+      "name": "Mr.3(Galdino)",
+      "coverage": "none",
+      "clause": "[Activate: Main] You may rest this Character: Give up to 2 of your Characters with 6000 base power up to 2 rested DON!! cards each.",
+      "primitive": "giveDonPerTargetUpTo",
+      "rulings": [
+        255
+      ],
+      "note": "Exact-2 via distribution:each is the miss, not a park of the whole verb. restThis, own-side giveDon, and basePower eq 6000 are expressible; count.upTo is not consulted on the each path."
     }
   ]
 }
