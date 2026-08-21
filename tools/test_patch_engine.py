@@ -75,7 +75,7 @@ class PatchEngineTest(unittest.TestCase):
         test_create_refuses_to_overwrite_a_foreign_file).
 
         Anchors are GROUPED BY FILE. Several files now carry more than one patch --
-        `src/effects/actions.ts` carries three and `src/shared.ts`, `src/effects/permanent.ts`,
+        `src/effects/actions.ts` carries four and `src/shared.ts`, `src/effects/permanent.ts`,
         `../types/src/effect/action.ts` and `src/automation/bot-harness.ts` two apiece. Writing one
         file per patch let the last one win and silently deleted the earlier anchor, so those patches
         reported FAILED and three tests here went red the moment a second patch landed on a file that

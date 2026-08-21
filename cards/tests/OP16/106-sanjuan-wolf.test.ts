@@ -14,6 +14,7 @@ import {
 import { registerCards } from "../../../../cards/src/runtime-catalog.ts";
 import { candidatePoolForTarget } from "../../../src/effects/targeting.ts";
 import { OnePieceTestEngine } from "../../../src/index.ts";
+import { getEffectiveBasePower } from "../../../src/shared.ts";
 
 // A synthetic Event that K.O.s your OWN Sanjuan.Wolf. Needed because a Character cannot be K.O.'d
 // by its own attack -- blocking redirects the attack, it never kills the attacker -- and the last
@@ -256,15 +257,21 @@ describe("OP16-106 Sanjuan.Wolf", () => {
   });
 
   test("copyPower REPLACES this clause's set base power instead of stacking on it", () => {
-    // REGRESSION GUARD. `copyPower`, `setBasePowerFrom` and `swapBasePower` each add a
-    // `type: "power"` delta of `desired - <base>`. While getCardPower started from the PRINTED
-    // base that was self-consistent: printed + (desired - printed) == desired. Once it starts from
+    // REGRESSION GUARD. Timed `copyPower` used to add a `type: "power"` delta of
+    // `desired - <base>`. While getCardPower started from the PRINTED base that was
+    // self-consistent: printed + (desired - printed) == desired. Once it starts from
     // getEffectiveBasePower, a card carrying BOTH a literal and one of those deltas reads
     // `literal + (desired - printed)` -- two mutually exclusive REPLACEMENTS added together.
     //
+    // The follow-up is that the delta itself is the wrong storage: getEffectiveBasePower
+    // cannot see a type:"power" modifier, so a later basePower filter still reads 7000
+    // after Devon copies 10000. Timed copyPower now stores a setBasePower replacement of
+    // the copied TOTAL, same as setBasePower itself.
+    //
     // Devon is printed 3000, set to 7000 by this card, then copies a 10000 body:
-    //   correct                     10000
-    //   printed-base delta   7000 + (10000 - 3000) = 14000   <- what the engine returned before
+    //   correct                     10000  (both getCardPower AND getEffectiveBasePower)
+    //   printed-base delta   7000 + (10000 - 3000) = 14000   <- first defect
+    //   power-delta storage  getCardPower 10000 / getEffectiveBasePower 7000  <- second
     // Both cards are real, yellow and legal together.
     const engine = OnePieceTestEngine.create(
       { character: [{ card: op12Issho082, playedOnTurn: 0 }] },
@@ -283,15 +290,18 @@ describe("OP16-106 Sanjuan.Wolf", () => {
     const isshoId = engine.findCardInZone("south", "character", op12Issho082);
 
     expect(northPower(engine, devonId)).toBe(3000);
+    expect(getEffectiveBasePower(engine.getState(), devonId)).toBe(3000);
 
     engine.playCard(koYourSanjuan, "north");
     engine.resolveDecision("effectTargetSelection", { selectedIds: [devonId] }, "north");
     expect(northPower(engine, devonId)).toBe(7000);
+    expect(getEffectiveBasePower(engine.getState(), devonId)).toBe(7000);
 
     engine.declareAttack(devonId, engine.leader("south"), "north");
     engine.resolveDecision("effectTargetSelection", { selectedIds: [isshoId] }, "north");
 
     expect(northPower(engine, devonId)).toBe(10000);
+    expect(getEffectiveBasePower(engine.getState(), devonId)).toBe(10000);
   });
 
   test("[Trigger] activates this card's own [On K.O.] from the Life area", () => {

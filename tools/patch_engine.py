@@ -2339,6 +2339,364 @@ BASEPOWER_FILTER_FIX = """      // OPCG-Go patch: was `basePower(card)`, the pri
 
 
 
+
+# --- timed setBasePowerFrom / copyPower / swapBasePower store a replacement -------------------
+#
+# The TIMED half of ruling #762, deferred by PRs #26 / #31 / #33. Those three verbs still
+# `addModifier(type: "power", value: desired - effectiveBase)` after the
+# `actions: setBasePowerFrom/copyPower/swapBasePower measure from the effective base` patch,
+# so getCardPower lands on the right TOTAL while getEffectiveBasePower stays at the printed
+# number. A later basePower filter therefore cannot see the change. Measured on main:
+# OP06-009 Shuraiya attacking OP11-040 reads getCardPower 6000 / getEffectiveBasePower 4000,
+# and EB03-004 Carina's "no Characters with 6000 base power or more" still fires (+4000).
+#
+# The PERMANENT half is already a replacement (`permanent: setBasePowerFrom is a replacement,
+# not a power delta`). The timed path now stores `type: "setBasePower"` with the replacement
+# literal, the same storage `setBasePower` uses, so getSetBasePowerModifier (latest id wins)
+# makes them visible. Duration mapping is copied from setBasePower / modifyPower -- the only
+# complete map in the file -- rather than the three-arm map these verbs shipped with.
+#
+# Stacking changes with the storage: two copyPowers currently sum as two deltas
+# (printed + (P1 - printed) + (P2 - printed)); they now SELECT, latest id wins.
+#
+# Anchored on POST-existing-patch text. The SETTERS_EFFECTIVE already-markers (the EFFECTIVE
+# base comments) must survive: those patches stay applied.
+#
+# Do not restore BASE_POWER_POOL_KEY. Do not retouch the cycle-probe memo wording.
+
+TIMED_SWAP_ANCHOR = """      const firstPower = getEffectiveBasePower(state, firstId!);
+      const secondPower = getEffectiveBasePower(state, secondId!);
+      for (const [targetId, value] of [
+        [firstId!, secondPower - firstPower],
+        [secondId!, firstPower - secondPower],
+      ] as const) {
+        addModifier(state, sourceInstanceId, targetId, {
+          type: "power",
+          value,
+          duration: action.duration,
+          expiresAtTurn: action.duration === "thisTurn" ? state.turnNumber : null,
+          expiresAtBattleId: action.duration === "thisBattle" ? (state.battle?.id ?? null) : null,
+          expiresOnTurnStartOfSeat: action.duration === "untilStartOfNextTurn" ? controller : null,
+        });
+      }"""
+
+TIMED_SWAP_FIX = """      const firstPower = getEffectiveBasePower(state, firstId!);
+      const secondPower = getEffectiveBasePower(state, secondId!);
+      for (const [targetId, value] of [
+        [firstId!, secondPower],
+        [secondId!, firstPower],
+      ] as const) {
+        addModifier(state, sourceInstanceId, targetId, {
+          // OPCG-Go patch: timed swapBasePower stores a setBasePower replacement, not a power
+          // delta. The exchanged number IS the new base, so getEffectiveBasePower (and a later
+          // basePower filter) can see it. Latest-id-wins, same as setBasePower.
+          type: "setBasePower",
+          value,
+          duration: action.duration,
+          // Duration map copied from setBasePower / modifyPower, the only COMPLETE one in this
+          // file. Catalog users of these three verbs print thisTurn / thisBattle /
+          // untilStartOfNextTurn; an unmapped duration would fall through to expiresAtTurn: null
+          // and then NEVER EXPIRE.
+          expiresAtTurn:
+            action.duration === "thisTurn"
+              ? state.turnNumber
+              : action.duration === "untilEndOfYourNextTurn" ||
+                  action.duration === "untilEndOfOpponentNextTurn" ||
+                  action.duration === "untilEndOfOpponentNextEndPhase"
+                ? state.turnNumber + 1
+                : null,
+          expiresAtBattleId: action.duration === "thisBattle" ? (state.battle?.id ?? null) : null,
+          expiresOnTurnStartOfSeat: action.duration === "untilStartOfNextTurn" ? controller : null,
+        });
+      }"""
+
+TIMED_FROM_ANCHOR = """      const copiedBasePower = getEffectiveBasePower(state, sourceIds[0]!);
+      for (const targetId of targetIds) {
+        const printedBasePower = getEffectiveBasePower(state, targetId);
+        addModifier(state, sourceInstanceId, targetId, {
+          type: "power",
+          value: copiedBasePower - printedBasePower,
+          duration: action.duration,
+          expiresAtTurn: action.duration === "thisTurn" ? state.turnNumber : null,
+          expiresAtBattleId: action.duration === "thisBattle" ? (state.battle?.id ?? null) : null,
+          expiresOnTurnStartOfSeat: action.duration === "untilStartOfNextTurn" ? controller : null,
+        });
+      }"""
+
+TIMED_FROM_FIX = """      const copiedBasePower = getEffectiveBasePower(state, sourceIds[0]!);
+      for (const targetId of targetIds) {
+        addModifier(state, sourceInstanceId, targetId, {
+          // OPCG-Go patch: timed setBasePowerFrom stores a setBasePower replacement, not a
+          // power delta of (copied - current). The copied effective base IS the new base.
+          type: "setBasePower",
+          value: copiedBasePower,
+          duration: action.duration,
+          // Duration map copied from setBasePower / modifyPower, the only complete one in this file.
+          expiresAtTurn:
+            action.duration === "thisTurn"
+              ? state.turnNumber
+              : action.duration === "untilEndOfYourNextTurn" ||
+                  action.duration === "untilEndOfOpponentNextTurn" ||
+                  action.duration === "untilEndOfOpponentNextEndPhase"
+                ? state.turnNumber + 1
+                : null,
+          expiresAtBattleId: action.duration === "thisBattle" ? (state.battle?.id ?? null) : null,
+          expiresOnTurnStartOfSeat: action.duration === "untilStartOfNextTurn" ? controller : null,
+        });
+      }"""
+
+TIMED_COPY_ANCHOR = """      const sourceBasePower = getEffectiveBasePower(state, sourceInstanceId);
+      addModifier(state, sourceInstanceId, sourceInstanceId, {
+        type: "power",
+        value: copiedPower - sourceBasePower,
+        duration: action.duration,
+        expiresAtTurn: action.duration === "thisTurn" ? state.turnNumber : null,
+        expiresAtBattleId: action.duration === "thisBattle" ? (state.battle?.id ?? null) : null,
+        expiresOnTurnStartOfSeat: action.duration === "untilStartOfNextTurn" ? controller : null,
+      });"""
+
+TIMED_COPY_FIX = """      // OPCG-Go patch: timed copyPower stores a setBasePower replacement of the copied TOTAL
+      // (getCardPower), not a power delta. Two copyPowers then SELECT (latest id wins) instead of
+      // stacking as two deltas. The engine log already said "sets its base power to ${copiedPower}".
+      addModifier(state, sourceInstanceId, sourceInstanceId, {
+        type: "setBasePower",
+        value: copiedPower,
+        duration: action.duration,
+        // Duration map copied from setBasePower / modifyPower, the only complete one in this file.
+        expiresAtTurn:
+          action.duration === "thisTurn"
+            ? state.turnNumber
+            : action.duration === "untilEndOfYourNextTurn" ||
+                action.duration === "untilEndOfOpponentNextTurn" ||
+                action.duration === "untilEndOfOpponentNextEndPhase"
+              ? state.turnNumber + 1
+              : null,
+        expiresAtBattleId: action.duration === "thisBattle" ? (state.battle?.id ?? null) : null,
+        expiresOnTurnStartOfSeat: action.duration === "untilStartOfNextTurn" ? controller : null,
+      });"""
+
+TIMED_REPLACEMENT_TEST_SOURCE = '''import { describe, expect, test } from "vite-plus/test";
+import type { CharacterCard, Target } from "@tcg/op-types";
+import {
+  eb01Doma005,
+  eb03Carina004,
+  eb03NefeltariVivi001,
+  op06Shuraiya009,
+  op11MonkeyDLuffy040,
+  op12Issho082,
+  op14eb04Chambres017,
+  op14eb04ScaledNeptunian011,
+  op16Mr2BonKureiBentham055,
+} from "@tcg/op-cards";
+
+import { registerCards } from "../../../../cards/src/runtime-catalog.ts";
+import { candidatePoolForTarget } from "../../../src/effects/targeting.ts";
+import { OnePieceTestEngine } from "../../../src/index.ts";
+import { getCardPower, getEffectiveBasePower } from "../../../src/shared.ts";
+
+// OPCG-Go patch: ruling #762's own worked example — timed replacements must be visible as base power.
+//
+// Timed setBasePowerFrom / copyPower / swapBasePower used to store a type:"power" delta of
+// (desired - effectiveBase). getCardPower then read the right TOTAL, but getEffectiveBasePower
+// stayed at the printed number, so a later basePower filter could not see the change. Ruling
+// #762 (EB03-004 Carina vs OP06-009 Shuraiya) is the specification: a base power changed by
+// an effect IS that card's base power for every later read.
+
+const twiceCopy: CharacterCard = {
+  ...op16Mr2BonKureiBentham055,
+  id: "TEST-TIMED-BASE-POWER-TWO-COPYPOWER",
+  canonicalId: "TEST-TIMED-BASE-POWER-TWO-COPYPOWER",
+  name: "Two CopyPowers",
+  i18n: { en: { ...op16Mr2BonKureiBentham055.i18n.en, name: "Two CopyPowers" } },
+  effects: {
+    effects: [
+      {
+        trigger: "onPlay",
+        actions: [
+          {
+            action: "copyPower",
+            target: { player: "opponent", zones: ["leader"], count: { amount: 1 } },
+            duration: "thisTurn",
+          },
+          {
+            action: "copyPower",
+            target: { player: "opponent", zones: ["character"], count: { amount: 1 } },
+            duration: "thisTurn",
+          },
+        ],
+      },
+    ],
+  },
+};
+
+registerCards([twiceCopy]);
+
+const SOUTH_ACTS = { firstPlayer: "north", activeSeat: "south" } as const;
+
+function southPower(engine: OnePieceTestEngine, instanceId: string) {
+  return engine
+    .getView("south")
+    .players.south.characters.find((card) => card?.instanceId === instanceId)?.power;
+}
+
+function setBasePowerMods(engine: OnePieceTestEngine, instanceId: string) {
+  return Object.values(engine.getState().modifiers).filter(
+    (modifier) => modifier.targetId === instanceId && modifier.type === "setBasePower",
+  );
+}
+
+function basePowerPool(engine: OnePieceTestEngine, seat: "south" | "north", target: Target) {
+  const pool = candidatePoolForTarget(engine.getState(), seat, null, target);
+  expect(pool.supported).toBe(true);
+  return pool.candidateIds;
+}
+
+const SELF_GTE_6000 = {
+  player: "self",
+  zones: ["character"],
+  count: { amount: 1 },
+  filters: [{ filter: "basePower", comparison: "gte", value: 6000 }],
+} as const satisfies Target;
+
+const SELF_LTE_4000 = {
+  player: "self",
+  zones: ["character"],
+  count: { amount: 1 },
+  filters: [{ filter: "basePower", comparison: "lte", value: 4000 }],
+} as const satisfies Target;
+
+const OPP_GTE_7000 = {
+  player: "opponent",
+  zones: ["character"],
+  count: { amount: 1 },
+  filters: [{ filter: "basePower", comparison: "gte", value: 7000 }],
+} as const satisfies Target;
+
+const OPP_LTE_4000 = {
+  player: "opponent",
+  zones: ["character"],
+  count: { amount: 1 },
+  filters: [{ filter: "basePower", comparison: "lte", value: 4000 }],
+} as const satisfies Target;
+
+describe("timed base-power replacement", () => {
+  test("Shuraiya vs a 6000 Leader: getEffectiveBasePower is 6000 and a basePower filter sees it both ways", () => {
+    // CLAUDE.md's measured defect: Shuraiya attacking OP11-040 read getCardPower 6000 /
+    // getEffectiveBasePower 4000. The filter is asserted WHOLE at both ends so neither
+    // "empty pool" nor "always include Shuraiya" can satisfy it.
+    const engine = OnePieceTestEngine.create(
+      { character: [{ card: op06Shuraiya009, playedOnTurn: 0 }] },
+      { leaderCardId: op11MonkeyDLuffy040, life: 5 },
+      SOUTH_ACTS,
+    );
+    const shuraiyaId = engine.findCardInZone("south", "character", op06Shuraiya009);
+
+    expect(getCardPower(engine.getState(), shuraiyaId)).toBe(4000);
+    expect(getEffectiveBasePower(engine.getState(), shuraiyaId)).toBe(4000);
+    expect(basePowerPool(engine, "south", SELF_GTE_6000)).toEqual([]);
+    expect(basePowerPool(engine, "south", SELF_LTE_4000)).toEqual([shuraiyaId]);
+
+    engine.declareAttack(shuraiyaId, engine.leader("north"), "south");
+
+    expect(getCardPower(engine.getState(), shuraiyaId)).toBe(6000);
+    expect(getEffectiveBasePower(engine.getState(), shuraiyaId)).toBe(6000);
+    expect(southPower(engine, shuraiyaId)).toBe(6000);
+    expect(basePowerPool(engine, "south", SELF_GTE_6000)).toEqual([shuraiyaId]);
+    expect(basePowerPool(engine, "south", SELF_LTE_4000)).toEqual([]);
+    const mods = setBasePowerMods(engine, shuraiyaId);
+    expect(mods).toHaveLength(1);
+    expect(mods[0]?.value).toBe(6000);
+  });
+
+  test("ruling #762: Carina stays 2000 when Shuraiya's base has become 6000", () => {
+    // EB03-004 Carina vs OP06-009 Shuraiya, the ruling's own example. Carina's
+    // [Opponent's Turn] +4000 is gated on "you have no Characters with 6000 base power
+    // or more". Shuraiya copies OP11-040's 6000 until the start of its controller's next
+    // turn, which is still live on the opponent's turn. If the copy is stored as a power
+    // delta, Carina's basePower filter still sees printed 4000 and she reads 6000.
+    const engine = OnePieceTestEngine.create(
+      {
+        leaderCardId: eb03NefeltariVivi001,
+        character: [
+          { card: eb03Carina004, playedOnTurn: 0 },
+          { card: op06Shuraiya009, playedOnTurn: 0 },
+        ],
+      },
+      { leaderCardId: op11MonkeyDLuffy040, life: 5 },
+      SOUTH_ACTS,
+    );
+    const shuraiyaId = engine.findCardInZone("south", "character", op06Shuraiya009);
+    const carinaId = engine.findCardInZone("south", "character", eb03Carina004);
+
+    engine.declareAttack(shuraiyaId, engine.leader("north"), "south");
+    expect(getEffectiveBasePower(engine.getState(), shuraiyaId)).toBe(6000);
+
+    engine.endTurn("south");
+
+    expect(getEffectiveBasePower(engine.getState(), shuraiyaId)).toBe(6000);
+    expect(southPower(engine, carinaId)).toBe(2000);
+    expect(getCardPower(engine.getState(), carinaId)).toBe(2000);
+  });
+
+  test("Chambres swap exchanges effective bases, and a basePower filter sees both sides", () => {
+    // OP14-017: swap two opponent Characters with 9000 base or less. Doma prints 3000,
+    // Scaled Neptunian prints 8000. Projected power already swapped under the delta
+    // encoding; getEffectiveBasePower and a later filter did not.
+    const engine = OnePieceTestEngine.create(
+      { hand: [op14eb04Chambres017], activeDon: 3 },
+      { character: [eb01Doma005, op14eb04ScaledNeptunian011] },
+    );
+    const lowId = engine.findCardInZone("north", "character", eb01Doma005);
+    const highId = engine.findCardInZone("north", "character", op14eb04ScaledNeptunian011);
+
+    expect(getEffectiveBasePower(engine.getState(), lowId)).toBe(3000);
+    expect(getEffectiveBasePower(engine.getState(), highId)).toBe(8000);
+    expect(basePowerPool(engine, "south", OPP_GTE_7000)).toEqual([highId]);
+    expect(basePowerPool(engine, "south", OPP_LTE_4000)).toEqual([lowId]);
+
+    engine.playCard(op14eb04Chambres017);
+
+    expect(getEffectiveBasePower(engine.getState(), lowId)).toBe(8000);
+    expect(getEffectiveBasePower(engine.getState(), highId)).toBe(3000);
+    expect(getCardPower(engine.getState(), lowId)).toBe(8000);
+    expect(getCardPower(engine.getState(), highId)).toBe(3000);
+    expect(basePowerPool(engine, "south", OPP_GTE_7000)).toEqual([lowId]);
+    expect(basePowerPool(engine, "south", OPP_LTE_4000)).toEqual([highId]);
+    expect(setBasePowerMods(engine, lowId).map((modifier) => modifier.value)).toEqual([8000]);
+    expect(setBasePowerMods(engine, highId).map((modifier) => modifier.value)).toEqual([3000]);
+  });
+
+  test("two copyPowers REPLACE rather than stack", () => {
+    // Independently wrong under the delta encoding: two copyPowers on one body summed
+    // as printed + (P1 - printed) + (P2 - printed). Latest-id-wins is the setBasePower
+    // contract. Printed 1000, copies a 6000 Leader then a 10000 body:
+    //   stacked deltas   1000 + 5000 + 9000 = 15000
+    //   latest wins      10000
+    const engine = OnePieceTestEngine.create(
+      { hand: [twiceCopy], activeDon: twiceCopy.cost },
+      {
+        leaderCardId: op11MonkeyDLuffy040,
+        character: [{ card: op12Issho082, playedOnTurn: 0 }],
+        life: 5,
+      },
+    );
+
+    engine.playCard(twiceCopy, "south");
+    const copierId = engine.findCardInZone("south", "character", twiceCopy);
+
+    expect(getEffectiveBasePower(engine.getState(), copierId)).toBe(10000);
+    expect(getCardPower(engine.getState(), copierId)).toBe(10000);
+    expect(southPower(engine, copierId)).toBe(10000);
+    const mods = setBasePowerMods(engine, copierId);
+    expect(mods).toHaveLength(2);
+    expect(mods.map((modifier) => modifier.value).sort((a, b) => (a ?? 0) - (b ?? 0))).toEqual([
+      6000, 10000,
+    ]);
+    expect(mods.sort((a, b) => a.id.localeCompare(b.id)).at(-1)?.value).toBe(10000);
+  });
+});
+'''
+
 PATCHES = [
     {
         "name": "bot-harness: resolve orderCards prompts",
@@ -2920,6 +3278,36 @@ PATCHES = [
             BASEPOWER_FILTER_ADD_ANCHOR,
             BASEPOWER_FILTER_ADD_FIX,
         ),
+    },
+    {
+        "name": "actions: timed setBasePowerFrom/copyPower/swapBasePower store a setBasePower replacement",
+        "relpath": "src/effects/actions.ts",
+        "anchor": TIMED_SWAP_ANCHOR,
+        "anchors": [
+            TIMED_SWAP_ANCHOR,
+            TIMED_FROM_ANCHOR,
+            TIMED_COPY_ANCHOR,
+        ],
+        "already": [
+            "OPCG-Go patch: timed swapBasePower stores a setBasePower replacement",
+            "OPCG-Go patch: timed setBasePowerFrom stores a setBasePower replacement",
+            "OPCG-Go patch: timed copyPower stores a setBasePower replacement",
+        ],
+        "apply": lambda s: replace_once(
+            replace_once(
+                replace_once(s, TIMED_SWAP_ANCHOR, TIMED_SWAP_FIX),
+                TIMED_FROM_ANCHOR,
+                TIMED_FROM_FIX,
+            ),
+            TIMED_COPY_ANCHOR,
+            TIMED_COPY_FIX,
+        ),
+    },
+    {
+        "name": "tests: timed base-power replacement is visible to getEffectiveBasePower",
+        "relpath": "tests/cards/characters/timed-base-power-replacement.test.ts",
+        "create": TIMED_REPLACEMENT_TEST_SOURCE,
+        "already": "ruling #762's own worked example — timed replacements must be visible as base power",
     },
 ]
 

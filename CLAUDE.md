@@ -415,20 +415,29 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
     live exactly when the opponent is the active player, which is exactly when the opponent plays
     removal. There is no legal line in which its controller plays a K.O. into their own live Fuza,
     so the "on your own turn" half is unreachable through any real card.
-  - **STILL NOT FIXED: the TIMED `setBasePowerFrom` / `copyPower` / `swapBasePower` path, which is
-    ruling #762's own worked example.** Those three still `addModifier(type: "power", value:
+  - **FIXED 2026-08-21: the TIMED `setBasePowerFrom` / `copyPower` / `swapBasePower` path, which is
+    ruling #762's own worked example.** Those three used to `addModifier(type: "power", value:
     desired - effectiveBase)` in `effects/actions.ts` — a delta on TOTAL power, not a replacement
-    of the base — so `getEffectiveBasePower` cannot see them and this filter change does nothing
-    for them. Measured on the merged tree with all patches: Shuraiya attacking a 6000-power Leader
-    (`OP11-040`) gives `getCardPower` **6000** and `getEffectiveBasePower` **4000**. The PERMANENT
-    half was fixed by #26's `permanent: setBasePowerFrom is a replacement, not a power delta`
+    of the base — so `getEffectiveBasePower` could not see them and the #31 filter change did
+    nothing for them. Measured on main: Shuraiya attacking a 6000-power Leader (`OP11-040`) gave
+    `getCardPower` **6000** and `getEffectiveBasePower` **4000**. The PERMANENT half was already
+    fixed by #26's `permanent: setBasePowerFrom is a replacement, not a power delta`
     (`OP14EB04-053` Vista, the only permanent user). **10 cards use the three verbs** —
     `EB01-061`, `OP04-069`, `OP06-009`, `OP14EB04-009`, `OP14EB04-053`, `OP14EB04-017`,
     `OP14EB04-001`, **`OP16-036`**, **`OP16-055`**, `OP16-104` — and the two bold ones are
-    Standard-legal Mr.2 Bon Kurei printings, so this is not OP06 archaeology. The fix is to store a
-    replacement on the timed path the way `setBasePower` does; own branch, because it changes three
-    verbs' storage representation and the stacking semantics with it (two `copyPower`s currently
-    stack as two deltas, which is independently wrong).
+    Standard-legal Mr.2 Bon Kurei printings. The fix is the patch NAMED
+    `actions: timed setBasePowerFrom/copyPower/swapBasePower store a setBasePower replacement`:
+    each verb now stores `type: "setBasePower"` with the replacement literal, the same storage
+    `setBasePower` uses, so `getSetBasePowerModifier` (latest id wins) makes them visible to
+    `getEffectiveBasePower` and to a later `basePower` filter. The duration map is copied from
+    `setBasePower` / `modifyPower`, the only complete one in the file. Stacking changes with
+    the storage: two `copyPower`s used to stack as two deltas (`printed + (P1 - printed) +
+    (P2 - printed)`); they now SELECT, latest id wins, the `setBasePower` contract. Pinned by
+    `tests/cards/characters/timed-base-power-replacement.test.ts` (Shuraiya vs `OP11-040` both
+    directions, Carina+Shuraiya ruling #762, Chambres swap, two `copyPower`s) and by
+    `getEffectiveBasePower` assertions on `OP16-036` / `OP16-055` / `OP16-106`. All verified
+    red first. Do not restore `BASE_POWER_POOL_KEY`; the cycle-probe memo wording from #33 is
+    not this change.
   - **Patch numbers in this file are POSITIONAL and therefore branch-local.** This work was
     authored against an 18-patch tree, rebased onto a 24-patch one, and every "patch N" reference
     in it rotted. Cite patches by NAME. The bench probe's own error message did too, and was

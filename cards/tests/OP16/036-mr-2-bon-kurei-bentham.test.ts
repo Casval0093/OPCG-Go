@@ -8,6 +8,7 @@ import {
 } from "@tcg/op-cards";
 
 import { OnePieceTestEngine } from "../../../src/index.ts";
+import { getEffectiveBasePower } from "../../../src/shared.ts";
 
 function benthamPower(engine: OnePieceTestEngine, instanceId: string): number {
   const card = engine
@@ -60,14 +61,19 @@ describe("OP16-036 Mr.2.Bon.Kurei(Bentham)", () => {
     const benthamId = engine.findCardInZone("south", "character", op16Mr2BonKureiBentham036);
 
     expect(benthamPower(engine, benthamId)).toBe(1000);
+    expect(getEffectiveBasePower(engine.getState(), benthamId)).toBe(1000);
 
     engine.declareAttack(benthamId, engine.leader("north"), "south");
 
     // A `thisTurn` modifier is readable straight off the projection (unlike `thisBattle`),
-    // so the magnitude is asserted as an exact number.
+    // so the magnitude is asserted as an exact number. getEffectiveBasePower must move too:
+    // a type:"power" delta of +5000 would still read 6000 on the projection while leaving
+    // the effective base at the printed 1000, which is the defect ruling #762 forbids.
     expect(benthamPower(engine, benthamId)).toBe(6000);
+    expect(getEffectiveBasePower(engine.getState(), benthamId)).toBe(6000);
 
     engine.endTurn("south");
     expect(benthamPower(engine, benthamId)).toBe(1000);
+    expect(getEffectiveBasePower(engine.getState(), benthamId)).toBe(1000);
   });
 });
