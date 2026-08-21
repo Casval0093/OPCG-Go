@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vite-plus/test";
-import type { CharacterCard } from "@tcg/op-types";
+import type { CharacterCard, Target } from "@tcg/op-types";
 import {
   op02Atmos003,
   op03Namule007,
@@ -8,6 +8,7 @@ import {
 } from "@tcg/op-cards";
 
 import { registerCards } from "../../../../cards/src/runtime-catalog.ts";
+import { candidatePoolForTarget } from "../../../src/effects/targeting.ts";
 import { OnePieceTestEngine } from "../../../src/index.ts";
 import { getEffectiveBasePower } from "../../../src/shared.ts";
 
@@ -47,6 +48,19 @@ function powerOf(engine: OnePieceTestEngine, instanceId: string) {
   return engine
     .getView("south")
     .players.south.characters.find((card) => card?.instanceId === instanceId)?.power;
+}
+
+const BASE_POWER_GTE_6000 = {
+  player: "self",
+  zones: ["character"],
+  count: { amount: "all" },
+  filters: [{ filter: "basePower", comparison: "gte", value: 6000 }],
+} as const satisfies Target;
+
+function gte6000(engine: OnePieceTestEngine) {
+  const pool = candidatePoolForTarget(engine.getState(), "south", null, BASE_POWER_GTE_6000);
+  expect(pool.supported).toBe(true);
+  return pool.candidateIds;
 }
 
 describe("OP16-055 Mr.2.Bon.Kurei(Bentham)", () => {
@@ -92,6 +106,7 @@ describe("OP16-055 Mr.2.Bon.Kurei(Bentham)", () => {
     // 1000 printed + 1000 from its own attached DON!!.
     expect(powerOf(engine, mr2Id)).toBe(2000);
     expect(getEffectiveBasePower(engine.getState(), mr2Id)).toBe(1000);
+    expect(gte6000(engine)).toEqual([]);
 
     engine.declareAttack(mr2Id, defenderId, "south");
 
@@ -101,6 +116,7 @@ describe("OP16-055 Mr.2.Bon.Kurei(Bentham)", () => {
     // project 8000 while leaving the effective base at the printed 1000.
     expect(powerOf(engine, mr2Id)).toBe(8000);
     expect(getEffectiveBasePower(engine.getState(), mr2Id)).toBe(7000);
+    expect(gte6000(engine)).toEqual([mr2Id]);
 
     engine.endTurn("south");
     // "during this turn" -- gone. On north's turn Mr.2's own attached DON!! is worth 0 as well,

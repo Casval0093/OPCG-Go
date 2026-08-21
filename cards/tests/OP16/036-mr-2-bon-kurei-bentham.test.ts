@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vite-plus/test";
+import type { Target } from "@tcg/op-types";
 import {
   op02Atmos003,
   op02EdwardNewgate001,
@@ -7,6 +8,7 @@ import {
   op16Mr2BonKureiBentham036,
 } from "@tcg/op-cards";
 
+import { candidatePoolForTarget } from "../../../src/effects/targeting.ts";
 import { OnePieceTestEngine } from "../../../src/index.ts";
 import { getEffectiveBasePower } from "../../../src/shared.ts";
 
@@ -16,6 +18,19 @@ function benthamPower(engine: OnePieceTestEngine, instanceId: string): number {
     .players.south.characters.find((entry) => entry?.instanceId === instanceId);
   if (!card || card.power === null) throw new Error("Bentham is not on the field.");
   return card.power;
+}
+
+const BASE_POWER_GTE_6000 = {
+  player: "self",
+  zones: ["character"],
+  count: { amount: "all" },
+  filters: [{ filter: "basePower", comparison: "gte", value: 6000 }],
+} as const satisfies Target;
+
+function gte6000(engine: OnePieceTestEngine) {
+  const pool = candidatePoolForTarget(engine.getState(), "south", null, BASE_POWER_GTE_6000);
+  expect(pool.supported).toBe(true);
+  return pool.candidateIds;
 }
 
 describe("OP16-036 Mr.2.Bon.Kurei(Bentham)", () => {
@@ -75,5 +90,37 @@ describe("OP16-036 Mr.2.Bon.Kurei(Bentham)", () => {
     engine.endTurn("south");
     expect(benthamPower(engine, benthamId)).toBe(1000);
     expect(getEffectiveBasePower(engine.getState(), benthamId)).toBe(1000);
+  });
+
+  test("ruling #762: a timed setBasePowerFrom is visible to a basePower gte 6000 pool", () => {
+    // The Standard-legal twin of OP06-009 Shuraiya. Carina's question (EB03-004, ruling #762)
+    // is whether a body whose 原本的力量 *became* 6000 by effect counts as a 6000-or-more
+    // base-power Character. Until the patch NAMED
+    // `actions: timed setBasePowerFrom/copyPower/swapBasePower store a setBasePower replacement`,
+    // this verb wrote a `type: "power"` delta, so getEffectiveBasePower stayed at the printed
+    // 1000 and the pool -- routed through getEffectiveBasePower by
+    // `targeting: ruling #762, the basePower filter reads the EFFECTIVE base` -- never saw it.
+    const engine = OnePieceTestEngine.create(
+      { character: [{ card: op16Mr2BonKureiBentham036, playedOnTurn: 0 }], activeDon: 5 },
+      {
+        leaderCardId: op02EdwardNewgate001,
+        life: [op03Namule007, op03Namule007, op03Namule007, op03Namule007, op03Namule007],
+      },
+      { firstPlayer: "north", activeSeat: "south" },
+    );
+    const benthamId = engine.findCardInZone("south", "character", op16Mr2BonKureiBentham036);
+
+    engine.attachDon(benthamId, 5, "south");
+    // 1000 printed + 5000 DON!! = 6000 current, still 1000 base. A filter that wrongly read
+    // getCardPower would admit this body before the clause fires.
+    expect(benthamPower(engine, benthamId)).toBe(6000);
+    expect(getEffectiveBasePower(engine.getState(), benthamId)).toBe(1000);
+    expect(gte6000(engine)).toEqual([]);
+
+    engine.declareAttack(benthamId, engine.leader("north"), "south");
+
+    expect(getEffectiveBasePower(engine.getState(), benthamId)).toBe(6000);
+    expect(benthamPower(engine, benthamId)).toBe(11000);
+    expect(gte6000(engine)).toEqual([benthamId]);
   });
 });

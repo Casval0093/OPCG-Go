@@ -2362,7 +2362,11 @@ BASEPOWER_FILTER_FIX = """      // OPCG-Go patch: was `basePower(card)`, the pri
 # Anchored on POST-existing-patch text. The SETTERS_EFFECTIVE already-markers (the EFFECTIVE
 # base comments) must survive: those patches stay applied.
 #
-# Do not restore BASE_POWER_POOL_KEY. Do not retouch the cycle-probe memo wording.
+# Timed replacements go through getSetBasePowerModifier, which only iterates state.modifiers --
+# no targeting -- so they short-circuit rather than create a new cycle. The existing
+# permanentBasePowerMemo still bounds getPermanentSetBasePower -> candidatePool -> basePower
+# filter -> getEffectiveBasePower. Do not extra-memoize the timed path. Do not restore
+# BASE_POWER_POOL_KEY. Do not retouch the cycle-probe memo wording.
 
 TIMED_SWAP_ANCHOR = """      const firstPower = getEffectiveBasePower(state, firstId!);
       const secondPower = getEffectiveBasePower(state, secondId!);
@@ -2388,8 +2392,10 @@ TIMED_SWAP_FIX = """      const firstPower = getEffectiveBasePower(state, firstI
       ] as const) {
         addModifier(state, sourceInstanceId, targetId, {
           // OPCG-Go patch: timed swapBasePower stores a setBasePower replacement, not a power
-          // delta. The exchanged number IS the new base, so getEffectiveBasePower (and a later
-          // basePower filter) can see it. Latest-id-wins, same as setBasePower.
+          // delta. Snapshot BOTH effective bases first, then write both modifiers -- one atomic
+          // pair of snapshots, not two live links. A live-link (A := B's current, then B := A's
+          // current) would leave both at the same value. The exchanged number IS the new base,
+          // so getEffectiveBasePower (and a later basePower filter) can see it. Latest-id-wins.
           type: "setBasePower",
           value,
           duration: action.duration,
@@ -2456,8 +2462,10 @@ TIMED_COPY_ANCHOR = """      const sourceBasePower = getEffectiveBasePower(state
       });"""
 
 TIMED_COPY_FIX = """      // OPCG-Go patch: timed copyPower stores a setBasePower replacement of the copied TOTAL
-      // (getCardPower), not a power delta. Two copyPowers then SELECT (latest id wins) instead of
-      // stacking as two deltas. The engine log already said "sets its base power to ${copiedPower}".
+      // (getCardPower), not a power delta. Catalog copyPower printings all say "this Character's
+      // BASE power becomes the same as [X's] power" -- confirm per card before treating a new
+      // printing this way. Two copyPowers then SELECT (latest id wins) instead of stacking as
+      // two deltas. The engine log already said "sets its base power to ${copiedPower}".
       addModifier(state, sourceInstanceId, sourceInstanceId, {
         type: "setBasePower",
         value: copiedPower,
@@ -2582,25 +2590,28 @@ const OPP_LTE_4000 = {
 describe("timed base-power replacement", () => {
   test("Shuraiya vs a 6000 Leader: getEffectiveBasePower is 6000 and a basePower filter sees it both ways", () => {
     // CLAUDE.md's measured defect: Shuraiya attacking OP11-040 read getCardPower 6000 /
-    // getEffectiveBasePower 4000. The filter is asserted WHOLE at both ends so neither
+    // getEffectiveBasePower 4000. Two DON!! take current power to 6000 while the printed
+    // base is still 4000 -- a filter that wrongly read getCardPower would admit this body
+    // before the clause fires. The filter is asserted WHOLE at both ends so neither
     // "empty pool" nor "always include Shuraiya" can satisfy it.
     const engine = OnePieceTestEngine.create(
-      { character: [{ card: op06Shuraiya009, playedOnTurn: 0 }] },
+      { character: [{ card: op06Shuraiya009, playedOnTurn: 0 }], activeDon: 2 },
       { leaderCardId: op11MonkeyDLuffy040, life: 5 },
       SOUTH_ACTS,
     );
     const shuraiyaId = engine.findCardInZone("south", "character", op06Shuraiya009);
 
-    expect(getCardPower(engine.getState(), shuraiyaId)).toBe(4000);
+    engine.attachDon(shuraiyaId, 2, "south");
+    expect(getCardPower(engine.getState(), shuraiyaId)).toBe(6000);
     expect(getEffectiveBasePower(engine.getState(), shuraiyaId)).toBe(4000);
     expect(basePowerPool(engine, "south", SELF_GTE_6000)).toEqual([]);
     expect(basePowerPool(engine, "south", SELF_LTE_4000)).toEqual([shuraiyaId]);
 
     engine.declareAttack(shuraiyaId, engine.leader("north"), "south");
 
-    expect(getCardPower(engine.getState(), shuraiyaId)).toBe(6000);
+    expect(getCardPower(engine.getState(), shuraiyaId)).toBe(8000);
     expect(getEffectiveBasePower(engine.getState(), shuraiyaId)).toBe(6000);
-    expect(southPower(engine, shuraiyaId)).toBe(6000);
+    expect(southPower(engine, shuraiyaId)).toBe(8000);
     expect(basePowerPool(engine, "south", SELF_GTE_6000)).toEqual([shuraiyaId]);
     expect(basePowerPool(engine, "south", SELF_LTE_4000)).toEqual([]);
     const mods = setBasePowerMods(engine, shuraiyaId);
@@ -2640,8 +2651,10 @@ describe("timed base-power replacement", () => {
 
   test("Chambres swap exchanges effective bases, and a basePower filter sees both sides", () => {
     // OP14-017: swap two opponent Characters with 9000 base or less. Doma prints 3000,
-    // Scaled Neptunian prints 8000. Projected power already swapped under the delta
-    // encoding; getEffectiveBasePower and a later filter did not.
+    // Scaled Neptunian prints 8000. Snapshot both effective bases first, then write both
+    // modifiers -- a live-link (A := B's current, then B := A's current) would leave both
+    // at 8000. Projected power already swapped under the delta encoding; getEffectiveBasePower
+    // and a later filter did not.
     const engine = OnePieceTestEngine.create(
       { hand: [op14eb04Chambres017], activeDon: 3 },
       { character: [eb01Doma005, op14eb04ScaledNeptunian011] },

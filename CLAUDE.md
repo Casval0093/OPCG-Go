@@ -434,9 +434,18 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
     the storage: two `copyPower`s used to stack as two deltas (`printed + (P1 - printed) +
     (P2 - printed)`); they now SELECT, latest id wins, the `setBasePower` contract. Pinned by
     `tests/cards/characters/timed-base-power-replacement.test.ts` (Shuraiya vs `OP11-040` both
-    directions, Carina+Shuraiya ruling #762, Chambres swap, two `copyPower`s) and by
-    `getEffectiveBasePower` assertions on `OP16-036` / `OP16-055` / `OP16-106`. All verified
-    red first. Do not restore `BASE_POWER_POOL_KEY`; the cycle-probe memo wording from #33 is
+    directions with DON!! discrimination — current 6000 / base 4000 before the clause, then
+    current 8000 / base 6000; Carina+Shuraiya ruling #762; Chambres swap as one atomic pair of
+    snapshots, not two live links; two `copyPower`s latest-id-win at 10000 not 15000) and by
+    `getEffectiveBasePower` assertions on `OP16-036` (DON!! 5: current 6000 still base 1000
+    until the copy, then base 6000 / power 11000 and a `basePower gte 6000` pool), `OP16-055`
+    (`copyPower` of CURRENT 7000 is the new base, own +1000 DON!! stacked on top), `OP16-106`
+    (a `copyPower` over Sanjuan's `setBasePower` 7000 reads base 10000). All four catalog
+    `copyPower` printings (`OP04-069`, `EB01-061`, `OP16-055`, `OP16-104`) say "this Character's
+    base power becomes the same as [X's] power" — none left as total-power. All verified
+    red first. Timed replacements go through `getSetBasePowerModifier` (modifiers only, no
+    targeting) so they do not create a new cycle; `permanentBasePowerMemo` still bounds the
+    permanent path. Do not restore `BASE_POWER_POOL_KEY`; the cycle-probe memo wording from #33 is
     not this change.
   - **Patch numbers in this file are POSITIONAL and therefore branch-local.** This work was
     authored against an 18-patch tree, rebased onto a 24-patch one, and every "patch N" reference
