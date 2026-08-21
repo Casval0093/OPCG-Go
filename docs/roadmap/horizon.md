@@ -24,7 +24,7 @@ SC field still open)               without lying
 | Boundary | Crossed when | Not crossed when |
 |---|---|---|
 | Phase 1 → Phase 2 | The research track can name the OP16 field and the Ace plan. **Already crossed** as an EN proxy. | SC-native shares arrive. Those correct the *weights*, they do not reopen deck choice. |
-| Infrastructure → first rotation | Official OP17 list is importable and the Ace OP17 list is a 50-card legal deck in the engine. | Spoilers look complete. Spoilers are provisional (research §5). |
+| Infrastructure → first rotation | Official OP17 is imported **and encoded** (X3), and the Ace OP17 list is engine-legal (after X3, not at the X2 draft). | Spoilers look complete, or a draft list exists on paper. Spoilers are provisional (research §5). A draft is not a playable deck. |
 | First rotation → continuous | One full OP17 cycle has been encoded, mutation-checked, and used for a slot question against a labelled field. | The search-AI lever is picked. That is a later infrastructure decision, gated on calibration. |
 
 Milestone names below are checkable. They are not calendar estimates.
@@ -65,9 +65,13 @@ implement on `claude/mutation-operators-widened`.
 **Pick for a policy/sim crew. Stays Now #1. Do not hold it for 集换社 / SC shares.
 Do hold each matchup for N2.**
 
-This is charter validation layer 3: the first cross-deck sims, compared to the EN ladder
-matrix. Mirror-only history is not calibration. The first run is a **measurement, not a
-gate**. A miss does not block N3–N5, does not pick audit A–D, and does not flip Ace.
+This is charter validation layer 3: the first **cross-deck** sims. Mirror-only history is
+not calibration. The first run is a **measurement, not a gate**. A miss does not block
+N3–N5, does not pick audit A–D, and does not flip Ace.
+
+Ace has **no matching ladder cell**. `data/op16-matchup-matrix.json` rows are Nami, Luffy,
+Enel, Rosinante, Teach, Hancock. Ace is only in `unmodelled_field` (R Ace 0.87, R/B Ace
+0.71). Do not invent an Ace row.
 
 | Lock | Decision |
 |---|---|
@@ -75,14 +79,18 @@ gate**. A miss does not block N3–N5, does not pick audit A–D, and does not f
 | Ace list | Freeze current `sim/decks/ace-op16.json` — the engine-buildable proxy. **Not** a Limitless Ace list. |
 | Opponent lists | Freeze the **Limitless modal** lists for those four leaders. Snapshot them before the run. Do not use live Limitless on the day of the run. |
 | Sample | **400 paired games** per matchup. |
-| Headline | **Blended** sim WR against the matching cell in `data/op16-matchup-matrix.json`. |
-| Play/draw | Record separately. Do not replace the blended comparison with one seat. |
+| Headline | **Ace-vs-X is sim-only.** Blended sim WR, plus play/draw, 400 paired, timeouts dropped. **Not** vs a matching ladder cell. |
+| Play/draw | Record separately. Do not replace the blended sim WR with one seat. |
 | Timeouts | **Drop timed-out games entirely.** Do not score them as double losses on this run. Do not report a timeout rate. |
 | Write-up | Simulation track only (`docs/simulation.md`, `sim/results/`). **Do not** write sim numbers into `docs/research-findings.md`. |
 
 A large miss that names its mechanism (noise vs policy-blindness vs encoding fiction) is a
 valid result. That miss is what later *informs* audit options A–D — it does not decide them
 on this run.
+
+Optional and secondary, **not** a substitute Ace cell: a vs-ladder check is only possible
+among leaders that have matrix rows (Nami / Luffy / Enel / Teach vs each other). Do not
+staff it as Now #1. Do not treat it as Ace-vs-X.
 
 Do not: calibrate on ST01; use `mihawk-green-proxy` as a fifth opponent or as the play/draw
 instrument; fetch a fresh Limitless list on run day; swap in a Limitless Ace list; hold the
@@ -160,7 +168,10 @@ labelled field. #32 follow-on sits here *only after Ping releases it*.
 
 If the date slips: stay on Now. Do not encode from spoilers.
 
-### Milestone X2 — Ace OP17 is a legal 50-card list in the engine
+### Milestone X2 — Ace OP17 **draft** list (not engine-legal)
+
+A paper / JSON skeleton. **Not a playable deck. Not engine-legal.** The engine cannot load
+OP17 cards until X3 encodes them. `path.md` is Imp → Enc17 → Ace17; do not invert that.
 
 Skeleton: OP16 Red Ace. First slot-in: `OP17-005` Edward Newgate (12000, −4 cost vs a 10000+
 board, Rush from Ace, On Play sets Ace's Leader base 5000 → 8000 through the opponent's next
@@ -170,14 +181,17 @@ Second: 1–2 `OP17-016` Rakuyo is Ping's anti-aggro instinct and the first *que
 locked include. Removal and the Newgate discount want opposite fields; there is no sideboard,
 so the question is `Σ share × ΔWR` across the whole field.
 
-Mihawk OP17 list is only in scope if N5 found support.
+Mihawk OP17 **draft** is only in scope if N5 found support. Same rule: draft until encoded.
 
 ### Milestone X3 — OP17 encoded under the same gate as OP15/OP16
 
 Generator → graft → per-card tests → full suite → `mutation_check.py`. Park what will not fit.
 `setBasePower` already exists; do not reach for `setPower` on a "base power becomes N" clause.
 
-### Milestone X4 — First real tech-slot A/B on the Ace OP17 list
+**After X3**, the X2 draft can be built as an engine-legal 50-card list. That playable list
+is an X3 output, not an X2 output. X4 does not start from the draft.
+
+### Milestone X4 — First real tech-slot A/B on the **engine-legal** Ace OP17 list (after X3)
 
 The unit is a card slot, not a leader row. Common random numbers; timeouts are double losses;
 report play/draw split. Weight with SC shares if Ping has pasted them, otherwise EN proxy,

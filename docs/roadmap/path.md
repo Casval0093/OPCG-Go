@@ -47,8 +47,9 @@ flowchart TD
 
   subgraph nextWork [Next, gated]
     Imp[Import official OP17]
-    Ace17[Ace OP17 50-card list]
+    Draft17[X2 Ace OP17 draft — not playable]
     Enc17[Encode OP17]
+    Ace17[Engine-legal Ace OP17 list]
     Slot[First slot A/B]
     Sweep32[OP15/OP16 widened re-sweep]
   end
@@ -64,6 +65,7 @@ flowchart TD
   Prim -.-> Enc17
   Watch --> Imp
   Bandai --> Imp
+  Imp --> Draft17
   Imp --> Enc17
   Enc17 --> Ace17
   Ace17 --> Slot
@@ -90,9 +92,10 @@ N2 gates N1. Do not run a dirty matchup.
 
 | This | Waits on | Does not wait on | If the wait slips |
 |---|---|---|---|
-| Ace OP17 list | Official card list + import | #32; search AI; SC shares | Keep the OP16 Ace list; do not freeze; do not encode spoilers |
+| Ace OP17 **draft** (X2) | Official card list + import | #32; search AI; encode; SC shares | Keep the OP16 Ace list; do not freeze; do not encode spoilers. **Draft only — not playable.** |
+| Engine-legal Ace OP17 list | **X3 encode** | Claiming X2 produced a loadable deck | After encode. Then X4. |
 | `OP17-005` encoding | Official text (import) | A new primitive. `setBasePower` is on main (#26/#31/#34) | Leave it unencoded. Do not re-reject the On Play |
-| `OP17-016` slot question | Ace OP17 list + a field share table + a policy that can K.O. small bodies | Full print-confirmation of pre-OP15 | Ask it on the EN proxy and label it |
+| `OP17-016` slot question | **Engine-legal** Ace OP17 list (after X3) + a field share table + a policy that can K.O. small bodies | Full print-confirmation of pre-OP15; the X2 draft | Ask it on the EN proxy and label it |
 | OP17 encoding batch | Import | #32; giveDon / attachedDon (neither is on this path) | Stay on Now |
 | SC-weighted EV | Ping's 集换社 paste (pie + top-cut + event size/date) | A scraper. There is not one to build | Keep EN Limitless shares; say so every time |
 | SC vs JP/EN OP17 list parity | Official SC list (charter open question) | Banlist/rotation parity (already confirmed) | Do not assume the lists are identical |
@@ -119,9 +122,12 @@ Needs:
 - Ace: current `sim/decks/ace-op16.json`, frozen. Not a Limitless Ace list.
 - Opponents: frozen Limitless **modal** lists for Nami, G/B Luffy, Enel, Teach. Snapshot
   before the run; do not hit live Limitless on run day. Not ST01, not `mihawk-green-proxy`.
-- The EN matrix (`data/op16-matchup-matrix.json`) as the comparison cell per matchup.
 - Seat assignment to control play/draw (north leads; `MatchConfig.firstPlayer` is discarded).
-  Record play/draw separately; the headline is the **blended** WR.
+  Record play/draw separately; the headline is the **blended sim WR**. Ace-vs-X is
+  **sim-only**. `data/op16-matchup-matrix.json` has no Ace row (Ace is in
+  `unmodelled_field` only). Do not invent a cell. Do not compare Ace-vs-X to the matrix.
+- Optional, secondary, not Now #1: a vs-ladder check only among leaders that *have* cells
+  (Nami / Luffy / Enel / Teach vs each other). Not a substitute Ace cell.
 - **400 paired games** per matchup.
 - Timed-out games **dropped**. Do not score them as double losses on this run, and do not
   report a timeout rate.

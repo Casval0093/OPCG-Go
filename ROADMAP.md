@@ -142,8 +142,8 @@ Now #3–#5, does not pick a search lever, and does not flip Ace.
 | Ace list | Freeze current `sim/decks/ace-op16.json` (the engine-buildable proxy). **Not** a Limitless Ace list. |
 | Opponent lists | Freeze the **Limitless modal** lists for those four. Snapshot them before the run. Do not fetch live Limitless on the day of the run. |
 | Sample | **400 paired games** per matchup. |
-| Headline number | **Blended** sim WR vs the matching cell in the EN ladder matrix. |
-| Play/draw | Record separately. Do not substitute either seat for the blended comparison. |
+| Headline number | **Ace-vs-X is sim-only.** Record blended sim WR plus play/draw. There is **no Ace row** in `data/op16-matchup-matrix.json` (Ace is only in `unmodelled_field`: R Ace 0.87, R/B Ace 0.71). Do not invent an Ace cell. Do not compare Ace-vs-X to a “matching ladder cell.” |
+| Play/draw | Record separately. Do not substitute either seat for the blended sim WR. |
 | Timeouts | **Drop timed-out games entirely.** Do not fold them in as double losses. Do not report a timeout rate. |
 | Where results go | Simulation track only (`docs/simulation.md`, `sim/results/`). **Do not** write sim numbers into `docs/research-findings.md`. |
 
@@ -183,8 +183,9 @@ share-weighted number stays an EN proxy and must be labelled as one.
 | Pick | Gate | What |
 |---|---|---|
 | Official OP17 import | Bandai publishes the list | `python3 tools/import_cards.py --set OP17 --refresh`; diff against research §5; treat every spoiler row as provisional until then |
-| Ace OP17 list | Official list + import | Skeleton = OP16 Red Ace; first slot `OP17-005` Newgate (the thesis); 1–2 `OP17-016` Rakuyo is the first slot question, not a locked include |
-| Encode OP17 | Import exists | Same batch discipline as OP15/OP16. Park what will not fit. |
+| Ace OP17 **draft** list (X2) | Official list + import | Skeleton = OP16 Red Ace; first slot `OP17-005` Newgate (the thesis); 1–2 `OP17-016` Rakuyo is the first slot question, not a locked include. **Not engine-legal. Not playable.** |
+| Encode OP17 (X3) | Import exists | Same batch discipline as OP15/OP16. Park what will not fit. |
+| Engine-legal Ace OP17 list | **X3 encode** | The X2 draft becomes a 50-card list the engine can actually load. Do not claim this at X2. |
 | Encode `OP17-005` | Import + existing `setBasePower` | The On Play is a buff (Leader 5000 → 8000). Do not re-reject it. |
 | SC OP17 list-parity | Ping / official SC list | Open charter question: is SC OP17 the same list as JP/EN? |
 | **After #32 pickup** | **Ping releases #32** | See below. Not assigned now. |
@@ -244,7 +245,7 @@ Bandai date                                    setBasePower         ΔEV = Σ sh
                                                                        ▼
 SC shares (集换社, Ping) ── or EN proxy, labelled ──► weighting
 policy that can use a conditional card ──► whether ΔWR is real
-Now #2 print-confirm (five lists) ──► Now #1 calibration ──► whether sim WRs match the ladder
+Now #2 print-confirm (five lists) ──► Now #1 Ace-vs-X sims (no Ace ladder cell; do not invent one)
 ```
 
 **Today the binding constraints on a *slot* number are policy honesty and missing OP17

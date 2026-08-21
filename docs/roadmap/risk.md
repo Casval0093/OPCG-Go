@@ -84,7 +84,8 @@ breaks even on EN aggro share can be a tax or a steal on the SC field.
 
 **Mitigation:** label every share-weighted number EN until the paste exists. Do not invent
 SC shares. Do not build a scraper. **Do not hold N1 for the paste** — Ping locked the first
-calibration to the EN ladder cells and the four frozen lists.
+calibration to Ace vs the four frozen lists. Ace-vs-X is sim-only — there is no Ace
+ladder cell. Do not invent one.
 
 ### 4. Undecided search-AI lever, used as if it were decided
 
@@ -217,7 +218,7 @@ OP17 date is not a kill.
 It is not a license to reopen: deck choice, engine choice, objective function, no-sideboard
 maths, local-only `orderCards`, the standing no-upstream-issues rule, the "no 集换社
 scraper" call, or the **Now #1 / Now #2 locks** (five frozen lists; print-confirm then calibrate; Limitless
-+ SC rulings, no aggregators; firing miss blocks that matchup; 400 paired games; blended WR
-vs the ladder cell; play/draw recorded separately; timeouts dropped; results stay in the
-simulation track). If a risk seems to demand one of those, it demands a write-up to Ping,
-not a quiet reversal.
++ SC rulings, no aggregators; firing miss blocks that matchup; 400 paired games; Ace-vs-X
+is sim-only blended WR + play/draw, no invented Ace ladder cell; timeouts dropped; results
+stay in the simulation track). If a risk seems to demand one of those, it demands a
+write-up to Ping, not a quiet reversal.
