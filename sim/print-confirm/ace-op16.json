@@ -8,8 +8,8 @@
   "blocks_matchup": false,
   "counts": {
     "unique_effect": 13,
-    "match": 11,
-    "cosmetic": 1,
+    "match": 12,
+    "cosmetic": 0,
     "parked": 1,
     "firing_miss": 0,
     "vanilla_out": 3
@@ -87,8 +87,7 @@
     {
       "id": "OP16-021",
       "name": "Moby Dick",
-      "result": "cosmetic",
-      "notes": "Limitless {Whitebeard Pirates} vs file []. Does not block."
+      "result": "match"
     },
     {
       "id": "OP16-118",
@@ -98,5 +97,5 @@
       "notes": "Already parked. Not reopened."
     }
   ],
-  "notes": "Now #2 Ace list is clear. Cosmetic OP16-021 does not block. Parked OP16-118 stays parked."
+  "notes": "Now #2 Ace list is clear. Parked OP16-118 stays parked."
 }
