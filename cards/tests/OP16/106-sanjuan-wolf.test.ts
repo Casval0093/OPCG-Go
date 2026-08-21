@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vite-plus/test";
-import type { EventCard } from "@tcg/op-types";
+import type { EventCard, Target } from "@tcg/op-types";
 import {
   op01RadicalBeam029,
   op01Sai012,
@@ -12,6 +12,7 @@ import {
 } from "@tcg/op-cards";
 
 import { registerCards } from "../../../../cards/src/runtime-catalog.ts";
+import { candidatePoolForTarget } from "../../../src/effects/targeting.ts";
 import { OnePieceTestEngine } from "../../../src/index.ts";
 
 // A synthetic Event that K.O.s your OWN Sanjuan.Wolf. Needed because a Character cannot be K.O.'d
@@ -127,6 +128,44 @@ describe("OP16-106 Sanjuan.Wolf", () => {
     engine.resolveDecision("effectTargetSelection", { selectedIds: [isshoId] }, "north");
 
     expect(northPower(engine, isshoId)).toBe(7000);
+  });
+
+  // OP16-013 McGuy's K.O. target, copied verbatim: "K.O. up to 1 of your opponent's Characters
+  // with 8000 base power or less."
+  const KO_BASE_POWER_LTE_8000 = {
+    player: "opponent",
+    zones: ["character"],
+    count: { amount: 1, upTo: true },
+    filters: [{ filter: "basePower", comparison: "lte", value: 8000 }],
+  } as const satisfies Target;
+
+  // Evaluated as SOUTH, so `player: "opponent"` resolves to north's character area -- the side
+  // sanjuanBoard puts Sanjuan.Wolf and Issho on.
+  function koCandidates(engine: OnePieceTestEngine) {
+    const pool = candidatePoolForTarget(engine.getState(), "south", null, KO_BASE_POWER_LTE_8000);
+    expect(pool.supported).toBe(true);
+    return pool.candidateIds;
+  }
+
+  test("ruling #762: lowering a 10000 body to base 7000 makes it a legal `lte 8000` K.O. target", () => {
+    // The other direction from OP15-070 Fuza's test, on the other code path. Fuza is a PERMANENT
+    // effect lifting a body OUT of a K.O. pool; this is a TIMED modifier pulling one IN, and both
+    // have to be visible to a base-power filter for ruling #762 to hold.
+    //
+    // The pool is asserted WHOLE at both ends. Before the clause resolves it is Sanjuan.Wolf
+    // itself (5000, already under the threshold) and NOT Issho (10000); after, Sanjuan.Wolf is in
+    // the trash and Issho is the only member. So neither end is satisfied by an empty pool.
+    const engine = sanjuanBoard(true);
+    const sanjuanId = engine.findCardInZone("north", "character", op16SanjuanWolf106);
+    const isshoId = engine.findCardInZone("north", "character", op12Issho082);
+
+    expect(koCandidates(engine)).toEqual([sanjuanId]);
+
+    koSanjuan(engine);
+    engine.resolveDecision("effectTargetSelection", { selectedIds: [isshoId] }, "north");
+
+    expect(northPower(engine, isshoId)).toBe(7000);
+    expect(koCandidates(engine)).toEqual([isshoId]);
   });
 
   test("[On K.O.] 'up to 1' may be declined, and then nothing moves", () => {

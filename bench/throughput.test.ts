@@ -49,7 +49,7 @@ import {
 } from "../../src/effects/permanent.ts";
 import { evaluateConditions } from "../../src/effects/conditions.ts";
 import { candidatePoolForTarget } from "../../src/effects/targeting.ts";
-import { getCard } from "../../../cards/src/runtime-catalog.ts";
+import { getCard, registerCards } from "../../../cards/src/runtime-catalog.ts";
 import {
   eb01Doma005,
   eb01Fourtricks025,
@@ -61,7 +61,7 @@ import {
   op15Fuza070,
 } from "@tcg/op-cards";
 import type { MatchConfig, MatchState } from "../../src/types.ts";
-import type { Action } from "@tcg/op-types";
+import type { Action, CharacterCard } from "@tcg/op-types";
 
 const SYNTHETIC_CARDS = [eb01Doma005, eb01Koza004, eb01Fourtricks025, eb01MsMonday035];
 const SYNTHETIC_DECK = Array.from({ length: 50 }, (_, i) => SYNTHETIC_CARDS[i % 4]!.id);
@@ -180,6 +180,181 @@ const BASE_POWER_OVERHEAD_LIMIT = 4.0;
 const MODIFIER_TOTAL_SPEEDUP_MIN = 3.0;
 const OVERHEAD_SAMPLES = 200_000;
 const PATHOLOGICAL_COPIES = [1, 2, 3, 4, 5];
+
+// THE THIRD setBasePower PROBE — the one that bounds the CYCLE rather than the per-call cost.
+//
+// getPermanentSetBasePower evaluates its sources' target filters, and a target filter on `power`
+// or `basePower` reads back through getCardPower -> getEffectiveBasePower -> right back into
+// getPermanentSetBasePower. That is a genuine cycle, not a slow path:
+//
+//   getCardPower -> getEffectiveBasePower -> getPermanentSetBasePower
+//     -> candidatePoolForTarget -> matchesTargetFilter -> case "power"/"basePower" -> getCardPower
+//
+// No printed card closes it today -- none of the six encoded setBasePower effects filters on power
+// at all -- and that is exactly the problem this probe exists to fix. "Exposure is zero" was also
+// true of the OP16-017 cost blowup right up until a deck ran four copies, and CLAUDE.md's standing
+// lesson is that a guard resting on what the catalog happens to contain is not a guard. So the
+// card is SYNTHETIC and registered here: it is the shape the engine must survive, whether or not
+// Bandai ever prints it.
+//
+// eb01Doma005 is a true vanilla (cost 1, power 3000, counter 1000, no effect text and no effects
+// block), so everything this probe measures comes from the clause bolted on below and 3000 -> 6000
+// can never be confused with a card that was already 6000.
+const benchPowerFilteredSetBasePower: CharacterCard = {
+  ...eb01Doma005,
+  id: "BENCH-SETBASEPOWER-POWER-FILTER",
+  canonicalId: "BENCH-SETBASEPOWER-POWER-FILTER",
+  name: "Bench Power-Filtered setBasePower",
+  effects: {
+    permanentEffects: [
+      {
+        actions: [
+          {
+            action: "setBasePower",
+            // `basePower` is the arm the targeting patch added; `filter: "power"` reaches the
+            // same cycle one hop earlier and has been reachable since long before it. Patch
+            // numbers are positional and branch-local, so cite by name, not by index.
+            // `gte 1000` admits every
+            // body on the board on purpose -- a filter that excluded candidates would shrink the
+            // very fan-out being bounded.
+            //
+            // `player: "both"` and both zones are the load-bearing part, and the FIRST version of
+            // this probe got it wrong: scoped to `player: "self", zones: ["character"]` the pool
+            // is at most 5 bodies, the walk is ~5! and it runs in 40us WITH THE GUARD REVERTED --
+            // a probe that passed in both directions and bounded nothing. The cost is factorial in
+            // the CANDIDATE POOL, not in the copy count, because getPermanentSetBasePower returns
+            // on its first matching source. So the pool has to be wide enough to blow up before
+            // this measures anything. That is CLAUDE.md's "a board WAS constructed, but one where
+            // the code under test is skipped" for the third time in this file; it is apparently
+            // the easiest mistake there is to make here.
+            target: {
+              player: "both",
+              zones: ["leader", "character"],
+              count: { amount: "all" },
+              filters: [{ filter: "basePower", comparison: "gte", value: 1000 }],
+            },
+            value: 6000,
+            duration: "permanent",
+          },
+        ],
+      },
+    ],
+  },
+};
+registerCards([benchPowerFilteredSetBasePower]);
+
+// THE DISCRIMINATION PROBE — does a candidate pool computed INSIDE getPermanentSetBasePower see
+// each card's EFFECTIVE base, or its printed one?
+//
+// The timing probe above cannot answer that, and saying so is the point: its `gte 1000` filter
+// admits every fixture card by printed base too, so it would pass just as happily against an
+// implementation that suppressed base-power resolution during pool construction. Codex flagged
+// exactly this on PR #31. These three cards make the two readings disagree.
+//
+//   benchLiftedBody  cost 1, printed 3000 -- lifted to base 6000 by benchLifter (`cost eq 1`,
+//                    no power filter, so this leg involves no recursion at all).
+//   benchGateBody    cost 3, printed 3000 -- the card under test.
+//   benchGate        sets base 9000 on `cost eq 3`, but ONLY under a `hasCard` condition asking
+//                    for a Character with basePower >= 5000. Every printed base on the board is
+//                    3000, so that condition is satisfiable only by reading benchLiftedBody at
+//                    its EFFECTIVE 6000.
+//
+// So benchGateBody reads 9000 iff the nested read is honest, and its printed 3000 iff the nested
+// read was suppressed. Both synthetic, because no printed card pairs a permanent base-power
+// replacement with a power-filtered condition -- which is the whole reason this is a probe rather
+// than a card test.
+const benchLiftedBody: CharacterCard = {
+  ...eb01Doma005,
+  id: "BENCH-LIFTED-BODY",
+  canonicalId: "BENCH-LIFTED-BODY",
+  name: "Bench Lifted Body",
+  cost: 1,
+};
+
+const benchGateBody: CharacterCard = {
+  ...eb01Doma005,
+  id: "BENCH-GATE-BODY",
+  canonicalId: "BENCH-GATE-BODY",
+  name: "Bench Gate Body",
+  cost: 3,
+};
+
+const benchLifter: CharacterCard = {
+  ...eb01Doma005,
+  id: "BENCH-LIFTER",
+  canonicalId: "BENCH-LIFTER",
+  name: "Bench Lifter",
+  cost: 5,
+  effects: {
+    permanentEffects: [
+      {
+        actions: [
+          {
+            action: "setBasePower",
+            target: {
+              player: "self",
+              zones: ["character"],
+              count: { amount: "all" },
+              filters: [{ filter: "cost", comparison: "eq", value: 1 }],
+            },
+            value: 6000,
+            duration: "permanent",
+          },
+        ],
+      },
+    ],
+  },
+};
+
+const benchGate: CharacterCard = {
+  ...eb01Doma005,
+  id: "BENCH-GATE",
+  canonicalId: "BENCH-GATE",
+  name: "Bench Gate",
+  cost: 6,
+  effects: {
+    permanentEffects: [
+      {
+        conditions: [
+          {
+            condition: "hasCard",
+            player: "self",
+            zone: "character",
+            filters: [{ filter: "basePower", comparison: "gte", value: 5000 }],
+          },
+        ],
+        actions: [
+          {
+            action: "setBasePower",
+            target: {
+              player: "self",
+              zones: ["character"],
+              count: { amount: "all" },
+              filters: [{ filter: "cost", comparison: "eq", value: 3 }],
+            },
+            value: 9000,
+            duration: "permanent",
+          },
+        ],
+      },
+    ],
+  },
+};
+
+registerCards([benchLiftedBody, benchGateBody, benchLifter, benchGate]);
+
+// A KNOB, not a result, and set for the same reason PERMANENT_EFFECT_MS_LIMIT is: the guarded
+// answer is microseconds and the unguarded one is a permutation walk, so anything between the two
+// separates them. Red-green verified in both directions -- see the error message below.
+const CYCLE_MS_LIMIT = 250;
+
+// Four copies of the clause, fixed -- the count CLAUDE.md's OP16-017 note made the canonical
+// pathological deck shape. What ASCENDS is the opponent's body count, because that is what the
+// candidate pool is factorial in. Ascending order is the same safety property the OP16-017 probe
+// relies on: the walk is bounded at the small sizes, so an unguarded tree throws at the first size
+// that crosses the limit instead of running to 11! and hanging the suite.
+const CYCLE_SETBASEPOWER_COPIES = 4;
+const CYCLE_OPPONENT_BODIES = [1, 2, 3, 4, 5];
 const PATHOLOGICAL_GAMES = 3;
 
 const DECKS: Deck[] = [
@@ -609,6 +784,114 @@ test("bench", () => {
         `enumeration and every policy score goes through getCardPower.`,
     );
   }
+  // THE DISCRIMINATION PROBE — correctness, not timing. See the card definitions above.
+  const discBoard = OnePieceTestEngine.create(
+    {
+      leaderCardId: "OP16-060",
+      character: [benchLiftedBody.id, benchGateBody.id, benchLifter.id, benchGate.id],
+    },
+    { leaderCardId: "OP16-060" },
+    { activeSeat: "south", firstPlayer: "north" },
+  );
+  const discState = discBoard.getState();
+  const discIds = discState.players.south.characterArea.filter((x): x is string => Boolean(x));
+  const idOf = (cardId: string) => {
+    const found = discIds.find((id) => getInstance(discState, id).cardId === cardId);
+    if (!found) {
+      throw new Error(`The discrimination probe did not seat ${cardId}; it proves nothing.`);
+    }
+    return found;
+  };
+  const liftedPower = getCardPower(discState, idOf(benchLiftedBody.id));
+  const gatedPower = getCardPower(discState, idOf(benchGateBody.id));
+  console.log(`\nDISCRIMINATION — lifted=${liftedPower} gated=${gatedPower}`);
+  // The control. If the lift itself is off, the gate below cannot mean anything.
+  if (liftedPower !== 6000) {
+    throw new Error(
+      `The discrimination probe's lifted body reads ${liftedPower}, not 6000, so benchLifter is ` +
+        `not applying and the gate assertion below is vacuous.`,
+    );
+  }
+  if (gatedPower !== 9000) {
+    throw new Error(
+      `The discrimination probe's gated body reads ${gatedPower}, expected 9000. A candidate pool ` +
+        `evaluated INSIDE getPermanentSetBasePower is seeing printed base power instead of ` +
+        `effective: benchGate's condition asks for a Character with basePower >= 5000, and the ` +
+        `only card that qualifies does so at its EFFECTIVE 6000, not its printed 3000. Reading ` +
+        `3000 here means the re-entry was suppressed wholesale rather than memoised -- see ` +
+        `permanentBasePowerMemo in the patch NAMED "permanent: memoise getPermanentSetBasePower ` +
+        `so the basePower filter cannot fan out".`,
+    );
+  }
+
+  // THE CYCLE PROBE — a permanent setBasePower whose own target filter reads power back.
+  console.log(
+    "\nsetBasePower CYCLE — one getCardPower on a board of N x a power-filtered setBasePower",
+  );
+  const cycleTimings: string[] = [];
+  for (const bodies of CYCLE_OPPONENT_BODIES) {
+    const cycleEngine = OnePieceTestEngine.create(
+      {
+        leaderCardId: "OP16-060",
+        character: Array.from(
+          { length: CYCLE_SETBASEPOWER_COPIES },
+          () => benchPowerFilteredSetBasePower.id,
+        ),
+      },
+      {
+        leaderCardId: "OP16-060",
+        character: Array.from({ length: bodies }, () => eb01Doma005.id),
+      },
+      { activeSeat: "south", firstPlayer: "north" },
+    );
+    const cycleState = cycleEngine.getState();
+    const cycleIds = cycleState.players.south.characterArea.filter((x): x is string => Boolean(x));
+    const cycleFoes = cycleState.players.north.characterArea.filter((x): x is string => Boolean(x));
+    if (cycleIds.length !== CYCLE_SETBASEPOWER_COPIES || cycleFoes.length !== bodies) {
+      throw new Error(
+        `Fixture did not seat ${CYCLE_SETBASEPOWER_COPIES} copies and ${bodies} opposing bodies ` +
+          `(got ${cycleIds.length} and ${cycleFoes.length}), so the cycle probe measures nothing. ` +
+          `Check maxCharacterSlots and the character fixture format.`,
+      );
+    }
+    // The candidate pool this is factorial in: both leaders, both character areas.
+    const pool = cycleIds.length + cycleFoes.length + 2;
+    const c0 = process.hrtime.bigint();
+    const cyclePower = getCardPower(cycleState, cycleIds[0]!);
+    const cycleMs = Number(process.hrtime.bigint() - c0) / 1e6;
+    cycleTimings.push(`pool=${pool}:${cycleMs.toFixed(2)}ms`);
+    console.log(`  pool=${pool}  power=${cyclePower}  ${cycleMs.toFixed(2)}ms`);
+
+    // NON-VACUITY, and the half that matters most. A guard that returned null unconditionally
+    // would make this probe the fastest code in the engine and prove nothing: 3000 is the printed
+    // base, so reading 6000 is the only evidence that the clause resolved, that its power-filtered
+    // candidate pool was actually computed, and that the timing above covers the cycle rather than
+    // a short-circuit. It also pins the answer as INVARIANT in the board size -- the same thing
+    // the OP16-017 probe asserts, and the one thing a performance guard must never let move.
+    if (cyclePower !== 6000) {
+      throw new Error(
+        `The cycle probe reads ${cyclePower} at pool size ${pool}, expected 6000 (3000 ` +
+          `printed, set to 6000 by its own clause). Either the clause did not resolve -- in which ` +
+          `case this probe measures a short-circuit and bounds nothing -- or a change to the ` +
+          `re-entry guard altered a RESULT and not just a cost.`,
+      );
+    }
+    if (cycleMs > CYCLE_MS_LIMIT) {
+      throw new Error(
+        `setBasePower re-entry regression: one getCardPower over a candidate pool of ${pool}, ` +
+          `with ${CYCLE_SETBASEPOWER_COPIES} power-filtered setBasePower clauses live, took ` +
+          `${cycleMs.toFixed(1)}ms, limit ${CYCLE_MS_LIMIT}ms ` +
+          `(curve so far ${cycleTimings.join(" ")}). getPermanentSetBasePower is re-entering ` +
+          `itself across sibling instances. Check the patch NAMED ` +
+          `"permanent: bound the basePower filter's re-entry into getPermanentSetBasePower" is ` +
+          `applied, and that BASE_POWER_POOL_KEY still spans BOTH candidatePoolForTarget calls. ` +
+          `Do not "simplify" that marker into the per-instance setBasePower:\${id} key: dropping ` +
+          `the instance bounds this walk but severs the setBasePowerFrom copy chain (OP14EB04-053 ` +
+          `Vista then reads a printed base), and adding the source to it is strictly weaker.`,
+      );
+    }
+  }
+  console.log(`  all under ${CYCLE_MS_LIMIT}ms — ${cycleTimings.join(" ")}\n`);
 
   if (overhead > BASE_POWER_OVERHEAD_LIMIT) {
     throw new Error(

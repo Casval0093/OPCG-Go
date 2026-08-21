@@ -90,6 +90,30 @@ def replace_once(source: str, anchor: str, fix: str) -> str:
     return source.replace(anchor, fix, 1)
 
 
+def replace_first(source: str, anchor: str, fix: str) -> str:
+    """Replace the FIRST occurrence of `anchor`, requiring at least one. Never a silent no-op.
+
+    Weaker than `replace_once` on purpose, and only for anchors INSIDE a region that an earlier
+    patch's replacement reproduces wholesale. `getPermanentSetBasePower` is the case: the
+    `setBasePowerFrom is a replacement` patch rewrites that entire function, so its replacement
+    text contains the function's own guard lines. In the real engine that is harmless -- there is
+    one function and every anchor below occurs exactly once, verified. In
+    tools/test_patch_engine.py's synthetic fixture it is not: `seed_stock` plants a bare copy of
+    every declared anchor ALONGSIDE the earlier patch's output, so the anchor legitimately occurs
+    twice and `replace_once` refuses.
+
+    The property that matters is kept: a MISSING anchor still raises. What is given up is the
+    "exactly one" check, which for these anchors would report a fixture artefact as a failure.
+    Prefer `replace_once` everywhere else.
+    """
+    if anchor not in source:
+        raise PatchAnchorError(
+            f"anchor not found at {describe_anchor(anchor)!r} "
+            f"({len(anchor.splitlines())} lines) — upstream changed this region; re-derive the patch"
+        )
+    return source.replace(anchor, fix, 1)
+
+
 def replace_every(source: str, old: str, new: str) -> str:
     """Replace every occurrence of `old`, requiring at least one. Never a silent no-op."""
     found = source.count(old)
@@ -2191,6 +2215,129 @@ describe("OP11-023 Arlong", () => {
   });
 });
 '''
+# --- ruling #762: the basePower filter, and the cycle routing it closes -------------------------
+#
+# TWO patches, and the ORDER is load-bearing: the guard goes in before the filter is routed, so no
+# tree ever exists in which a power-filtered setBasePower target is a permutation walk.
+
+BASEPOWER_MEMO_ANCHOR = (
+    """const activeEvaluations = new WeakMap<MatchState, Set<string>>();"""
+)
+
+BASEPOWER_MEMO_FIX = """const activeEvaluations = new WeakMap<MatchState, Set<string>>();
+
+// OPCG-Go patch: a memo for getPermanentSetBasePower, live only for the duration of the OUTERMOST
+// call, and the reason it exists is a cycle rather than a speed problem.
+//
+// Routing matchesTargetFilter's `basePower` arm through getEffectiveBasePower closes a loop:
+// getPermanentSetBasePower -> candidatePoolForTarget -> matchesTargetFilter -> a power/basePower
+// filter -> getCardPower -> getEffectiveBasePower -> back here, once per candidate. Because this
+// function returns on its FIRST matching source, the cost of that fan-out is factorial in the
+// candidate POOL, not in the copy count: measured 19.55 / 102.71 / 950.65 ms at pools of 7 / 8 / 9.
+//
+// Memoising bounds it WITHOUT changing any answer. Each instance is computed at most once per
+// outermost call, so the walk collapses from a permutation enumeration to O(sources x instances),
+// and every nested read still returns the card's real effective base.
+//
+// Two designs were tried first and both are wrong, which is worth recording because both look
+// right. Suppressing base-power resolution for the whole pool computation bounds the fan-out but
+// makes candidatePoolForTarget filter on PRINTED base, so a power-filtered target silently admits
+// or drops the wrong cards. Widening the `setBasePower:${id}` key to carry the source makes it
+// FINER, therefore weaker, and bounds nothing. Only the in-progress key below suppresses anything,
+// and it suppresses exactly the re-entry that is the cycle -- a card whose base power depends on
+// its own.
+//
+// Caching is sound because nothing here mutates state: every path is a read. The one imprecision
+// is inherent to the cycle -- a value computed while an ancestor was in progress saw that ancestor
+// as null, and it is cached that way. That is a rules paradox, not a case any printed card reaches.
+const permanentBasePowerMemo = new WeakMap<MatchState, Map<string, number | null>>();"""
+
+BASEPOWER_GUARD_ANCHOR = """  const evaluationKey = `setBasePower:${targetInstanceId}`;
+  const active = activeEvaluations.get(state) ?? new Set<string>();
+  if (active.has(evaluationKey)) {
+    return null;
+  }"""
+
+BASEPOWER_GUARD_FIX = """  // OPCG-Go patch: the public entry point is now a memo wrapper; the scan itself moved to
+  // computePermanentSetBasePower below, unchanged. See `permanentBasePowerMemo` for why.
+  const memo = permanentBasePowerMemo.get(state);
+  if (memo) {
+    const cached = memo.get(targetInstanceId);
+    if (cached !== undefined) {
+      return cached;
+    }
+    const computed = computePermanentSetBasePower(state, targetInstanceId);
+    memo.set(targetInstanceId, computed);
+    return computed;
+  }
+  // The OUTERMOST call owns the memo and tears it down, so a cached value can never outlive the
+  // read that created it and no state change can invalidate one.
+  const fresh = new Map<string, number | null>();
+  permanentBasePowerMemo.set(state, fresh);
+  try {
+    const computed = computePermanentSetBasePower(state, targetInstanceId);
+    fresh.set(targetInstanceId, computed);
+    return computed;
+  } finally {
+    permanentBasePowerMemo.delete(state);
+  }
+}
+
+function computePermanentSetBasePower(state: MatchState, targetInstanceId: string): number | null {
+  const evaluationKey = `setBasePower:${targetInstanceId}`;
+  const active = activeEvaluations.get(state) ?? new Set<string>();
+  if (active.has(evaluationKey)) {
+    return null;
+  }"""
+
+BASEPOWER_FILTER_IMPORT_ANCHOR = """import {
+  baseCost,
+  basePower,
+  cardNames,"""
+
+BASEPOWER_FILTER_IMPORT_FIX = """import {
+  baseCost,
+  // OPCG-Go patch: `basePower` is gone from this file -- the `basePower` filter arm reads the
+  // EFFECTIVE base now, and nothing else here wanted the printed one.
+  cardNames,"""
+
+BASEPOWER_FILTER_ADD_ANCHOR = """  getCardCost,
+  getCardPower,
+  getInstance,"""
+
+BASEPOWER_FILTER_ADD_FIX = """  getCardCost,
+  getCardPower,
+  getEffectiveBasePower,
+  getInstance,"""
+
+BASEPOWER_FILTER_ANCHOR = (
+    """      const value = filter.filter === "power" ? getCardPower(state, candidateId) """
+    """: basePower(card);"""
+)
+
+BASEPOWER_FILTER_FIX = """      // OPCG-Go patch: was `basePower(card)`, the printed catalog value -- no modifiers, no
+      // permanent effects, so an effect that CHANGED a card's base power was invisible to every
+      // later base-power test. Official SC ruling #762 settles it in this engine's own terms:
+      // EB03-004 Carina checks for "a Character with base power 6000 or more", OP06-009 Shuraiya's
+      // own effect takes its base power to 6000+, and the answer is no -- Carina does NOT gain
+      // +4000, because Shuraiya now counts. A changed base power is a base power.
+      //
+      // Pre-existing, and older than the setBasePower primitive: this arm has been blind since
+      // OP06. Live cases it decides, all Standard: OP15-070 Fuza / OP15-071 Holly lift their
+      // [Shura]/[Ohm] bodies to base 6000 during the OPPONENT's turn -- exactly when a
+      // `basePower lte N` K.O. resolves, and dodging that removal is Fuza's entire printed
+      // function; OP15-092 is base 9000 at 10+ cards in trash against a `lte 8000` K.O.; and
+      // OP16-106 pulls a body DOWN to base 7000, which must BECOME a legal target for one.
+      //
+      // getEffectiveBasePower, not getCardPower: this arm must stay blind to DON!! and to +/-power
+      // modifiers, which is the entire distinction between the `power` and `basePower` filters and
+      // is what the 50 `filter: "basePower"` sites across 13 sets are written against.
+      const value =
+        filter.filter === "power"
+          ? getCardPower(state, candidateId)
+          : getEffectiveBasePower(state, candidateId);"""
+
+
 
 PATCHES = [
     {
@@ -2724,6 +2871,55 @@ PATCHES = [
         # Peachbeard is Blackbeard Pirates Allies; OP10-085 Jesus Burgess is the composite
         # [Dressrosa, Blackbeard Pirates] at exactly cost 5, keeping the cost boundary covered.
         "apply": lambda s: replace_every(s, "op09Peachbeard094", "op10JesusBurgess085"),
+    },
+    {
+        "name": "permanent: memoise getPermanentSetBasePower so the basePower filter cannot fan out",
+        "relpath": "src/effects/permanent.ts",
+        "anchor": BASEPOWER_GUARD_ANCHOR,
+        # Two edits, one patch, inseparable: the wrapper calls computePermanentSetBasePower and
+        # reads permanentBasePowerMemo, so neither half compiles without the other.
+        "anchors": [BASEPOWER_GUARD_ANCHOR, BASEPOWER_MEMO_ANCHOR],
+        "already": [
+            "const permanentBasePowerMemo = new WeakMap<MatchState, Map<string, number | null>>();",
+            "function computePermanentSetBasePower(",
+        ],
+        # replace_once for the module-level memo (unique everywhere); replace_first for the edit
+        # INSIDE getPermanentSetBasePower, because the `setBasePowerFrom is a replacement` patch's
+        # output reproduces that whole function and the synthetic fixture therefore holds two
+        # copies of its opening. In the real engine both occur exactly once -- checked.
+        "apply": lambda s: replace_first(
+            replace_once(s, BASEPOWER_MEMO_ANCHOR, BASEPOWER_MEMO_FIX),
+            BASEPOWER_GUARD_ANCHOR,
+            BASEPOWER_GUARD_FIX,
+        ),
+    },
+    {
+        "name": "targeting: ruling #762, the basePower filter reads the EFFECTIVE base",
+        "relpath": "src/effects/targeting.ts",
+        "anchor": BASEPOWER_FILTER_ANCHOR,
+        # Three edits, one patch: the arm, plus dropping the now-unused `basePower` import and
+        # adding `getEffectiveBasePower`. Splitting them would leave the file un-typecheckable
+        # between the two -- `noUnusedLocals` is what keeps "every printed-base read was
+        # converted" honest here, exactly as it does in actions.ts.
+        "anchors": [
+            BASEPOWER_FILTER_ANCHOR,
+            BASEPOWER_FILTER_IMPORT_ANCHOR,
+            BASEPOWER_FILTER_ADD_ANCHOR,
+        ],
+        "already": [
+            "OPCG-Go patch: was `basePower(card)`, the printed catalog value",
+            "OPCG-Go patch: `basePower` is gone from this file",
+            "  getEffectiveBasePower,\n  getInstance,",
+        ],
+        "apply": lambda s: replace_once(
+            replace_once(
+                replace_once(s, BASEPOWER_FILTER_ANCHOR, BASEPOWER_FILTER_FIX),
+                BASEPOWER_FILTER_IMPORT_ANCHOR,
+                BASEPOWER_FILTER_IMPORT_FIX,
+            ),
+            BASEPOWER_FILTER_ADD_ANCHOR,
+            BASEPOWER_FILTER_ADD_FIX,
+        ),
     },
 ]
 

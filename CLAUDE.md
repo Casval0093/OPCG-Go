@@ -87,8 +87,9 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   <https://github.com/TheCardGoat/tcg-engines/pull/216>. That does not reopen the `orderCards`
   decision: Ping's 2026-08-17 "stays local" call stands for that one, and `patch_engine.py` remains
   permanent regardless of whether #216 merges.
-- **The suite is 6111 pass / 0 fail as of 2026-08-20, and every older figure in this
-  file differs for a knowable reason. Re-derive rather than quoting.** On the tree that merges
+- **The suite is 6118 pass / 0 fail as of 2026-08-21 (6114 on origin/main before the ruling #762
+  work added its four tests), and every older figure in this file differs for a knowable reason.
+  Re-derive rather than quoting.** On the tree that merges
   Phase 1 + Phase 2 + `setBasePower`: **6078 → 6111, +33**, all of it OP15/OP16, which alone went
   **738 → 771** (measured, not inferred). Phase 1 added NO vitest tests — its counter-policy
   coverage lives in `tools/mutation_check_engine.py` — so the suite was 6078 both before and after
@@ -99,7 +100,7 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   **The recurring off-by-one is `bench/throughput.test.ts`.** It is not in the suite; copying it
   into `tests/cards/` as this file's own command does adds exactly one test. That is where the
   **6079** in Phase 1's note and in the old `scripts/bootstrap.sh` comment comes from: 6078 card
-  tests plus the bench. So **6111 without the bench, 6112 with it** — check which tree you are
+  tests plus the bench. So **6118 without the bench, 6119 with it** — check which tree you are
   looking at before treating a one-test gap as a regression.
   **The SKIPPED count is not a stable expectation and should not be pinned.** The 4 skipped FILES are
   this repo's env-gated harnesses (`puzzles`, `matchup.sim`, `catalog.dump`, `prompt-diag`), and
@@ -318,29 +319,125 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   with lines reading `Monkey.D.Luffy sets the base power of Portgas.D.Ace to 7000 this turn.`
   The probe itself is not committed — the deck plus this recipe reproduces it in ~50s, and a
   permanent "does this verb ever fire" harness is more surface than the finding needs.
-- **The `basePower` TargetFilter reads the PRINTED base, so 50 filter sites across 13 sets cannot see
-  ANY "base power becomes N" effect — and SC ruling #762 says they must. Pre-existing, NOT fixed,
-  wants its own branch.** `effects/targeting.ts` resolves `filter: "basePower"` as
-  `basePower(card)` — the catalog value, no modifiers, no permanent effects — while `filter: "power"`
-  goes through `getCardPower`. Ruling #762 (`EB03-004` Carina) settles it in the engine's own terms:
-  when `OP06-009` Shuraiya's 原本的力量 *becomes* 6000 by effect, a "原本的力量 6000 or more" test
-  **does** see 6000 (不会 +4000, *because* Shuraiya now counts). Shuraiya uses `setBasePowerFrom`, so
-  **this has been broken since OP06 and `setBasePower` only adds a fourth way to trip it** — it is
-  not a regression from that work. Live consequences with real Standard cards: `OP15-070` Fuza and
-  `OP15-071` Holly lift their [Shura]/[Ohm] bodies to base 6000 on the opponent's turn, which is
-  exactly when a `basePower lte N` K.O. resolves, and the engine still reads 2000 — dodging that
-  removal is Fuza's whole printed function. `OP16-106` pulls a body DOWN to base 7000 and it does not
-  become a legal target for a `lte 8000` K.O.
-  **Two reasons it is not folded into the setBasePower work.** It changes behaviour at 50 filter
-  sites across 13 sets, which is the same "own branch, before/after suite run" call already recorded
-  for the trait-matching change. And it CLOSES A CYCLE: `getCardPower → getEffectiveBasePower →
-  getPermanentSetBasePower → candidatePoolForTarget → matchesTargetFilter → case "power" →
-  getCardPower`. The guard is keyed `setBasePower:${targetInstanceId}`, which stops the direct
-  self-cycle but **not permutations across sibling instances** — structurally the `OP16-017` blowup
-  moved from the cost path to the power path. Exposure is 0 today only because none of the six
-  encoded targets uses a power/basePower filter. **Harden the guard on source AND target first, then
-  route the filter through `getEffectiveBasePower`, then add a bench probe pairing 4 copies with a
-  power-filtered target.**
+- **The `basePower` TargetFilter reads the EFFECTIVE base — FIXED 2026-08-21 by the patches NAMED
+  `permanent: bound the basePower filter's re-entry into getPermanentSetBasePower` and
+  `targeting: ruling #762, the basePower filter reads the EFFECTIVE base`. This is what makes three
+  of the six setBasePower cards actually play correctly.** `effects/targeting.ts` used to resolve
+  `filter: "basePower"` as `basePower(card)` — the catalog value, no modifiers, no permanent
+  effects — so all **50 filter sites across 13 sets** (EB01 EB03 OP04 OP06 OP09 OP10 OP11 OP12 OP13
+  OP14EB04 OP15 OP16 PRB02) were blind to every "base power becomes N" effect. Ruling #762
+  (`EB03-004` Carina) is the specification, in the engine's own terms: when `OP06-009` Shuraiya's
+  原本的力量 *becomes* 6000 by effect, a "原本的力量 6000 or more" test **does** see 6000 (不会
+  +4000, *because* Shuraiya now counts). It reads `getEffectiveBasePower`, NOT `getCardPower`: the
+  arm must stay blind to DON!! and to +/-power modifiers, which is the whole distinction between
+  the two filters and what all 50 sites are written against.
+  - **THE GUARD IS THE HARD PART, AND ALL THREE OBVIOUS ANSWERS ARE WRONG — the third only came
+    out because Codex flagged it on PR #31.** `getPermanentSetBasePower` sits on TWO recursive
+    edges into itself. (a) The COPY CHAIN — `effectivePermanentBasePower(source) ->
+    getPermanentSetBasePower(source)` — is deliberate and REQUIRED by this same ruling, since
+    "the same as your Leader's base power" must see a Leader whose base was set. (b) The FILTER
+    FAN-OUT — `candidatePoolForTarget -> matchesTargetFilter -> a power/basePower filter ->
+    getCardPower -> getEffectiveBasePower -> back here`, once per candidate — is incidental and
+    unbounded.
+    **Coarsening the key (dropping the target) bounds (b) and breaks (a):** measured, `OP14EB04-053`
+    Vista then read its Leader's printed 5000 instead of the 7000 `OP15-092` set —
+    `expected { leader: 7000, vista: 5000 }`. **Refining it (adding the source) is strictly
+    weaker** — more distinct keys, fewer blocked re-entries — and does not bound (b) at all. Both
+    this branch's prompt and the #26 session recommended the refinement; neither works.
+    **A marker spanning the candidate-pool computation was the third wrong answer, and it survived
+    a full green verification pass.** It bounds (b) and keeps (a), but it makes
+    `candidatePoolForTarget` read PRINTED base for everything reached from inside that
+    computation, so a power-filtered target or condition silently admits or drops the wrong cards.
+    Zero exposure in today's catalog — and still the wrong shape, because it suppresses far more
+    than the cycle.
+    **The answer is to MEMOISE, not to suppress.** `permanentBasePowerMemo` is a per-state map
+    owned by the OUTERMOST call and torn down with it. Each instance is computed at most once, so
+    the walk collapses from a permutation enumeration to O(sources x instances), and every nested
+    read returns the card's real effective base. The only thing still suppressed is the
+    per-instance `setBasePower:${id}` in-progress key, which is exactly the re-entry that IS the
+    cycle: a card whose base power depends on its own. Caching is sound because every path here is
+    a read — nothing mutates state.
+  - **The cost is factorial in the CANDIDATE POOL, not in the copy count**, because the function
+    returns on its FIRST matching source. Measured unmemoised, 4 clauses live: pool 7 =
+    **19.55ms**, 8 = **102.71ms**, 9 = **950.65ms** (it throws there rather than running on to
+    11!). Memoised: **0.08 / 0.07 / 0.08 / 0.09 / 0.11ms** at pools 7-11.
+  - **The cycle predates the targeting change.** `case "power"` already called `getCardPower`, so
+    any setBasePower card with a power-filtered target has been a permutation walk since
+    `getPermanentSetBasePower` existed. The targeting patch adds `basePower` as a second entry
+    point. Exposure is 0 only because no encoded setBasePower effect filters on power — and
+    NOTHING ENFORCED THAT, which is why the bound is a bench probe rather than a fact about the
+    catalog.
+  - **TWO probes, because one cannot do both jobs — and Codex is what forced the second.** The
+    CYCLE probe bounds the walk; its `gte 1000` filter admits every fixture card by printed base
+    too, so it would pass just as happily against the suppression design. The DISCRIMINATION probe
+    is the correctness half: `benchLifter` raises a printed-3000 body to base 6000 through a
+    power-free `cost eq 1` filter, and `benchGate` then sets base 9000 on a DIFFERENT body only
+    under a `hasCard basePower gte 5000` condition that nothing on the board satisfies at its
+    printed base. The gated body therefore reads **9000** when the nested read is honest and
+    **3000** when it is suppressed — verified in both directions. No printed card pairs a
+    permanent base-power replacement with a power-filtered condition, which is why both cards are
+    synthetic and why this is a probe rather than a card test.
+  - **The cycle probe was VACUOUS on its first cut and passed in both directions — third time in
+    that file.** Scoped `player: "self", zones: ["character"]` the pool is ≤5 bodies, the walk is
+    ~5!, and it ran in **40us with the guard reverted**. A board WAS constructed; it was one where
+    the code under test is skipped. The committed probe uses a SYNTHETIC card (`player: "both"`
+    over both zones, 4 clauses, ascending opponent bodies) with a 3000 -> 6000 non-vacuity
+    assertion at every size.
+  - **THE OP15/OP16 MUTATION GATE IS RED ON MAIN, and it is not this branch's doing — controlled,
+    card for card, 2026-08-21.** After the operator widening merged, a fresh
+    `runs/mutation_shard.py --fresh` over OP15+OP16 reports **205 ok / 8 with survivors** and
+    prints `NOT a pass`: `OP15-021` 8/11, `OP15-024` 4/5, `OP15-054` 8/9, `OP15-056` 6/9,
+    `OP15-095` 12/13, `OP15-112` 5/6, `OP16-048` 7/8, `OP16-076` 9/10. **All eight were re-run on a
+    clean `origin/main` tree and every verdict is identical**, so the gate moves by zero across
+    this change. The surviving operators are the newly added ones — `amount 2->1`,
+    `player self->opponent`, `delete condition:*`, `delete filter:cardCategory`,
+    `zones drop "leader"` — and not one of them touches power or base power.
+    **The cause is that the committed corpus predates the widening.** `runs/OP15.jsonl` still
+    records `OP15-021` at 2 mutants where the current operators generate 11; the widened run was
+    banked as `runs/v2/`, which covers the upstream sets and has no `OP15`/`OP16` file. So
+    `runs/OP15.jsonl` and `runs/OP16.jsonl` are stale rather than wrong, and re-running the gate
+    regenerates them into a red state. **Do not "fix" this from an unrelated branch** — leave the
+    committed corpus alone, as this one did, and let it be triaged with the widening that caused
+    it. `zones drop "leader"` surviving twice is the C1/C2 Leader-exclusion shape this file already
+    tracks, so at least two of the eight look like real test gaps rather than equivalent mutants.
+  - **Blast radius across the 13 sets: ZERO existing tests changed.** Suite **6114 -> 6118 pass /
+    0 fail / 2 skipped**, same 3667 files; the +4 are the new tests. The puzzle table is
+    unmoved and was measured with a CONTROL rather than carried over: `valueRanked 9/12,
+    greedy 11/12, firstLegal 5/12` on origin/main and byte-identical on this branch. That nothing anywhere pinned
+    the printed-base reading is the mutation sweep's 37.7%-unprotected finding showing up in the
+    wild. Tests: `cards/tests/OP15/070-fuza.test.ts` (permanent, upward, a [Shura] body leaving a
+    `basePower lte 2000` K.O. pool on the opponent's turn and back in on your own — the only input
+    that differs is which seat is active), `cards/tests/OP15/092-monkey-d-luffy.test.ts`
+    (permanent, upward, at the 9 -> 10 trash boundary) and
+    `cards/tests/OP16/106-sanjuan-wolf.test.ts` (TIMED, downward, a 10000 body becoming a legal
+    `lte 8000` target). All verified red first, in both directions.
+  - **Why Fuza is asserted at the candidate pool and not through a K.O. card end to end:** Fuza is
+    live exactly when the opponent is the active player, which is exactly when the opponent plays
+    removal. There is no legal line in which its controller plays a K.O. into their own live Fuza,
+    so the "on your own turn" half is unreachable through any real card.
+  - **STILL NOT FIXED: the TIMED `setBasePowerFrom` / `copyPower` / `swapBasePower` path, which is
+    ruling #762's own worked example.** Those three still `addModifier(type: "power", value:
+    desired - effectiveBase)` in `effects/actions.ts` — a delta on TOTAL power, not a replacement
+    of the base — so `getEffectiveBasePower` cannot see them and this filter change does nothing
+    for them. Measured on the merged tree with all patches: Shuraiya attacking a 6000-power Leader
+    (`OP11-040`) gives `getCardPower` **6000** and `getEffectiveBasePower` **4000**. The PERMANENT
+    half was fixed by #26's `permanent: setBasePowerFrom is a replacement, not a power delta`
+    (`OP14EB04-053` Vista, the only permanent user). **10 cards use the three verbs** —
+    `EB01-061`, `OP04-069`, `OP06-009`, `OP14EB04-009`, `OP14EB04-053`, `OP14EB04-017`,
+    `OP14EB04-001`, **`OP16-036`**, **`OP16-055`**, `OP16-104` — and the two bold ones are
+    Standard-legal Mr.2 Bon Kurei printings, so this is not OP06 archaeology. The fix is to store a
+    replacement on the timed path the way `setBasePower` does; own branch, because it changes three
+    verbs' storage representation and the stacking semantics with it (two `copyPower`s currently
+    stack as two deltas, which is independently wrong).
+  - **Patch numbers in this file are POSITIONAL and therefore branch-local.** This work was
+    authored against an 18-patch tree, rebased onto a 24-patch one, and every "patch N" reference
+    in it rotted. Cite patches by NAME. The bench probe's own error message did too, and was
+    corrected.
+  - **`tools/test_patch_engine.py` caught a real defect in these patches: an `already` marker must
+    be text the PRIMARY anchor's replacement produces.** `const BASE_POWER_POOL_KEY = ...` reads
+    like the better marker and comes from a SECONDARY anchor, which `seed_stock` does not seed — so
+    the patch applied perfectly to the real engine and reported PENDING forever in the fixture. 5
+    tests went red. That file's "every patch is PENDING, none FAILED" assertion is what caught it.
 - **The ATTACK-side policy cannot see a set base power; the counter step can. Split measured on the
   merged Phase 1 tree 2026-08-20 — an earlier version of this note said "nothing in
   `engine/src/automation/` imports `getCardPower`" and that is now FALSE.**
@@ -1314,9 +1411,14 @@ arena/replay.ts                 replayMatch — reconstruct a recorded game from
 tools/mutation_check_arena.py   mutation harness for arena/log.test.ts (13 mutants, 0 may survive)
 tools/mutation_check_engine.py  mutation harness for the ENGINE patches + counter policy (15 mutants)
 tools/analyse_playdraw.py       play/draw split per arm + PAIRED differences between arms (Phase 2.2)
-bench/throughput.test.ts        throughput benchmark + 3 guards: patch-8 permanent-effect scaling,
-                                setBasePower overhead on a vanilla board (<=1.6x) and on a
-                                board where 4 setBasePower clauses are live (<=2.0x)
+bench/throughput.test.ts        throughput benchmark + 6 guards: the getPermanentSetCost
+                                prefilter's permanent-effect scaling, setBasePower overhead on a
+                                vanilla board (<=1.6x) and on a board where 4 setBasePower clauses
+                                are live (<=2.0x), the getPermanentModifierTotal speedup floor,
+                                the basePower-filter re-entry CYCLE (<=250ms, synthetic
+                                power-filtered card, candidate pool ascends 7->11), and a
+                                DISCRIMINATION probe that a pool built inside
+                                getPermanentSetBasePower reads EFFECTIVE base
 sim/decks/ace-op16-setbasepower-probe.json   ace-op16 + 4x OP16-015; plays setBasePower live
 data/op16-matchup-matrix.json   the matchup matrix, machine-readable
 data/card-coverage.json         all 2,282 cards classified encoded/gap/vanilla
@@ -1357,15 +1459,22 @@ python3 tools/analyse_playdraw.py <dir>          # play/draw arms: paired gap di
 ./scripts/arena.sh --replay arena/logs/<f>.jsonl --contested   # read a played game back
 ./scripts/simulate.sh --puzzles --counter avg-cost=3 --counter enabled=0  # vary a counter-policy knob
 
-# throughput benchmark AND 3 guards. (1) the getPermanentSetCost prefilter: fails loudly if permanent-effect
-# evaluation starts re-entering itself again. (2)+(3) setBasePower: fails if the base-power lookup
-# costs getCardPower more than 1.6x its pre-primitive body on a vanilla board, or 2.0x on a board
-# where four permanent setBasePower clauses are live. Both measured in-process against a locally
-# re-implemented old body, because absolute ms is host-dependent and only in-run ratios are quotable.
-# The vanilla probe is the one that catches a guard-order regression (1.77x); the loaded probe is the
-# only coverage the per-source condition/candidate-pool loop has at all.
-# NOTE this file is NOT in the suite by default -- the 6111 count excludes it, and copying it in
-# makes the suite report 6112. CONSEQUENCE WORTH KNOWING: nothing type-checks or lints this file
+# throughput benchmark AND 6 guards. (1) the getPermanentSetCost prefilter: fails loudly if
+# permanent-effect evaluation starts re-entering itself again. (2)+(3) setBasePower: fails if the
+# base-power lookup costs getCardPower more than 1.6x its pre-primitive body on a vanilla board, or
+# 2.0x on a board where four permanent setBasePower clauses are live. Both measured in-process
+# against a locally re-implemented old body, because absolute ms is host-dependent and only in-run
+# ratios are quotable. The vanilla probe is the one that catches a guard-order regression (1.77x);
+# the loaded probe is the only coverage the per-source condition/candidate-pool loop has at all.
+# (4) the getPermanentModifierTotal SPEEDUP floor: fails if that lookup stops being materially
+# faster than its pre-narrowing body. (5) the basePower-filter CYCLE probe: a SYNTHETIC permanent
+# setBasePower whose own target filters on basePower, so it reads power back through itself.
+# Wall-clock, not a ratio -- memoised it is ~0.08ms and unmemoised it is factorial in the candidate
+# pool (20/103/951ms at pools 7/8/9), so any limit between them separates the two. It is the only
+# guard on the memo, and it is paired with a DISCRIMINATION probe that pins the other half --
+# that a pool computed inside getPermanentSetBasePower reads EFFECTIVE base, not printed.
+# NOTE this file is NOT in the suite by default -- the 6118 count excludes it, and copying it in
+# makes the suite report 6119. CONSEQUENCE WORTH KNOWING: nothing type-checks or lints this file
 # unless you copy it in and run `vp check` there. `vp test run` on it passes regardless, because
 # esbuild strips types without checking them -- a `Boolean(id)` type predicate that never
 # narrowed sat in it from 2026-08-20 until a citation sweep on 08-21 happened to run vp check.

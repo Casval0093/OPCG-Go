@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vite-plus/test";
-import type { LeaderCard } from "@tcg/op-types";
+import type { LeaderCard, Target } from "@tcg/op-types";
 import {
   op03Namule007,
   op04Ideo077,
@@ -9,6 +9,7 @@ import {
 } from "@tcg/op-cards";
 
 import { registerCards } from "../../../../cards/src/runtime-catalog.ts";
+import { candidatePoolForTarget } from "../../../src/effects/targeting.ts";
 import { type CardRef, OnePieceTestEngine } from "../../../src/index.ts";
 
 // Ruling #909 asks whether a Leader that has every card's name picks up this grant. 是的. There
@@ -172,6 +173,54 @@ describe("OP15-070 Fuza", () => {
 
     expect(characterPower(engine, op05Shura106)).toBe(2000);
     expect(characterPower(engine, op15Fuza070)).toBe(4000);
+  });
+
+  // OP16-010 Namule's K.O. target, copied verbatim: "K.O. up to 1 of your opponent's Characters
+  // with 2000 base power or less." This is the consumer the clause exists to dodge -- and the
+  // reason it is asserted at the CANDIDATE POOL rather than through Namule end to end is that
+  // Fuza is live exactly when the opponent is the active player, which is exactly when the
+  // opponent plays removal. There is no legal line in which south plays a K.O. into its own live
+  // Fuza, so the "on your own turn" half is unreachable through any real K.O. card and the pool is
+  // the only place both halves can be varied by ONE input.
+  const KO_BASE_POWER_LTE_2000 = {
+    player: "opponent",
+    zones: ["character"],
+    count: { amount: 1, upTo: true },
+    filters: [{ filter: "basePower", comparison: "lte", value: 2000 }],
+  } as const satisfies Target;
+
+  // Evaluated as NORTH, so `player: "opponent"` resolves to south's character area -- the board
+  // every helper above builds.
+  function koCandidates(engine: OnePieceTestEngine) {
+    const pool = candidatePoolForTarget(engine.getState(), "north", null, KO_BASE_POWER_LTE_2000);
+    expect(pool.supported).toBe(true);
+    return pool.candidateIds;
+  }
+
+  test("ruling #762: [Opponent's Turn] your [Shura] leaves a `basePower lte 2000` K.O. pool", () => {
+    // Ruling #762 in the engine's own terms: an effect that CHANGES base power is visible to a
+    // later base-power test. The Q&A is EB03-004 Carina against OP06-009 Shuraiya -- Shuraiya's
+    // own effect takes its base power to 6000+, and Carina then counts it as a 6000-or-more
+    // base-power Character. Same rule, opposite direction here: south's [Shura] is printed 2000
+    // and Fuza makes its base 6000, so a "2000 base power or less" K.O. must not reach it.
+    //
+    // The pool is asserted WHOLE, not by `.not.toContain`, because the interesting mutant widens
+    // it rather than emptying it. Fuza (4000 -> 6000) and Namule (5000, no clause) are both out on
+    // their own account, so an empty pool is the only correct answer here.
+    const engine = fuzaBoardOnOpponentTurn();
+
+    expect(koCandidates(engine)).toEqual([]);
+  });
+
+  test("on YOUR own turn that same [Shura] is back IN the K.O. pool", () => {
+    // The other half, and the reason the first one cannot be satisfied by hard-coding an
+    // exclusion: the ONLY input that differs between these two boards is which seat is active.
+    // Printed base 2000 is a legal target the moment Fuza's clause is off, and the pool is exactly
+    // the [Shura] body -- Fuza's own 4000 and Namule's 5000 are still above the threshold.
+    const engine = fuzaBoard();
+    const shuraId = engine.findCardInZone("south", "character", op05Shura106);
+
+    expect(koCandidates(engine)).toEqual([shuraId]);
   });
 
   test("ruling #909: a Leader named [Shura] reaches base power 6000 as well", () => {
