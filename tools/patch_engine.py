@@ -496,6 +496,96 @@ SETCOST_PREFILTER_FIX = """      const card = getCard(source.cardId);
           }"""
 
 
+# --- trait filters substring-match instead of matching whole traits ---------------------------
+#
+# `matchesTargetFilter` branched on `match: "includes"` to a SUBSTRING test —
+# `trait.includes(expectedTrait)` — and 597 of the 599 trait filters set it. That was load-bearing
+# while upstream stored a multi-trait card as one space-joined string (838+ cards), but it also
+# made 16 official traits proper-substring-match other official traits: brace references like
+# {Whitebeard Pirates} matched "Former Whitebeard Pirates" and "Whitebeard Pirates Allies",
+# {Navy} matched "Former Navy"/"Neo Navy", {Animal} matched all 84 "Animal Kingdom Pirates" —
+# wider than the card, since Comprehensive Rules 2-4-3 makes 《》/brace references exact.
+#
+# data/card-corrections.json now splits every joined value into the official trait list
+# (tools/split_traits.py regenerates that block), so whole-trait equality is the whole semantics.
+# Filters and leader conditions whose printed text is genuinely a "type including" reference
+# (CP, GERMA, Whitebeard Pirates, Baroque Works, Roger Pirates sites) are rewritten in the same
+# table to enumerate every official trait containing the reference — Comprehensive Rules 2-4-3-1
+# makes that the card-faithful reading, so e.g. OP16-001 Ace keeps covering Former/Allies exactly
+# as printed.
+
+TRAIT_FILTER_ANCHOR = """      const hasMatchingTrait = expectedTraits.some((expectedTrait) =>
+        filter.match === "includes"
+          ? (card.traits ?? []).some((trait) => trait.includes(expectedTrait))
+          : (card.traits ?? []).includes(expectedTrait),
+      );"""
+
+TRAIT_FILTER_FIX = """      // OPCG-Go patch: whole-trait equality only. Traits are stored as exact tokens now that
+      // data/card-corrections.json splits upstream's space-joined strings, and the printed
+      // "type including" filters enumerate the traits they mean (Comprehensive Rules 2-4-3-1),
+      // so nothing needs the substring branch — which let brace references like
+      // {Whitebeard Pirates} match "Former Whitebeard Pirates"/"Whitebeard Pirates Allies" and
+      // {Animal} match all "Animal Kingdom Pirates", wider than the card (CR 2-4-3: exact).
+      const hasMatchingTrait = expectedTraits.some((expectedTrait) =>
+        (card.traits ?? []).includes(expectedTrait),
+      );"""
+
+
+# --- leaderTrait conditions substring-match, the targeting trait filter's twin ----------------
+#
+# The `leaderTrait` condition is the targeting.ts defect's twin: `match: "includes"` was the
+# DEFAULT (292 of 292 conditions), so every "if your Leader has the {X} type" condition
+# substring-matched. Teeth, not just theory: 14 "Whitebeard Pirates" conditions match a Former
+# Whitebeard Pirates leader, 13 "Navy" conditions match the Neo Navy leader OP02-072, and 3
+# "Roger Pirates" conditions match the Former Roger Pirates leader OP12-001 (Standard-legal).
+# Collapse to whole-trait equality; the printed "type including" conditions (CP x4,
+# GERMA x1, plus the Whitebeard/Baroque Works/Roger Pirates sites) are rewritten to
+# compound-or enumerations by data/card-corrections.json.
+
+LEADER_TRAIT_ANCHOR = """    case "leaderTrait":
+      return {
+        supported: true,
+        matches:
+          condition.match === "exact"
+            ? (leader.traits ?? []).includes(condition.trait)
+            : (leader.traits ?? []).some((trait) => trait.includes(condition.trait)),
+      };"""
+
+LEADER_TRAIT_FIX = """    case "leaderTrait":
+      return {
+        supported: true,
+        // OPCG-Go patch: whole-trait equality only, same as the targeting.ts trait filter.
+        // Substring matching let "Whitebeard Pirates" leader conditions match Former Whitebeard
+        // Pirates leaders, "Navy" match the Neo Navy leader, and "Roger Pirates" match the Former
+        // Roger Pirates leader OP12-001. Printed "type including" conditions (CP/GERMA) are now
+        // compound-or enumerations via data/card-corrections.json.
+        matches: (leader.traits ?? []).includes(condition.trait),
+      };"""
+
+
+# --- test-side pins of the joined-trait / substring-matching era ------------------------------
+#
+# Seventeen upstream tests encoded the defects the two trait patches above remove: they registered test-local
+# bodies with slash/space-joined trait strings (only reachable via substring matching), asserted
+# the joined storage shape directly, or cast a Former/Allies-trait card as eligible for a brace
+# {X} reference. Every fix is test-only: split the fixture string into the official traits, or
+# swap the body for a card that carries the referenced trait exactly (Comprehensive Rules 2-4-3).
+
+LAW_009_ANCHOR = """    expect(op14eb04TrafalgarLawOp14009009.traits).toEqual([
+      "Heart Pirates Supernovas The Seven Warlords of the Sea",
+    ]);"""
+
+LAW_009_FIX = """    expect(op14eb04TrafalgarLawOp14009009.traits).toEqual([
+      "The Seven Warlords of the Sea",
+      "Supernovas",
+      "Heart Pirates",
+    ]);"""
+
+LAFFITTE_IMPORT_ANCHOR = 'import { op09Peachbeard094 } from "../../../../../cards/src/cards/OP09/characters/094-peachbeard.ts";'
+
+LAFFITTE_IMPORT_FIX = 'import { op10Kuzan082 } from "../../../../../cards/src/cards/OP10/characters/082-kuzan.ts";'
+
+
 # --- the SECOND player may attack on their own first turn -------------------------------------
 #
 # The Official Rule Manual's Battle Flow footnote is "Neither player can attack on their first
@@ -2436,6 +2526,204 @@ PATCHES = [
         "relpath": "tests/cards/characters/op11-023-arlong.test.ts",
         "create": ARLONG_TEST_SOURCE,
         "already": "OPCG-Go patch: OP11-023 is the ONLY card in the catalog",
+    },
+    {
+        "name": "targeting: trait filters match whole traits, never substrings",
+        "relpath": "src/effects/targeting.ts",
+        "anchor": TRAIT_FILTER_ANCHOR,
+        "already": "OPCG-Go patch: whole-trait equality only",
+        "apply": lambda s: replace_once(s, TRAIT_FILTER_ANCHOR, TRAIT_FILTER_FIX),
+    },
+    {
+        "name": "conditions: leaderTrait matches whole traits, never substrings",
+        "relpath": "src/effects/conditions.ts",
+        "anchor": LEADER_TRAIT_ANCHOR,
+        "already": "OPCG-Go patch: whole-trait equality only, same as the targeting.ts",
+        "apply": lambda s: replace_once(s, LEADER_TRAIT_ANCHOR, LEADER_TRAIT_FIX),
+    },
+    {
+        "name": "tests: OP05-033 Baby 5's compound body pinned slash-joined trait storage",
+        "relpath": "tests/cards/characters/op05-033-baby-5.test.ts",
+        "anchor": 'traits: ["Test Fleet/Donquixote Pirates"],',
+        "already": 'traits: ["Test Fleet", "Donquixote Pirates"],',
+        "apply": lambda s: replace_once(
+            s,
+            'traits: ["Test Fleet/Donquixote Pirates"],',
+            'traits: ["Test Fleet", "Donquixote Pirates"],'),
+    },
+    {
+        "name": "tests: OP05-034 Baby 5's compound body pinned slash-joined trait storage",
+        "relpath": "tests/cards/characters/op05-034-baby-5.test.ts",
+        "anchor": 'traits: ["Test Fleet/Donquixote Pirates"],',
+        "already": 'traits: ["Test Fleet", "Donquixote Pirates"],',
+        "apply": lambda s: replace_once(
+            s,
+            'traits: ["Test Fleet/Donquixote Pirates"],',
+            'traits: ["Test Fleet", "Donquixote Pirates"],'),
+    },
+    {
+        "name": "tests: OP05-064 Killer's compound body pinned slash-joined trait storage",
+        "relpath": "tests/cards/characters/op05-064-killer.test.ts",
+        "anchor": 'traits: ["Supernovas/Kid Pirates"],',
+        "already": 'traits: ["Supernovas", "Kid Pirates"],',
+        "apply": lambda s: replace_once(
+            s,
+            'traits: ["Supernovas/Kid Pirates"],',
+            'traits: ["Supernovas", "Kid Pirates"],'),
+    },
+    {
+        "name": "tests: OP05-090 Riku Doldo III's compound body pinned slash-joined trait storage",
+        "relpath": "tests/cards/characters/op05-090-riku-doldo-iii.test.ts",
+        "anchor": 'traits: ["Beautiful Pirates/Dressrosa"],',
+        "already": 'traits: ["Beautiful Pirates", "Dressrosa"],',
+        "apply": lambda s: replace_once(
+            s,
+            'traits: ["Beautiful Pirates/Dressrosa"],',
+            'traits: ["Beautiful Pirates", "Dressrosa"],'),
+    },
+    {
+        "name": "tests: OP08-033 Roddy's compound body pinned space-joined trait storage",
+        "relpath": "tests/cards/characters/op08-033-roddy.test.ts",
+        "anchor": 'traits: ["Heart Pirates Minks"],',
+        "already": 'traits: ["Heart Pirates", "Minks"],',
+        "apply": lambda s: replace_once(
+            s,
+            'traits: ["Heart Pirates Minks"],',
+            'traits: ["Heart Pirates", "Minks"],'),
+    },
+    {
+        "name": "tests: OP10-007 Ceaser Soldier's compound body pinned space-joined trait storage",
+        "relpath": "src/cards/OP10/characters/007-ceaser-soldier.test.ts",
+        "anchor": 'traits: ["Scientist Punk Hazard"],',
+        "already": 'traits: ["Scientist", "Punk Hazard"],',
+        "apply": lambda s: replace_once(
+            s,
+            'traits: ["Scientist Punk Hazard"],',
+            'traits: ["Scientist", "Punk Hazard"],'),
+    },
+    {
+        "name": "tests: OP10-071 Doflamingo's compound body pinned space-joined trait storage",
+        "relpath": "src/cards/OP10/characters/071-donquixote-doflamingo.test.ts",
+        "anchor": 'traits: ["Donquixote Pirates Navy"],',
+        "already": 'traits: ["Donquixote Pirates", "Navy"],',
+        "apply": lambda s: replace_once(
+            s,
+            'traits: ["Donquixote Pirates Navy"],',
+            'traits: ["Donquixote Pirates", "Navy"],'),
+    },
+    {
+        "name": "tests: OP05-015 Belo Betty's search body pinned slash-joined trait storage",
+        "relpath": "tests/cards/characters/op05-015-belo-betty.test.ts",
+        "anchor": 'traits: ["Test Fleet/Revolutionary Army"],',
+        "already": 'traits: ["Test Fleet", "Revolutionary Army"],',
+        "apply": lambda s: replace_once(
+            s,
+            'traits: ["Test Fleet/Revolutionary Army"],',
+            'traits: ["Test Fleet", "Revolutionary Army"],'),
+    },
+    {
+        "name": "tests: OP07-060 Itomimizu mutated its leader to a space-joined trait string",
+        "relpath": "tests/cards/characters/op07-060-itomimizu.test.ts",
+        "anchor": 'op07Foxy059.traits = ["Foxy Pirates Long Ring Long Land"];',
+        "already": 'op07Foxy059.traits = ["Foxy Pirates", "Long Ring Long Land"];',
+        "apply": lambda s: replace_once(
+            s,
+            'op07Foxy059.traits = ["Foxy Pirates Long Ring Long Land"];',
+            'op07Foxy059.traits = ["Foxy Pirates", "Long Ring Long Land"];'),
+    },
+    {
+        "name": "tests: OP07-071 Foxy mutated its leader to a space-joined trait string",
+        "relpath": "tests/cards/characters/op07-071-foxy.test.ts",
+        "anchor": 'op07Foxy059.traits = ["Special Foxy Pirates"];',
+        "already": 'op07Foxy059.traits = ["Special", "Foxy Pirates"];',
+        "apply": lambda s: replace_once(
+            s,
+            'op07Foxy059.traits = ["Special Foxy Pirates"];',
+            'op07Foxy059.traits = ["Special", "Foxy Pirates"];'),
+    },
+    {
+        "name": "tests: OP05-012 Hack asserted the space-joined trait storage shape",
+        "relpath": "tests/cards/characters/op05-012-hack.test.ts",
+        "anchor": 'traits: ["Fish-Man Revolutionary Army"],',
+        "already": 'traits: ["Fish-Man", "Revolutionary Army"],',
+        "apply": lambda s: replace_once(
+            s,
+            'traits: ["Fish-Man Revolutionary Army"],',
+            'traits: ["Fish-Man", "Revolutionary Army"],'),
+    },
+    {
+        "name": "tests: OP14-009 Law asserted the space-joined trait storage shape",
+        "relpath": "src/cards/OP14EB04/characters/009-trafalgar-law-op14-009.test.ts",
+        "anchor": LAW_009_ANCHOR,
+        "already": '"The Seven Warlords of the Sea",\n      "Supernovas",',
+        "apply": lambda s: replace_once(s, LAW_009_ANCHOR, LAW_009_FIX),
+    },
+    {
+        "name": "tests: OP05-075 Mr.1 cast a Former Baroque Works body for a {Baroque Works} play",
+        "relpath": "tests/cards/characters/op05-075-mr-1-daz-bonez.test.ts",
+        # Identifier swap: import line plus every use site, so replace_EVERY rather than
+        # replace_once.
+        "anchors_multi": ["op02Mr1DazBonez063"],
+        "already": "op01Mr1DazBonez083",
+        "already_absent": "op02Mr1DazBonez063",
+        # OP02-063 carries [Impel Down, Former Baroque Works]; the brace reference is exact now,
+        # so the eligible body becomes the OP01 printing of the same character (cost 2, plain
+        # [Baroque Works]). OP04-067 stays as the too-expensive case (cost 4, same exact trait).
+        "apply": lambda s: replace_every(s, "op02Mr1DazBonez063", "op01Mr1DazBonez083"),
+    },
+    {
+        "name": "tests: EB01-009 cast Animal Kingdom Pirates bodies for an {Animal} play",
+        "relpath": "tests/cards/events/eb01-009-just-shut-up-and-come-with-us.test.ts",
+        # Two identifier swaps, many occurrences each: replace_EVERY, one marker per edit.
+        "anchors_multi": ["eb01Hamlet024", "eb01Fourtricks025"],
+        "already": ["op04Karoo004", "op15Laboon035"],
+        "already_absent": ["eb01Hamlet024", "eb01Fourtricks025"],
+        # Hamlet/Fourtricks are [Animal Kingdom Pirates, SMILE] — the brace {Animal} reference
+        # no longer reaches them. Karoo and Laboon carry [Animal] exactly at cost 1; Mountain
+        # God stays as the too-expensive true-Animal case.
+        "apply": lambda s: replace_every(
+            replace_every(s, "eb01Hamlet024", "op04Karoo004"),
+            "eb01Fourtricks025",
+            "op15Laboon035",
+        ),
+    },
+    {
+        "name": "tests: OP09-099 Fullalead cast an Allies body for a {Blackbeard Pirates} reveal",
+        "relpath": "tests/cards/stages/op09-099-fullalead.test.ts",
+        "anchors_multi": ["op09Peachbeard094"],
+        "already": "op10Kuzan082",
+        "already_absent": "op09Peachbeard094",
+        # Peachbeard is [Peachbeard Pirates, Blackbeard Pirates Allies]; Kuzan OP10-082 is the
+        # composite the test name describes — [Former Navy, Blackbeard Pirates] exactly.
+        "apply": lambda s: replace_every(s, "op09Peachbeard094", "op10Kuzan082"),
+    },
+    {
+        "name": "tests: OP09-095 Laffitte cast an Allies body for a {Blackbeard Pirates} reveal",
+        "relpath": "src/cards/OP09/characters/095-laffitte.test.ts",
+        "anchor": LAFFITTE_IMPORT_ANCHOR,
+        # The import is per-file here (src/cards, not the barrel): swap the import line once,
+        # THEN the use-site identifiers wholesale — the import line contains the identifier, so
+        # the once-swap must run first or replace_every would eat the anchor.
+        "anchors_multi": ["op09Peachbeard094"],
+        # One marker per edit: the kuzan import path proves the import swap, the absence of the
+        # old identifier proves the use-site swap.
+        "already": "characters/082-kuzan.ts",
+        "already_absent": "op09Peachbeard094",
+        "apply": lambda s: replace_every(
+            replace_once(s, LAFFITTE_IMPORT_ANCHOR, LAFFITTE_IMPORT_FIX),
+            "op09Peachbeard094",
+            "op10Kuzan082",
+        ),
+    },
+    {
+        "name": "tests: OP10-082 Kuzan cast an Allies body for a {Blackbeard Pirates} trash play",
+        "relpath": "src/cards/OP10/characters/082-kuzan.test.ts",
+        "anchors_multi": ["op09Peachbeard094"],
+        "already": "op10JesusBurgess085",
+        "already_absent": "op09Peachbeard094",
+        # Peachbeard is Blackbeard Pirates Allies; OP10-085 Jesus Burgess is the composite
+        # [Dressrosa, Blackbeard Pirates] at exactly cost 5, keeping the cost boundary covered.
+        "apply": lambda s: replace_every(s, "op09Peachbeard094", "op10JesusBurgess085"),
     },
 ]
 
