@@ -25,6 +25,7 @@ Determine and field the highest-EV deck in the SC format, continuously, across s
 | Role of that objective | **Diagnostic, not selective** (2026-08-17). It forecasts the field and arms a tripwire; it does not choose the archetype. Tripwire is qualitative: structural deficiency is decisional, a points gap is not. See `CLAUDE.md`. |
 | Validation | Per-card assertion tests → Comprehensive Rules conformance → meta calibration |
 | Deck constraints | No preference constraints; budget cap on acquisition (ceiling TBD) |
+| Evidence classing | **Every number carries its evidence class, and classes never mix** (2026-08-21). Six classes: empirical field, empirical matchup, simulated, proxy, market, legacy. Only empirical `full-field` event evidence may set a field share; market evidence may never touch strength; the legacy EN matrix is permanently ineligible. See `docs/environment-data.md` |
 
 ## Format context
 
@@ -173,10 +174,70 @@ which is the gap that still matters for share-weighting.
 2. Acquisition budget ceiling (RMB)
 3. Is SC OP17 the same list as JP/EN OP17, or does it carry SC-exclusive content? *(the 08-17
    confirmation was scoped to banlist and rotation, so this is still open)*
-4. SC-native field data — anything on what people actually play locally
+4. SC-native field data — no-window Android acquisition is available through
+   `tools/jihuanshe_capture.mjs` (`collect market` / `collect tournaments`), with
+   `tools/jihuanshe_reader.mjs` as the lower-level page reader; a dated,
+   event-sized SC share capture still needs to be normalized before it can replace
+   the EN proxy
+   — **partly closed 2026-08-21: the normalization and publication half is now built.**
+   `tools/jihuanshe_normalize.mjs` turns exact capture bytes into typed event snapshots (with a
+   six-check full-field ladder that demotes a subset rather than promoting it), and
+   `tools/jihuanshe_refresh.mjs` publishes them as immutable source snapshots. What remains is a
+   *live* run: an SC capture published, aggregated into a FieldSnapshot, and promoted to a Manifest.
+   Until that happens **no SC Manifest and no `SC/latest` alias exist**, and every share-weighted
+   number in `docs/research-findings.md` is still an EN proxy. That promotion is owner-gated,
+   because it drives the authenticated app session.
 
 ~~Does SC Standard run the same Block 2+ rotation?~~ — **yes**, 2026-08-17.
 ~~Is the SC banlist identical?~~ — **yes**, 2026-08-17.
+
+## Evidence classes and what still cannot be claimed — 2026-08-21
+
+The environment layer implements the charter's ground-truth decision rather than restating it. SC
+remains the objective; EN remains a proxy that is *labelled* a proxy. Full contract, commands and
+boundaries: `docs/environment-data.md`.
+
+What this closes:
+
+- **A proxy can borrow matchups and nothing else.** Cross-edition borrowing is confined to one named
+  reference (`matchupPolicy.proxyPriorRef`) inside a Manifest whose `kind` is `proxy`. A proxy may
+  not borrow a field, so an EN share can never be renamed an SC share by filing it in an SC folder.
+- **The legacy EV matrix is permanently out.** `data/op16-matchup-matrix.json` mixes tournament
+  shares with ladder matchups and was never reconciled to one population. It now declares
+  `legacy_unverified` / EN / `historical_only` / not environment-eligible, its command prints those
+  labels before any number, and `buildManifest` refuses it as native **and** as proxy evidence. Its
+  six EV values are frozen to 1e-6 so the relabelling cannot have moved the record.
+- **Prices are metadata.** Market evidence reaches a report only as `metadata.marketRefs`. Changing
+  a market fixture leaves every EV and confidence value identical, and that is asserted, not
+  assumed.
+
+What it does not close, stated plainly because the temptation is to read the machinery as the
+measurement:
+
+- **No live SC Manifest and no live EN Manifest exist.** The SC path is built and owner-gated. The
+  EN path waits on a source whose participant denominator and decklist rows describe the *same*
+  population: a public Limitless page may declare the full entrant count while its statistics rows
+  cover only the submitted or successful subset, and that is subset evidence, not a field share.
+  Subset, Top Cut, unknown-frame and incompletely-mapped data may be **retained** and inspected;
+  none of it may produce EN field shares or `EN/latest`.
+- **No simulated report claims official tournament strength.** Nothing infers a ClockModel yet, and
+  no round-timeout adjudicator has run. The two blockers are **mutually exclusive, not
+  alternatives**: `round_timeout_unadjudicated` is pushed only when `evaluationMode` is already
+  `official`, so a report degraded by the clock gate carries `clock_model_unavailable` and can never
+  also carry the other. (And without `--allow-diagnostic` the clock gate refuses outright, producing
+  no report at all rather than a degraded one.) Given that a timed-out round in this format is a
+  **double loss**, that is a missing outcome class rather than a rounding error, and the reviewed
+  engine limitations in `data/environment-definitions/simulation-limitations-v1.json` close the
+  capability gate independently. Four rows, of which **three are still open** — no attack-target
+  choice, no blocking, and a forced `[Trigger]` activation. Two of the recorded defects have since
+  been fixed on `main` by Phase 1: the second player's illegal first-turn attack (its row is now
+  `closed`) and the missing counter policy (only half of the row it shares with blocking, so that
+  row stays open).
+- **A green offline end-to-end run is a contract test, not evidence.**
+  `tests/environment-e2e.test.mjs` drives the whole chain from synthetic SC and EN fixtures with no
+  device, no emulator and no network. It proves identity, hashing, weighting, separation and
+  refusal. It says nothing about the real metagame, and a fixture-only EN run must never be reported
+  as live EN evidence.
 
 ## References
 

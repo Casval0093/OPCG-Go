@@ -1,0 +1,125 @@
+{
+  "schemaVersion": 1,
+  "kind": "tournament_event",
+  "environment": {
+    "edition": "SC",
+    "metagameRegion": "CN",
+    "language": "zh-Hans",
+    "formatId": "standard-block2-op16",
+    "timeZone": "Asia/Shanghai"
+  },
+  "asOf": "2026-08-20",
+  "source": {
+    "provider": "jihuanshe",
+    "surface": "tournament",
+    "captureHash": "sha256:3e00d587a4fa696958abcea53200f28c6352b048a789c2cf1fcb2bb6718f5d34",
+    "captureHashScope": "exact-raw-envelope-bytes",
+    "capturedAt": "2026-08-20T12:00:00Z",
+    "sourceRef": {
+      "providerEventId": "fixture-event-001",
+      "sanitizedRoute": "app:tournament-detail"
+    },
+    "parserVersion": "jihuanshe-normalizer-v1",
+    "mappingVersion": "jihuanshe-mapping-fixture-v1",
+    "observedAt": "2026-08-20T12:00:00Z",
+    "observedAtSource": "capture_fallback"
+  },
+  "coverage": {
+    "status": "complete",
+    "warnings": [],
+    "missingFields": []
+  },
+  "data": {
+    "eventKey": "jihuanshe:tournament:fixture-event-001",
+    "status": "completed",
+    "time": {
+      "precision": "day",
+      "localDate": "2026-08-18",
+      "timeZone": "Asia/Shanghai"
+    },
+    "identity": {
+      "title": "合成赛事一",
+      "game": "航海王简中",
+      "status": "已结束",
+      "startLabel": "2026-08-18",
+      "participantCountLabel": "4人",
+      "formatLabel": "标准赛"
+    },
+    "evidenceBlocks": {
+      "results": {
+        "rows": [
+          {
+            "ordinal": 1,
+            "providerRowId": "r1",
+            "rank": 1,
+            "record": "3-0-0",
+            "score": 9,
+            "rawArchetypeLabel": "合成红艾斯",
+            "archetypeId": "leader:OP16-001"
+          },
+          {
+            "ordinal": 2,
+            "providerRowId": "r2",
+            "rank": 2,
+            "record": "2-1-0",
+            "score": 6,
+            "rawArchetypeLabel": "合成黑黄蒂奇",
+            "archetypeId": "leader:OP16-080"
+          },
+          {
+            "ordinal": 3,
+            "providerRowId": "r3",
+            "rank": 3,
+            "record": "1-2-0",
+            "score": 3,
+            "rawArchetypeLabel": "合成红艾斯",
+            "archetypeId": "leader:OP16-001"
+          },
+          {
+            "ordinal": 4,
+            "providerRowId": "r4",
+            "rank": 4,
+            "record": "0-3-0",
+            "score": 0,
+            "rawArchetypeLabel": "合成黑黄蒂奇",
+            "archetypeId": "leader:OP16-080"
+          }
+        ],
+        "coverage": {
+          "status": "complete",
+          "warnings": [],
+          "missingFields": []
+        }
+      },
+      "field": {
+        "sampleFrame": "full-field",
+        "denominator": {
+          "value": 4,
+          "source": "participantCountLabel"
+        },
+        "rows": [
+          {
+            "archetypeId": "leader:OP16-001",
+            "players": 2,
+            "rawArchetypeLabel": "合成红艾斯"
+          },
+          {
+            "archetypeId": "leader:OP16-080",
+            "players": 2,
+            "rawArchetypeLabel": "合成黑黄蒂奇"
+          }
+        ],
+        "unresolvedParticipants": 0,
+        "unresolvedLabels": [],
+        "coverage": {
+          "status": "complete",
+          "warnings": [],
+          "missingFields": []
+        }
+      }
+    },
+    "eventEvidenceHash": "sha256:bb9c750d726a4a68b193af5186722e1d5b534daa71a49d25e1ed0e8293de72a8"
+  },
+  "snapshotId": "jihuanshe-tournament-fixture-event-001-246351e71f5bb132",
+  "contentHash": "sha256:246351e71f5bb1329d723671f8e195e1def7664fc58a72dded3f4c2b0f659a7b"
+}

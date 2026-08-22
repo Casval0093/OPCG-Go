@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "environmentKey": "SC:CN:zh-Hans:Asia/Shanghai:standard-block2-op16:2026-08-20",
+  "kind": "proxy",
+  "edition": "SC",
+  "metagameRegion": "CN",
+  "language": "zh-Hans",
+  "formatId": "standard-block2-op16",
+  "asOf": "2026-08-20",
+  "timeZone": "Asia/Shanghai",
+  "references": {
+    "rules": {
+      "snapshotId": "sc-rules-standard-block2-op16-3fe2d7335a4d4cdf",
+      "contentHash": "sha256:3fe2d7335a4d4cdf30982caaf91eeebdecbc1fd8d5a17492679822556705fd32"
+    },
+    "cardPool": {
+      "snapshotId": "sc-card-pool-standard-block2-op16-1d540197b5135bfe",
+      "contentHash": "sha256:1d540197b5135bfe3ac47266c2129302df1541ddd42eb211426e06d95fd61d10"
+    },
+    "banlist": {
+      "snapshotId": "sc-banlist-standard-block2-op16-627fa8980f7dcdd3",
+      "contentHash": "sha256:627fa8980f7dcdd3d4bd3105f8335ee56afb2ad0c6503a5f28c4903dda4dcbe5"
+    },
+    "constructionPolicy": {
+      "snapshotId": "sc-construction-standard-block2-op16-ac3c71103db6632d",
+      "contentHash": "sha256:ac3c71103db6632d38d13393ca031061d94de85d316733142da3b1a00a40af7f"
+    },
+    "simulationCapability": {
+      "snapshotId": "simulation-capability-sc-standard-block2-op16-79ff825a4751a9eb",
+      "contentHash": "sha256:79ff825a4751a9eb0173ff34f6eef2f980ddf880232781e3d665dae65464f282"
+    },
+    "field": {
+      "snapshotId": "field-sc-2026-07-22-2026-08-20-639ed3d85bdb718c",
+      "contentHash": "sha256:639ed3d85bdb718c4c511d64025e50933c0c20223cad681719281ea3f1034bcf"
+    },
+    "market": []
+  },
+  "opponents": [
+    {
+      "archetypeId": "leader:OP16-001",
+      "representativeDecks": [
+        {
+          "deckSnapshotId": "deck-ace-op16-aceb71994ada90c6",
+          "contentHash": "sha256:aceb71994ada90c68dd1bd9f9cf084a533bdead0e86ddba6fc4aa9ef3f4224f0",
+          "gameplayHash": "sha256:5e06c0ad39e7396253a534a92c09d06101dc723fe4c15916baa17a6a63e4608c",
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "archetypeId": "leader:OP16-080",
+      "representativeDecks": [
+        {
+          "deckSnapshotId": "deck-teach-op16-8a6c6dbac1338c97",
+          "contentHash": "sha256:8a6c6dbac1338c97be49d0073346318c1b72b7ddb553001a48ad5ad945583b45",
+          "gameplayHash": "sha256:dbd5c50316ba51b2b1d0b7a8d802e53e10174c6f86817cb1e8532734ef653482",
+          "weight": 1
+        }
+      ]
+    }
+  ],
+  "matchupPolicy": {
+    "mode": "simulate",
+    "observedMatchupRefs": [],
+    "proxyPriorRef": {
+      "snapshotId": "matchup-en-prior-0bfcf0b702511548",
+      "contentHash": "sha256:0bfcf0b7025115489cc433527d499d78a7f73a55ac0b8677a0f36f0e5afa8336",
+      "originEdition": "EN",
+      "originEnvironmentKey": "EN:GLOBAL_EN:en:America/Los_Angeles:standard-block2-op16:2026-08-20"
+    },
+    "minimumGamesPerSeat": 200,
+    "requiredFieldCoverage": 1,
+    "requiredMatchupCoverage": 1,
+    "turnOrderWeights": {
+      "play": 0.5,
+      "draw": 0.5
+    },
+    "roundPolicy": {
+      "stage": "swiss",
+      "roundDurationMinutes": 30,
+      "timeoutScoring": "double-loss",
+      "clockModelRef": {
+        "snapshotId": "clock-model-sc-swiss-7194cc321264cda2",
+        "contentHash": "sha256:7194cc321264cda2e97a364853749cba58cc6eb89876713735c570cf51664c36"
+      }
+    }
+  },
+  "latestPolicy": {
+    "fieldMaxAgeDays": 30,
+    "marketMaxAgeDays": 7,
+    "marketStalenessBlocksStrength": false
+  },
+  "manifestId": "SC-CN-zh-Hans-Asia-Shanghai-standard-block2-op16-2026-08-20-451d5b288120c8fa",
+  "contentHash": "sha256:451d5b288120c8fa6e82250e0ce93a90c4b910ae8736d085d74666b88a1bb880"
+}

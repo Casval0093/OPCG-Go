@@ -1,0 +1,26 @@
+{
+  "fixture_only": true,
+  "note": "Synthetic, sanitized SC end-to-end dataset. No real participant, no real event, no real price. Nothing here was captured from a device or a live provider, and none of it may be cited as SC field evidence.",
+  "files": {
+    "raw-tournament-capture.json": {
+      "markerCarried": false,
+      "reason": "strict CaptureResult v2 envelope: tools/jihuanshe_normalize.mjs allowlists top-level keys, so a fixture_only marker cannot be added without breaking normalization"
+    },
+    "raw-market-capture-a.json": {
+      "markerCarried": false,
+      "reason": "strict CaptureResult v2 envelope, as above"
+    },
+    "raw-market-capture-b.json": {
+      "markerCarried": false,
+      "reason": "strict CaptureResult v2 envelope, as above"
+    },
+    "mappings.json": {
+      "markerCarried": true,
+      "reason": null
+    },
+    "outcome-script.json": {
+      "markerCarried": true,
+      "reason": null
+    }
+  }
+}

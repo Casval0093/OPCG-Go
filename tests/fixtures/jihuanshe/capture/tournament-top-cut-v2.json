@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 2,
+  "source": "JiHuanShe Android visible UI",
+  "status": "ok",
+  "surface": "tournament",
+  "capturedAt": "2026-08-20T12:00:00Z",
+  "sourceRef": {
+    "providerEventId": "fixture-event-top-cut-001",
+    "sanitizedRoute": "app:tournament-detail"
+  },
+  "data": {
+    "identity": {
+      "title": "合成赛事淘汰赛",
+      "game": "航海王简中",
+      "status": "已结束",
+      "startLabel": "2026-08-19",
+      "participantCountLabel": "8人",
+      "formatLabel": "标准赛"
+    },
+    "results": {
+      "activeTab": "赛果",
+      "rows": [
+        { "providerRowId": "r1", "rank": 1, "record": "3-0-0", "score": 9, "joinToken": "synthetic-topcut-1", "rawArchetypeLabel": "合成红艾斯" },
+        { "providerRowId": "r2", "rank": 2, "record": "2-1-0", "score": 6, "joinToken": "synthetic-topcut-2", "rawArchetypeLabel": "合成黑黄蒂奇" }
+      ]
+    },
+    "decks": {
+      "activeTab": "卡组",
+      "distributionRows": [
+        { "rawArchetypeLabel": "合成红艾斯", "count": 1, "percentageLabel": "50%" },
+        { "rawArchetypeLabel": "合成黑黄蒂奇", "count": 1, "percentageLabel": "50%" }
+      ],
+      "entrantRows": [
+        { "providerRowId": "d1", "joinToken": "synthetic-topcut-1", "rawArchetypeLabel": "合成红艾斯" },
+        { "providerRowId": "d2", "joinToken": "synthetic-topcut-2", "rawArchetypeLabel": "合成黑黄蒂奇" }
+      ],
+      "sampleFrameLabel": "Top Cut"
+    }
+  },
+  "lifecycle": { "launchMode": "headless", "startedByInvocation": true }
+}

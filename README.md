@@ -12,6 +12,7 @@ Goal: determine and field the highest-EV deck in the SC format, continuously, ac
 | Competitive research | **done** — see [`docs/research-findings.md`](docs/research-findings.md) |
 | Card encoding backlog | **0 gaps in existing sets** (the 331 figure was a measurement bug); OP15/16 *shells* generated, effects outstanding |
 | Simulation harness | **working** — real Block 2+ decks run end to end. See [`docs/simulation.md`](docs/simulation.md) |
+| Environment data layer | **contract complete, offline-verified** — SC/EN Environments, evidence classes, fail-closed resolution. No live SC or EN Manifest exists yet. See [`docs/environment-data.md`](docs/environment-data.md) |
 | Search AI | not started; the Tier-3 lever needs re-deciding (see below) |
 | Chosen archetypes | Ace (`OP16-001`) primary, Mihawk (`OP14-020`) secondary |
 
@@ -43,6 +44,44 @@ python3 -m venv .venv && ./.venv/bin/pip install -r requirements.txt
 gates the Nash solve. The other three tools are stdlib-only and run on a bare
 `python3`. `bootstrap.sh` needs node + corepack and ends with the engine suite passing (2648 at
 the time of writing; the count grows as cards are encoded, so read the output).
+
+`ev_analysis.py` reads the **legacy** EN matrix and says so on its first line
+(`legacy-provenance: {...}`). It is historical evidence, it covers 88.29% of the field with 11.71%
+unmodelled, and it can never become an Environment. Environment strength lives elsewhere:
+
+```bash
+node --test tests/environment-e2e.test.mjs               # whole environment pipeline, offline, no device
+node tools/environment_data.mjs resolve --root R --selector SC/latest ...
+node tools/environment_evaluate.mjs evaluate --plan P --runner RUNNER --results-root R ...
+```
+
+## Environment data and evidence classes
+
+Everything the project measures now carries the class of evidence it came from, and the classes
+never mix — see [`docs/environment-data.md`](docs/environment-data.md) for the full contract,
+commands, and boundaries.
+
+| Class | May set field share? | May score strength? |
+|---|---|---|
+| Empirical field (SC events, `full-field` frame) | yes | no |
+| Empirical matchup (recorded results) | no | yes |
+| Simulated (engine games) | no | yes, but never as an unqualified official claim today |
+| Proxy (another edition's matchups, named explicitly) | no | only in a `proxy` Manifest |
+| Market (prices, indices) | no | **never** — metadata only |
+| Legacy (`data/op16-matchup-matrix.json`) | no | no |
+
+Three boundaries worth knowing before reading any output:
+
+- **No live SC or EN Manifest exists.** SC acquisition is built and owner-gated; EN waits for a
+  source whose participant denominator and decklist rows describe the same population. A public
+  Limitless page may declare the full entrant count while its statistics rows cover only the
+  submitted subset — that is subset evidence, not a field share.
+- **Simulated reports withhold the official strength claim.** Nothing infers a ClockModel yet and no
+  round-timeout adjudicator has run, so reports are blocker-bearing `diagnostic_estimate`s. A
+  timed-out round in this format is a double loss, so that is a missing outcome class, not noise.
+- **Prices never move a win rate.** Market snapshots reach a report only as metadata; the
+  end-to-end test proves that changing a market fixture leaves every EV and confidence value
+  identical.
 
 ## Card encoding backlog
 
@@ -235,13 +274,15 @@ pairs.
 ## Layout
 
 ```
-docs/     charter, engine audit, research findings, simulation
-sim/      simulation harness, decks, engine card catalog
-tools/    analysis scripts
-bench/    throughput benchmarks
-data/     generated datasets
-scripts/  bootstrap
-vendor/   cloned engine (gitignored)
+docs/         charter, engine audit, research findings, simulation, environment data
+environment/  the environment layer: snapshots, identity, legality, gates, Manifests, reports
+sim/          simulation harness, decks, engine card catalog, the environment job contract
+tools/        analysis scripts, JiHuanShe capture/normalize/refresh, environment CLIs
+tests/        cross-cutting tests and shared fixtures
+bench/        throughput benchmarks
+data/         generated datasets
+scripts/      bootstrap
+vendor/       cloned engine (gitignored)
 ```
 
 ## Licensing note

@@ -1,6 +1,11 @@
 {
   "_meta": {
     "format": "OP16 Standard (Block 2+)",
+    "evidence_status": "legacy_unverified",
+    "source_edition": "EN",
+    "applicability": "historical_only",
+    "environment_eligible": false,
+    "provenance_note": "PERMANENT labels, not a migration state. This artifact predates the environment layer: its share denominator, matchup population, and dates were never reconciled to one another, so it can never enter an Environment Manifest as native or as proxy evidence, and it can never create SC/latest or EN/latest. tools/ev_analysis.py refuses to run if these labels are weakened. Kept for historical inspection only.",
     "matchup_source": "opdecks.xyz/winmatrix/op16 — TCG Match Making ranked ladder",
     "matchup_sample_games": 213084,
     "matchup_cut_date": "2026-07-16",

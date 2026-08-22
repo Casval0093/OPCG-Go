@@ -1,0 +1,1213 @@
+{
+  "schemaVersion": 1,
+  "kind": "environment-variant-comparison-scenario",
+  "note": "Two OFFICIAL plans over the SAME Manifest, field, representatives and seats, differing only in the candidate deck (2x EB01-005 -> 2x OP16-021). Both arms therefore share every seed schedule while their plan hashes differ. The runner script gives each arm its own per-cell outcome counts so the paired difference is exact and hand-checkable.",
+  "base": {
+    "schemaVersion": 1,
+    "kind": "environment-evaluation-plan",
+    "note": "Derived by scripts under .superpowers (task-11 report §fixture derivation) from the real Task 1-6 builders and the real resolver. `resolved` is verbatim resolveEnvironment output; every deck snapshot below is verbatim buildDeckSnapshot output, so every hash recomputes.",
+    "now": "2026-08-21T10:00:00+08:00",
+    "resolved": {
+      "schemaVersion": 1,
+      "requestedEnvironment": "SC/latest",
+      "environmentKey": "SC:CN:zh-Hans:Asia/Shanghai:standard-block2-op16:2026-08-20",
+      "manifestRef": {
+        "manifestId": "SC-CN-zh-Hans-Asia-Shanghai-standard-block2-op16-2026-08-20-9e9db5395481bba2",
+        "contentHash": "sha256:9e9db5395481bba2d54e87c61af8297e9c7d44e0559922fc8904e5de3863275c"
+      },
+      "candidateDeckRef": {
+        "snapshotId": "deck-ace-op16-f75db6900fbffeba",
+        "contentHash": "sha256:f75db6900fbffebab17a059121ab26920dcd81f92c6724aebedc3b502584fbe0"
+      },
+      "candidateGameplayHash": "sha256:5e06c0ad39e7396253a534a92c09d06101dc723fe4c15916baa17a6a63e4608c",
+      "evaluationMode": "official",
+      "strata": [
+        {
+          "archetypeId": "leader:OP16-001",
+          "fieldWeight": 0.4166666666666667,
+          "representatives": [
+            {
+              "deckRef": {
+                "snapshotId": "deck-ace-op16-f75db6900fbffeba",
+                "contentHash": "sha256:f75db6900fbffebab17a059121ab26920dcd81f92c6724aebedc3b502584fbe0"
+              },
+              "gameplayHash": "sha256:5e06c0ad39e7396253a534a92c09d06101dc723fe4c15916baa17a6a63e4608c",
+              "withinArchetypeWeight": 1
+            }
+          ]
+        },
+        {
+          "archetypeId": "leader:OP16-080",
+          "fieldWeight": 0.5833333333333334,
+          "representatives": [
+            {
+              "deckRef": {
+                "snapshotId": "deck-teach-op16-e8aca6e0ce88dce0",
+                "contentHash": "sha256:e8aca6e0ce88dce0c17fecbdfee566164bcbbaf58f55cbeadee02a85d3c37924"
+              },
+              "gameplayHash": "sha256:dbd5c50316ba51b2b1d0b7a8d802e53e10174c6f86817cb1e8532734ef653482",
+              "withinArchetypeWeight": 1
+            }
+          ]
+        }
+      ],
+      "turnOrderWeights": {
+        "play": 0.5,
+        "draw": 0.5
+      },
+      "minimumCompletedGamesPerSeat": 200,
+      "matchupEvidence": {
+        "method": "simulated",
+        "applicability": "native",
+        "refs": []
+      },
+      "capabilityRef": {
+        "snapshotId": "simulation-capability-sc-standard-block2-op16-79ff825a4751a9eb",
+        "contentHash": "sha256:79ff825a4751a9eb0173ff34f6eef2f980ddf880232781e3d665dae65464f282"
+      },
+      "clockRef": {
+        "snapshotId": "clock-model-sc-swiss-0639f4499f326d53",
+        "contentHash": "sha256:0639f4499f326d538314b45893d4ae2b648ad152dff2dfd6ea02025fb8908f14"
+      },
+      "marketRefs": [
+        {
+          "snapshotId": "market-sc-fixture-2e6afa7254ee9731",
+          "contentHash": "sha256:2e6afa7254ee9731d8c421373911d189b06763068f68f07dcdec3c5a9017ed4f"
+        }
+      ],
+      "roundTimeoutPolicy": {
+        "roundDurationMinutes": 30,
+        "rulesSnapshotRef": {
+          "contentHash": "sha256:f8169c4d39b04c938aa0c2b27e1f3dd4a559447d7bfc8ca32b571a98c92d4e26",
+          "snapshotId": "sc-rules-standard-block2-op16-f8169c4d39b04c93"
+        },
+        "stage": "swiss",
+        "timeoutScoring": "double-loss"
+      },
+      "references": {
+        "rules": {
+          "contentHash": "sha256:f8169c4d39b04c938aa0c2b27e1f3dd4a559447d7bfc8ca32b571a98c92d4e26",
+          "snapshotId": "sc-rules-standard-block2-op16-f8169c4d39b04c93"
+        },
+        "cardPool": {
+          "contentHash": "sha256:cba904003746578e3fda47de45411bbc060c065289f230b412f654ecdac3bc9f",
+          "snapshotId": "sc-card-pool-standard-block2-op16-cba904003746578e"
+        },
+        "banlist": {
+          "contentHash": "sha256:7963125b79b04c822ce05483d52433c8e2a2d4f48992a4bb324aa30c8fcd66da",
+          "snapshotId": "sc-banlist-standard-block2-op16-7963125b79b04c82"
+        },
+        "constructionPolicy": {
+          "contentHash": "sha256:82037b5837e99a9a66d619ed93614c2936433777ef0cd96ff2a0f5e234f1a05a",
+          "snapshotId": "sc-construction-standard-block2-op16-82037b5837e99a9a"
+        },
+        "simulationCapability": {
+          "contentHash": "sha256:79ff825a4751a9eb0173ff34f6eef2f980ddf880232781e3d665dae65464f282",
+          "snapshotId": "simulation-capability-sc-standard-block2-op16-79ff825a4751a9eb"
+        },
+        "field": {
+          "contentHash": "sha256:639ed3d85bdb718c4c511d64025e50933c0c20223cad681719281ea3f1034bcf",
+          "snapshotId": "field-sc-2026-07-22-2026-08-20-639ed3d85bdb718c"
+        }
+      },
+      "blockers": [],
+      "warnings": []
+    },
+    "deckSnapshots": [
+      {
+        "schemaVersion": 1,
+        "kind": "deck",
+        "environment": {
+          "scope": "edition-neutral"
+        },
+        "asOf": "2026-08-20",
+        "source": {
+          "provider": "fixture",
+          "surface": "environment",
+          "sourceRef": {
+            "fixtureId": "task-11-plan"
+          },
+          "observedAt": "2026-08-20T19:00:00+08:00",
+          "capturedAt": "2026-08-20T11:00:00Z",
+          "captureHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "coverage": {
+          "status": "complete",
+          "warnings": [],
+          "missingFields": []
+        },
+        "data": {
+          "leaderGameplayId": "OP16-001",
+          "mainDeckCounts": {
+            "EB01-005": 2,
+            "OP05-019": 4,
+            "OP12-002": 4,
+            "OP16-002": 4,
+            "OP16-003": 2,
+            "OP16-008": 2,
+            "OP16-009": 4,
+            "OP16-010": 4,
+            "OP16-011": 4,
+            "OP16-014": 4,
+            "OP16-016": 2,
+            "OP16-017": 4,
+            "OP16-020": 4,
+            "OP16-021": 2,
+            "OP16-118": 4
+          },
+          "mainDeckSize": 50,
+          "gameplayHash": "sha256:5e06c0ad39e7396253a534a92c09d06101dc723fe4c15916baa17a6a63e4608c",
+          "displayName": "Ace OP16 mono-red (fixture)",
+          "notes": "Sanitized Task 3 legality fixture."
+        },
+        "snapshotId": "deck-ace-op16-f75db6900fbffeba",
+        "contentHash": "sha256:f75db6900fbffebab17a059121ab26920dcd81f92c6724aebedc3b502584fbe0"
+      },
+      {
+        "schemaVersion": 1,
+        "kind": "deck",
+        "environment": {
+          "scope": "edition-neutral"
+        },
+        "asOf": "2026-08-20",
+        "source": {
+          "provider": "fixture",
+          "surface": "environment",
+          "sourceRef": {
+            "fixtureId": "task-11-plan"
+          },
+          "observedAt": "2026-08-20T19:00:00+08:00",
+          "capturedAt": "2026-08-20T11:00:00Z",
+          "captureHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "coverage": {
+          "status": "complete",
+          "warnings": [],
+          "missingFields": []
+        },
+        "data": {
+          "leaderGameplayId": "OP16-080",
+          "mainDeckCounts": {
+            "EB01-005": 2,
+            "OP05-019": 4,
+            "OP12-002": 4,
+            "OP16-002": 4,
+            "OP16-003": 2,
+            "OP16-008": 2,
+            "OP16-009": 4,
+            "OP16-010": 4,
+            "OP16-011": 4,
+            "OP16-014": 4,
+            "OP16-016": 2,
+            "OP16-017": 4,
+            "OP16-020": 4,
+            "OP16-021": 2,
+            "OP16-118": 4
+          },
+          "mainDeckSize": 50,
+          "gameplayHash": "sha256:dbd5c50316ba51b2b1d0b7a8d802e53e10174c6f86817cb1e8532734ef653482",
+          "displayName": "Teach OP16 (fixture)",
+          "notes": "Sanitized Task 3 legality fixture."
+        },
+        "snapshotId": "deck-teach-op16-e8aca6e0ce88dce0",
+        "contentHash": "sha256:e8aca6e0ce88dce0c17fecbdfee566164bcbbaf58f55cbeadee02a85d3c37924"
+      }
+    ],
+    "settings": {
+      "strategyCandidate": "valueRanked",
+      "strategyOpponent": "valueRanked",
+      "engineRevision": "engine-commit-fixture",
+      "maxCommands": 800,
+      "maxTurns": 40,
+      "comparisonSeed": 20260820
+    }
+  },
+  "variant": {
+    "schemaVersion": 1,
+    "kind": "environment-evaluation-plan",
+    "note": "Derived by scripts under .superpowers (task-11 report §fixture derivation) from the real Task 1-6 builders and the real resolver. `resolved` is verbatim resolveEnvironment output; every deck snapshot below is verbatim buildDeckSnapshot output, so every hash recomputes.",
+    "now": "2026-08-21T10:00:00+08:00",
+    "resolved": {
+      "schemaVersion": 1,
+      "requestedEnvironment": "SC/latest",
+      "environmentKey": "SC:CN:zh-Hans:Asia/Shanghai:standard-block2-op16:2026-08-20",
+      "manifestRef": {
+        "manifestId": "SC-CN-zh-Hans-Asia-Shanghai-standard-block2-op16-2026-08-20-9e9db5395481bba2",
+        "contentHash": "sha256:9e9db5395481bba2d54e87c61af8297e9c7d44e0559922fc8904e5de3863275c"
+      },
+      "candidateDeckRef": {
+        "snapshotId": "deck-ace-op16-variant-2b86dbfb906c0bcc",
+        "contentHash": "sha256:2b86dbfb906c0bccaf64ffd85a2b891e2fa9a1faad9c710d9290bba227a91b50"
+      },
+      "candidateGameplayHash": "sha256:562f4f95983acd6dc76c6c9566e5adc370a79184214064b8bdf167c42c85af1c",
+      "evaluationMode": "official",
+      "strata": [
+        {
+          "archetypeId": "leader:OP16-001",
+          "fieldWeight": 0.4166666666666667,
+          "representatives": [
+            {
+              "deckRef": {
+                "snapshotId": "deck-ace-op16-f75db6900fbffeba",
+                "contentHash": "sha256:f75db6900fbffebab17a059121ab26920dcd81f92c6724aebedc3b502584fbe0"
+              },
+              "gameplayHash": "sha256:5e06c0ad39e7396253a534a92c09d06101dc723fe4c15916baa17a6a63e4608c",
+              "withinArchetypeWeight": 1
+            }
+          ]
+        },
+        {
+          "archetypeId": "leader:OP16-080",
+          "fieldWeight": 0.5833333333333334,
+          "representatives": [
+            {
+              "deckRef": {
+                "snapshotId": "deck-teach-op16-e8aca6e0ce88dce0",
+                "contentHash": "sha256:e8aca6e0ce88dce0c17fecbdfee566164bcbbaf58f55cbeadee02a85d3c37924"
+              },
+              "gameplayHash": "sha256:dbd5c50316ba51b2b1d0b7a8d802e53e10174c6f86817cb1e8532734ef653482",
+              "withinArchetypeWeight": 1
+            }
+          ]
+        }
+      ],
+      "turnOrderWeights": {
+        "play": 0.5,
+        "draw": 0.5
+      },
+      "minimumCompletedGamesPerSeat": 200,
+      "matchupEvidence": {
+        "method": "simulated",
+        "applicability": "native",
+        "refs": []
+      },
+      "capabilityRef": {
+        "snapshotId": "simulation-capability-sc-standard-block2-op16-79ff825a4751a9eb",
+        "contentHash": "sha256:79ff825a4751a9eb0173ff34f6eef2f980ddf880232781e3d665dae65464f282"
+      },
+      "clockRef": {
+        "snapshotId": "clock-model-sc-swiss-0639f4499f326d53",
+        "contentHash": "sha256:0639f4499f326d538314b45893d4ae2b648ad152dff2dfd6ea02025fb8908f14"
+      },
+      "marketRefs": [
+        {
+          "snapshotId": "market-sc-fixture-2e6afa7254ee9731",
+          "contentHash": "sha256:2e6afa7254ee9731d8c421373911d189b06763068f68f07dcdec3c5a9017ed4f"
+        }
+      ],
+      "roundTimeoutPolicy": {
+        "roundDurationMinutes": 30,
+        "rulesSnapshotRef": {
+          "contentHash": "sha256:f8169c4d39b04c938aa0c2b27e1f3dd4a559447d7bfc8ca32b571a98c92d4e26",
+          "snapshotId": "sc-rules-standard-block2-op16-f8169c4d39b04c93"
+        },
+        "stage": "swiss",
+        "timeoutScoring": "double-loss"
+      },
+      "references": {
+        "rules": {
+          "contentHash": "sha256:f8169c4d39b04c938aa0c2b27e1f3dd4a559447d7bfc8ca32b571a98c92d4e26",
+          "snapshotId": "sc-rules-standard-block2-op16-f8169c4d39b04c93"
+        },
+        "cardPool": {
+          "contentHash": "sha256:cba904003746578e3fda47de45411bbc060c065289f230b412f654ecdac3bc9f",
+          "snapshotId": "sc-card-pool-standard-block2-op16-cba904003746578e"
+        },
+        "banlist": {
+          "contentHash": "sha256:7963125b79b04c822ce05483d52433c8e2a2d4f48992a4bb324aa30c8fcd66da",
+          "snapshotId": "sc-banlist-standard-block2-op16-7963125b79b04c82"
+        },
+        "constructionPolicy": {
+          "contentHash": "sha256:82037b5837e99a9a66d619ed93614c2936433777ef0cd96ff2a0f5e234f1a05a",
+          "snapshotId": "sc-construction-standard-block2-op16-82037b5837e99a9a"
+        },
+        "simulationCapability": {
+          "contentHash": "sha256:79ff825a4751a9eb0173ff34f6eef2f980ddf880232781e3d665dae65464f282",
+          "snapshotId": "simulation-capability-sc-standard-block2-op16-79ff825a4751a9eb"
+        },
+        "field": {
+          "contentHash": "sha256:639ed3d85bdb718c4c511d64025e50933c0c20223cad681719281ea3f1034bcf",
+          "snapshotId": "field-sc-2026-07-22-2026-08-20-639ed3d85bdb718c"
+        }
+      },
+      "blockers": [],
+      "warnings": []
+    },
+    "deckSnapshots": [
+      {
+        "schemaVersion": 1,
+        "kind": "deck",
+        "environment": {
+          "scope": "edition-neutral"
+        },
+        "asOf": "2026-08-20",
+        "source": {
+          "provider": "fixture",
+          "surface": "environment",
+          "sourceRef": {
+            "fixtureId": "task-11-plan"
+          },
+          "observedAt": "2026-08-20T19:00:00+08:00",
+          "capturedAt": "2026-08-20T11:00:00Z",
+          "captureHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "coverage": {
+          "status": "complete",
+          "warnings": [],
+          "missingFields": []
+        },
+        "data": {
+          "leaderGameplayId": "OP16-001",
+          "mainDeckCounts": {
+            "OP05-019": 4,
+            "OP12-002": 4,
+            "OP16-002": 4,
+            "OP16-003": 2,
+            "OP16-008": 2,
+            "OP16-009": 4,
+            "OP16-010": 4,
+            "OP16-011": 4,
+            "OP16-014": 4,
+            "OP16-016": 2,
+            "OP16-017": 4,
+            "OP16-020": 4,
+            "OP16-021": 4,
+            "OP16-118": 4
+          },
+          "mainDeckSize": 50,
+          "gameplayHash": "sha256:562f4f95983acd6dc76c6c9566e5adc370a79184214064b8bdf167c42c85af1c",
+          "displayName": "Ace OP16 mono-red + Rakuyo tech (fixture variant)",
+          "notes": "Sanitized Task 3 legality fixture."
+        },
+        "snapshotId": "deck-ace-op16-variant-2b86dbfb906c0bcc",
+        "contentHash": "sha256:2b86dbfb906c0bccaf64ffd85a2b891e2fa9a1faad9c710d9290bba227a91b50"
+      },
+      {
+        "schemaVersion": 1,
+        "kind": "deck",
+        "environment": {
+          "scope": "edition-neutral"
+        },
+        "asOf": "2026-08-20",
+        "source": {
+          "provider": "fixture",
+          "surface": "environment",
+          "sourceRef": {
+            "fixtureId": "task-11-plan"
+          },
+          "observedAt": "2026-08-20T19:00:00+08:00",
+          "capturedAt": "2026-08-20T11:00:00Z",
+          "captureHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "coverage": {
+          "status": "complete",
+          "warnings": [],
+          "missingFields": []
+        },
+        "data": {
+          "leaderGameplayId": "OP16-001",
+          "mainDeckCounts": {
+            "EB01-005": 2,
+            "OP05-019": 4,
+            "OP12-002": 4,
+            "OP16-002": 4,
+            "OP16-003": 2,
+            "OP16-008": 2,
+            "OP16-009": 4,
+            "OP16-010": 4,
+            "OP16-011": 4,
+            "OP16-014": 4,
+            "OP16-016": 2,
+            "OP16-017": 4,
+            "OP16-020": 4,
+            "OP16-021": 2,
+            "OP16-118": 4
+          },
+          "mainDeckSize": 50,
+          "gameplayHash": "sha256:5e06c0ad39e7396253a534a92c09d06101dc723fe4c15916baa17a6a63e4608c",
+          "displayName": "Ace OP16 mono-red (fixture)",
+          "notes": "Sanitized Task 3 legality fixture."
+        },
+        "snapshotId": "deck-ace-op16-f75db6900fbffeba",
+        "contentHash": "sha256:f75db6900fbffebab17a059121ab26920dcd81f92c6724aebedc3b502584fbe0"
+      },
+      {
+        "schemaVersion": 1,
+        "kind": "deck",
+        "environment": {
+          "scope": "edition-neutral"
+        },
+        "asOf": "2026-08-20",
+        "source": {
+          "provider": "fixture",
+          "surface": "environment",
+          "sourceRef": {
+            "fixtureId": "task-11-plan"
+          },
+          "observedAt": "2026-08-20T19:00:00+08:00",
+          "capturedAt": "2026-08-20T11:00:00Z",
+          "captureHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "coverage": {
+          "status": "complete",
+          "warnings": [],
+          "missingFields": []
+        },
+        "data": {
+          "leaderGameplayId": "OP16-080",
+          "mainDeckCounts": {
+            "EB01-005": 2,
+            "OP05-019": 4,
+            "OP12-002": 4,
+            "OP16-002": 4,
+            "OP16-003": 2,
+            "OP16-008": 2,
+            "OP16-009": 4,
+            "OP16-010": 4,
+            "OP16-011": 4,
+            "OP16-014": 4,
+            "OP16-016": 2,
+            "OP16-017": 4,
+            "OP16-020": 4,
+            "OP16-021": 2,
+            "OP16-118": 4
+          },
+          "mainDeckSize": 50,
+          "gameplayHash": "sha256:dbd5c50316ba51b2b1d0b7a8d802e53e10174c6f86817cb1e8532734ef653482",
+          "displayName": "Teach OP16 (fixture)",
+          "notes": "Sanitized Task 3 legality fixture."
+        },
+        "snapshotId": "deck-teach-op16-e8aca6e0ce88dce0",
+        "contentHash": "sha256:e8aca6e0ce88dce0c17fecbdfee566164bcbbaf58f55cbeadee02a85d3c37924"
+      }
+    ],
+    "settings": {
+      "strategyCandidate": "valueRanked",
+      "strategyOpponent": "valueRanked",
+      "engineRevision": "engine-commit-fixture",
+      "maxCommands": 800,
+      "maxTurns": 40,
+      "comparisonSeed": 20260820
+    }
+  },
+  "runnerScript": {
+    "schemaVersion": 1,
+    "kind": "environment-fake-runner-script",
+    "arms": {
+      "base": {
+        "default": {
+          "wins": 100,
+          "losses": 100
+        },
+        "cells": {
+          "leader:OP16-001|play": {
+            "wins": 110,
+            "losses": 90
+          },
+          "leader:OP16-001|draw": {
+            "wins": 96,
+            "losses": 104
+          },
+          "leader:OP16-080|play": {
+            "wins": 120,
+            "losses": 80
+          },
+          "leader:OP16-080|draw": {
+            "wins": 88,
+            "losses": 112
+          }
+        }
+      },
+      "variant": {
+        "default": {
+          "wins": 100,
+          "losses": 100
+        },
+        "cells": {
+          "leader:OP16-001|play": {
+            "wins": 118,
+            "losses": 82
+          },
+          "leader:OP16-001|draw": {
+            "wins": 96,
+            "losses": 104
+          },
+          "leader:OP16-080|play": {
+            "wins": 132,
+            "losses": 68
+          },
+          "leader:OP16-080|draw": {
+            "wins": 90,
+            "losses": 110
+          }
+        }
+      }
+    }
+  },
+  "multiRepresentative": {
+    "note": "I4 (fix round 1): the only fixture with a MULTI-REPRESENTATIVE archetype -- leader:OP16-001 carries two real lists weighted 0.6 / 0.4, so plan expansion produces 4 jobs for that archetype and the nested EV weighting, the bootstrap template and the paired join all run end to end for the first time. Both arms share the Manifest, field, representatives and seats; only the candidate deck differs. Runner cells are keyed by opponent gameplayHash because the two representatives share a leader.",
+    "base": {
+      "schemaVersion": 1,
+      "kind": "environment-evaluation-plan",
+      "note": "Derived by scripts under .superpowers (task-11 report §fixture derivation) from the real Task 1-6 builders and the real resolver. `resolved` is verbatim resolveEnvironment output; every deck snapshot below is verbatim buildDeckSnapshot output, so every hash recomputes.",
+      "now": "2026-08-21T10:00:00+08:00",
+      "resolved": {
+        "schemaVersion": 1,
+        "requestedEnvironment": "SC/latest",
+        "environmentKey": "SC:CN:zh-Hans:Asia/Shanghai:standard-block2-op16:2026-08-20",
+        "manifestRef": {
+          "manifestId": "SC-CN-zh-Hans-Asia-Shanghai-standard-block2-op16-2026-08-20-691fada386a9860a",
+          "contentHash": "sha256:691fada386a9860ae6ed2242a42a0c025d1ee3c16747db6ea8ab4cb287c3f832"
+        },
+        "candidateDeckRef": {
+          "snapshotId": "deck-ace-op16-f75db6900fbffeba",
+          "contentHash": "sha256:f75db6900fbffebab17a059121ab26920dcd81f92c6724aebedc3b502584fbe0"
+        },
+        "candidateGameplayHash": "sha256:5e06c0ad39e7396253a534a92c09d06101dc723fe4c15916baa17a6a63e4608c",
+        "evaluationMode": "official",
+        "strata": [
+          {
+            "archetypeId": "leader:OP16-001",
+            "fieldWeight": 0.4166666666666667,
+            "representatives": [
+              {
+                "deckRef": {
+                  "snapshotId": "deck-ace-op16-f75db6900fbffeba",
+                  "contentHash": "sha256:f75db6900fbffebab17a059121ab26920dcd81f92c6724aebedc3b502584fbe0"
+                },
+                "gameplayHash": "sha256:5e06c0ad39e7396253a534a92c09d06101dc723fe4c15916baa17a6a63e4608c",
+                "withinArchetypeWeight": 0.6
+              },
+              {
+                "deckRef": {
+                  "snapshotId": "deck-ace-op16-variant-2b86dbfb906c0bcc",
+                  "contentHash": "sha256:2b86dbfb906c0bccaf64ffd85a2b891e2fa9a1faad9c710d9290bba227a91b50"
+                },
+                "gameplayHash": "sha256:562f4f95983acd6dc76c6c9566e5adc370a79184214064b8bdf167c42c85af1c",
+                "withinArchetypeWeight": 0.4
+              }
+            ]
+          },
+          {
+            "archetypeId": "leader:OP16-080",
+            "fieldWeight": 0.5833333333333334,
+            "representatives": [
+              {
+                "deckRef": {
+                  "snapshotId": "deck-teach-op16-e8aca6e0ce88dce0",
+                  "contentHash": "sha256:e8aca6e0ce88dce0c17fecbdfee566164bcbbaf58f55cbeadee02a85d3c37924"
+                },
+                "gameplayHash": "sha256:dbd5c50316ba51b2b1d0b7a8d802e53e10174c6f86817cb1e8532734ef653482",
+                "withinArchetypeWeight": 1
+              }
+            ]
+          }
+        ],
+        "turnOrderWeights": {
+          "play": 0.5,
+          "draw": 0.5
+        },
+        "minimumCompletedGamesPerSeat": 200,
+        "matchupEvidence": {
+          "method": "simulated",
+          "applicability": "native",
+          "refs": []
+        },
+        "capabilityRef": {
+          "snapshotId": "simulation-capability-sc-standard-block2-op16-79ff825a4751a9eb",
+          "contentHash": "sha256:79ff825a4751a9eb0173ff34f6eef2f980ddf880232781e3d665dae65464f282"
+        },
+        "clockRef": {
+          "snapshotId": "clock-model-sc-swiss-0639f4499f326d53",
+          "contentHash": "sha256:0639f4499f326d538314b45893d4ae2b648ad152dff2dfd6ea02025fb8908f14"
+        },
+        "marketRefs": [
+          {
+            "snapshotId": "market-sc-fixture-2e6afa7254ee9731",
+            "contentHash": "sha256:2e6afa7254ee9731d8c421373911d189b06763068f68f07dcdec3c5a9017ed4f"
+          }
+        ],
+        "roundTimeoutPolicy": {
+          "roundDurationMinutes": 30,
+          "rulesSnapshotRef": {
+            "contentHash": "sha256:f8169c4d39b04c938aa0c2b27e1f3dd4a559447d7bfc8ca32b571a98c92d4e26",
+            "snapshotId": "sc-rules-standard-block2-op16-f8169c4d39b04c93"
+          },
+          "stage": "swiss",
+          "timeoutScoring": "double-loss"
+        },
+        "references": {
+          "rules": {
+            "contentHash": "sha256:f8169c4d39b04c938aa0c2b27e1f3dd4a559447d7bfc8ca32b571a98c92d4e26",
+            "snapshotId": "sc-rules-standard-block2-op16-f8169c4d39b04c93"
+          },
+          "cardPool": {
+            "contentHash": "sha256:cba904003746578e3fda47de45411bbc060c065289f230b412f654ecdac3bc9f",
+            "snapshotId": "sc-card-pool-standard-block2-op16-cba904003746578e"
+          },
+          "banlist": {
+            "contentHash": "sha256:7963125b79b04c822ce05483d52433c8e2a2d4f48992a4bb324aa30c8fcd66da",
+            "snapshotId": "sc-banlist-standard-block2-op16-7963125b79b04c82"
+          },
+          "constructionPolicy": {
+            "contentHash": "sha256:82037b5837e99a9a66d619ed93614c2936433777ef0cd96ff2a0f5e234f1a05a",
+            "snapshotId": "sc-construction-standard-block2-op16-82037b5837e99a9a"
+          },
+          "simulationCapability": {
+            "contentHash": "sha256:79ff825a4751a9eb0173ff34f6eef2f980ddf880232781e3d665dae65464f282",
+            "snapshotId": "simulation-capability-sc-standard-block2-op16-79ff825a4751a9eb"
+          },
+          "field": {
+            "contentHash": "sha256:639ed3d85bdb718c4c511d64025e50933c0c20223cad681719281ea3f1034bcf",
+            "snapshotId": "field-sc-2026-07-22-2026-08-20-639ed3d85bdb718c"
+          }
+        },
+        "blockers": [],
+        "warnings": []
+      },
+      "deckSnapshots": [
+        {
+          "schemaVersion": 1,
+          "kind": "deck",
+          "environment": {
+            "scope": "edition-neutral"
+          },
+          "asOf": "2026-08-20",
+          "source": {
+            "provider": "fixture",
+            "surface": "environment",
+            "sourceRef": {
+              "fixtureId": "task-11-plan"
+            },
+            "observedAt": "2026-08-20T19:00:00+08:00",
+            "capturedAt": "2026-08-20T11:00:00Z",
+            "captureHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "coverage": {
+            "status": "complete",
+            "warnings": [],
+            "missingFields": []
+          },
+          "data": {
+            "leaderGameplayId": "OP16-001",
+            "mainDeckCounts": {
+              "EB01-005": 2,
+              "OP05-019": 4,
+              "OP12-002": 4,
+              "OP16-002": 4,
+              "OP16-003": 2,
+              "OP16-008": 2,
+              "OP16-009": 4,
+              "OP16-010": 4,
+              "OP16-011": 4,
+              "OP16-014": 4,
+              "OP16-016": 2,
+              "OP16-017": 4,
+              "OP16-020": 4,
+              "OP16-021": 2,
+              "OP16-118": 4
+            },
+            "mainDeckSize": 50,
+            "gameplayHash": "sha256:5e06c0ad39e7396253a534a92c09d06101dc723fe4c15916baa17a6a63e4608c",
+            "displayName": "Ace OP16 mono-red (fixture)",
+            "notes": "Sanitized Task 3 legality fixture."
+          },
+          "snapshotId": "deck-ace-op16-f75db6900fbffeba",
+          "contentHash": "sha256:f75db6900fbffebab17a059121ab26920dcd81f92c6724aebedc3b502584fbe0"
+        },
+        {
+          "schemaVersion": 1,
+          "kind": "deck",
+          "environment": {
+            "scope": "edition-neutral"
+          },
+          "asOf": "2026-08-20",
+          "source": {
+            "provider": "fixture",
+            "surface": "environment",
+            "sourceRef": {
+              "fixtureId": "task-11-plan"
+            },
+            "observedAt": "2026-08-20T19:00:00+08:00",
+            "capturedAt": "2026-08-20T11:00:00Z",
+            "captureHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "coverage": {
+            "status": "complete",
+            "warnings": [],
+            "missingFields": []
+          },
+          "data": {
+            "leaderGameplayId": "OP16-001",
+            "mainDeckCounts": {
+              "OP05-019": 4,
+              "OP12-002": 4,
+              "OP16-002": 4,
+              "OP16-003": 2,
+              "OP16-008": 2,
+              "OP16-009": 4,
+              "OP16-010": 4,
+              "OP16-011": 4,
+              "OP16-014": 4,
+              "OP16-016": 2,
+              "OP16-017": 4,
+              "OP16-020": 4,
+              "OP16-021": 4,
+              "OP16-118": 4
+            },
+            "mainDeckSize": 50,
+            "gameplayHash": "sha256:562f4f95983acd6dc76c6c9566e5adc370a79184214064b8bdf167c42c85af1c",
+            "displayName": "Ace OP16 mono-red + Rakuyo tech (fixture variant)",
+            "notes": "Sanitized Task 3 legality fixture."
+          },
+          "snapshotId": "deck-ace-op16-variant-2b86dbfb906c0bcc",
+          "contentHash": "sha256:2b86dbfb906c0bccaf64ffd85a2b891e2fa9a1faad9c710d9290bba227a91b50"
+        },
+        {
+          "schemaVersion": 1,
+          "kind": "deck",
+          "environment": {
+            "scope": "edition-neutral"
+          },
+          "asOf": "2026-08-20",
+          "source": {
+            "provider": "fixture",
+            "surface": "environment",
+            "sourceRef": {
+              "fixtureId": "task-11-plan"
+            },
+            "observedAt": "2026-08-20T19:00:00+08:00",
+            "capturedAt": "2026-08-20T11:00:00Z",
+            "captureHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "coverage": {
+            "status": "complete",
+            "warnings": [],
+            "missingFields": []
+          },
+          "data": {
+            "leaderGameplayId": "OP16-080",
+            "mainDeckCounts": {
+              "EB01-005": 2,
+              "OP05-019": 4,
+              "OP12-002": 4,
+              "OP16-002": 4,
+              "OP16-003": 2,
+              "OP16-008": 2,
+              "OP16-009": 4,
+              "OP16-010": 4,
+              "OP16-011": 4,
+              "OP16-014": 4,
+              "OP16-016": 2,
+              "OP16-017": 4,
+              "OP16-020": 4,
+              "OP16-021": 2,
+              "OP16-118": 4
+            },
+            "mainDeckSize": 50,
+            "gameplayHash": "sha256:dbd5c50316ba51b2b1d0b7a8d802e53e10174c6f86817cb1e8532734ef653482",
+            "displayName": "Teach OP16 (fixture)",
+            "notes": "Sanitized Task 3 legality fixture."
+          },
+          "snapshotId": "deck-teach-op16-e8aca6e0ce88dce0",
+          "contentHash": "sha256:e8aca6e0ce88dce0c17fecbdfee566164bcbbaf58f55cbeadee02a85d3c37924"
+        }
+      ],
+      "settings": {
+        "strategyCandidate": "valueRanked",
+        "strategyOpponent": "valueRanked",
+        "engineRevision": "engine-commit-fixture",
+        "maxCommands": 800,
+        "maxTurns": 40,
+        "comparisonSeed": 20260820
+      }
+    },
+    "variant": {
+      "schemaVersion": 1,
+      "kind": "environment-evaluation-plan",
+      "note": "Derived by scripts under .superpowers (task-11 report §fixture derivation) from the real Task 1-6 builders and the real resolver. `resolved` is verbatim resolveEnvironment output; every deck snapshot below is verbatim buildDeckSnapshot output, so every hash recomputes.",
+      "now": "2026-08-21T10:00:00+08:00",
+      "resolved": {
+        "schemaVersion": 1,
+        "requestedEnvironment": "SC/latest",
+        "environmentKey": "SC:CN:zh-Hans:Asia/Shanghai:standard-block2-op16:2026-08-20",
+        "manifestRef": {
+          "manifestId": "SC-CN-zh-Hans-Asia-Shanghai-standard-block2-op16-2026-08-20-691fada386a9860a",
+          "contentHash": "sha256:691fada386a9860ae6ed2242a42a0c025d1ee3c16747db6ea8ab4cb287c3f832"
+        },
+        "candidateDeckRef": {
+          "snapshotId": "deck-ace-op16-variant-2-ade499a955fe6298",
+          "contentHash": "sha256:ade499a955fe629896879cad87bff9e7738d2100989ea5fadc3ba07bacf9e977"
+        },
+        "candidateGameplayHash": "sha256:fd3ea0ed248f35899fff89c9abb68cd19d7e8afc822d32e2e88524014e5ab7c5",
+        "evaluationMode": "official",
+        "strata": [
+          {
+            "archetypeId": "leader:OP16-001",
+            "fieldWeight": 0.4166666666666667,
+            "representatives": [
+              {
+                "deckRef": {
+                  "snapshotId": "deck-ace-op16-f75db6900fbffeba",
+                  "contentHash": "sha256:f75db6900fbffebab17a059121ab26920dcd81f92c6724aebedc3b502584fbe0"
+                },
+                "gameplayHash": "sha256:5e06c0ad39e7396253a534a92c09d06101dc723fe4c15916baa17a6a63e4608c",
+                "withinArchetypeWeight": 0.6
+              },
+              {
+                "deckRef": {
+                  "snapshotId": "deck-ace-op16-variant-2b86dbfb906c0bcc",
+                  "contentHash": "sha256:2b86dbfb906c0bccaf64ffd85a2b891e2fa9a1faad9c710d9290bba227a91b50"
+                },
+                "gameplayHash": "sha256:562f4f95983acd6dc76c6c9566e5adc370a79184214064b8bdf167c42c85af1c",
+                "withinArchetypeWeight": 0.4
+              }
+            ]
+          },
+          {
+            "archetypeId": "leader:OP16-080",
+            "fieldWeight": 0.5833333333333334,
+            "representatives": [
+              {
+                "deckRef": {
+                  "snapshotId": "deck-teach-op16-e8aca6e0ce88dce0",
+                  "contentHash": "sha256:e8aca6e0ce88dce0c17fecbdfee566164bcbbaf58f55cbeadee02a85d3c37924"
+                },
+                "gameplayHash": "sha256:dbd5c50316ba51b2b1d0b7a8d802e53e10174c6f86817cb1e8532734ef653482",
+                "withinArchetypeWeight": 1
+              }
+            ]
+          }
+        ],
+        "turnOrderWeights": {
+          "play": 0.5,
+          "draw": 0.5
+        },
+        "minimumCompletedGamesPerSeat": 200,
+        "matchupEvidence": {
+          "method": "simulated",
+          "applicability": "native",
+          "refs": []
+        },
+        "capabilityRef": {
+          "snapshotId": "simulation-capability-sc-standard-block2-op16-79ff825a4751a9eb",
+          "contentHash": "sha256:79ff825a4751a9eb0173ff34f6eef2f980ddf880232781e3d665dae65464f282"
+        },
+        "clockRef": {
+          "snapshotId": "clock-model-sc-swiss-0639f4499f326d53",
+          "contentHash": "sha256:0639f4499f326d538314b45893d4ae2b648ad152dff2dfd6ea02025fb8908f14"
+        },
+        "marketRefs": [
+          {
+            "snapshotId": "market-sc-fixture-2e6afa7254ee9731",
+            "contentHash": "sha256:2e6afa7254ee9731d8c421373911d189b06763068f68f07dcdec3c5a9017ed4f"
+          }
+        ],
+        "roundTimeoutPolicy": {
+          "roundDurationMinutes": 30,
+          "rulesSnapshotRef": {
+            "contentHash": "sha256:f8169c4d39b04c938aa0c2b27e1f3dd4a559447d7bfc8ca32b571a98c92d4e26",
+            "snapshotId": "sc-rules-standard-block2-op16-f8169c4d39b04c93"
+          },
+          "stage": "swiss",
+          "timeoutScoring": "double-loss"
+        },
+        "references": {
+          "rules": {
+            "contentHash": "sha256:f8169c4d39b04c938aa0c2b27e1f3dd4a559447d7bfc8ca32b571a98c92d4e26",
+            "snapshotId": "sc-rules-standard-block2-op16-f8169c4d39b04c93"
+          },
+          "cardPool": {
+            "contentHash": "sha256:cba904003746578e3fda47de45411bbc060c065289f230b412f654ecdac3bc9f",
+            "snapshotId": "sc-card-pool-standard-block2-op16-cba904003746578e"
+          },
+          "banlist": {
+            "contentHash": "sha256:7963125b79b04c822ce05483d52433c8e2a2d4f48992a4bb324aa30c8fcd66da",
+            "snapshotId": "sc-banlist-standard-block2-op16-7963125b79b04c82"
+          },
+          "constructionPolicy": {
+            "contentHash": "sha256:82037b5837e99a9a66d619ed93614c2936433777ef0cd96ff2a0f5e234f1a05a",
+            "snapshotId": "sc-construction-standard-block2-op16-82037b5837e99a9a"
+          },
+          "simulationCapability": {
+            "contentHash": "sha256:79ff825a4751a9eb0173ff34f6eef2f980ddf880232781e3d665dae65464f282",
+            "snapshotId": "simulation-capability-sc-standard-block2-op16-79ff825a4751a9eb"
+          },
+          "field": {
+            "contentHash": "sha256:639ed3d85bdb718c4c511d64025e50933c0c20223cad681719281ea3f1034bcf",
+            "snapshotId": "field-sc-2026-07-22-2026-08-20-639ed3d85bdb718c"
+          }
+        },
+        "blockers": [],
+        "warnings": []
+      },
+      "deckSnapshots": [
+        {
+          "schemaVersion": 1,
+          "kind": "deck",
+          "environment": {
+            "scope": "edition-neutral"
+          },
+          "asOf": "2026-08-20",
+          "source": {
+            "provider": "fixture",
+            "surface": "environment",
+            "sourceRef": {
+              "fixtureId": "task-11-plan"
+            },
+            "observedAt": "2026-08-20T19:00:00+08:00",
+            "capturedAt": "2026-08-20T11:00:00Z",
+            "captureHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "coverage": {
+            "status": "complete",
+            "warnings": [],
+            "missingFields": []
+          },
+          "data": {
+            "leaderGameplayId": "OP16-001",
+            "mainDeckCounts": {
+              "EB01-005": 2,
+              "OP05-019": 2,
+              "OP12-002": 4,
+              "OP16-002": 4,
+              "OP16-003": 2,
+              "OP16-008": 2,
+              "OP16-009": 4,
+              "OP16-010": 4,
+              "OP16-011": 4,
+              "OP16-014": 4,
+              "OP16-016": 4,
+              "OP16-017": 4,
+              "OP16-020": 4,
+              "OP16-021": 2,
+              "OP16-118": 4
+            },
+            "mainDeckSize": 50,
+            "gameplayHash": "sha256:fd3ea0ed248f35899fff89c9abb68cd19d7e8afc822d32e2e88524014e5ab7c5",
+            "displayName": "Ace OP16 mono-red + extra Whitebeard body (fixture variant 2)",
+            "notes": "Sanitized Task 3 legality fixture."
+          },
+          "snapshotId": "deck-ace-op16-variant-2-ade499a955fe6298",
+          "contentHash": "sha256:ade499a955fe629896879cad87bff9e7738d2100989ea5fadc3ba07bacf9e977"
+        },
+        {
+          "schemaVersion": 1,
+          "kind": "deck",
+          "environment": {
+            "scope": "edition-neutral"
+          },
+          "asOf": "2026-08-20",
+          "source": {
+            "provider": "fixture",
+            "surface": "environment",
+            "sourceRef": {
+              "fixtureId": "task-11-plan"
+            },
+            "observedAt": "2026-08-20T19:00:00+08:00",
+            "capturedAt": "2026-08-20T11:00:00Z",
+            "captureHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "coverage": {
+            "status": "complete",
+            "warnings": [],
+            "missingFields": []
+          },
+          "data": {
+            "leaderGameplayId": "OP16-001",
+            "mainDeckCounts": {
+              "EB01-005": 2,
+              "OP05-019": 4,
+              "OP12-002": 4,
+              "OP16-002": 4,
+              "OP16-003": 2,
+              "OP16-008": 2,
+              "OP16-009": 4,
+              "OP16-010": 4,
+              "OP16-011": 4,
+              "OP16-014": 4,
+              "OP16-016": 2,
+              "OP16-017": 4,
+              "OP16-020": 4,
+              "OP16-021": 2,
+              "OP16-118": 4
+            },
+            "mainDeckSize": 50,
+            "gameplayHash": "sha256:5e06c0ad39e7396253a534a92c09d06101dc723fe4c15916baa17a6a63e4608c",
+            "displayName": "Ace OP16 mono-red (fixture)",
+            "notes": "Sanitized Task 3 legality fixture."
+          },
+          "snapshotId": "deck-ace-op16-f75db6900fbffeba",
+          "contentHash": "sha256:f75db6900fbffebab17a059121ab26920dcd81f92c6724aebedc3b502584fbe0"
+        },
+        {
+          "schemaVersion": 1,
+          "kind": "deck",
+          "environment": {
+            "scope": "edition-neutral"
+          },
+          "asOf": "2026-08-20",
+          "source": {
+            "provider": "fixture",
+            "surface": "environment",
+            "sourceRef": {
+              "fixtureId": "task-11-plan"
+            },
+            "observedAt": "2026-08-20T19:00:00+08:00",
+            "capturedAt": "2026-08-20T11:00:00Z",
+            "captureHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "coverage": {
+            "status": "complete",
+            "warnings": [],
+            "missingFields": []
+          },
+          "data": {
+            "leaderGameplayId": "OP16-001",
+            "mainDeckCounts": {
+              "OP05-019": 4,
+              "OP12-002": 4,
+              "OP16-002": 4,
+              "OP16-003": 2,
+              "OP16-008": 2,
+              "OP16-009": 4,
+              "OP16-010": 4,
+              "OP16-011": 4,
+              "OP16-014": 4,
+              "OP16-016": 2,
+              "OP16-017": 4,
+              "OP16-020": 4,
+              "OP16-021": 4,
+              "OP16-118": 4
+            },
+            "mainDeckSize": 50,
+            "gameplayHash": "sha256:562f4f95983acd6dc76c6c9566e5adc370a79184214064b8bdf167c42c85af1c",
+            "displayName": "Ace OP16 mono-red + Rakuyo tech (fixture variant)",
+            "notes": "Sanitized Task 3 legality fixture."
+          },
+          "snapshotId": "deck-ace-op16-variant-2b86dbfb906c0bcc",
+          "contentHash": "sha256:2b86dbfb906c0bccaf64ffd85a2b891e2fa9a1faad9c710d9290bba227a91b50"
+        },
+        {
+          "schemaVersion": 1,
+          "kind": "deck",
+          "environment": {
+            "scope": "edition-neutral"
+          },
+          "asOf": "2026-08-20",
+          "source": {
+            "provider": "fixture",
+            "surface": "environment",
+            "sourceRef": {
+              "fixtureId": "task-11-plan"
+            },
+            "observedAt": "2026-08-20T19:00:00+08:00",
+            "capturedAt": "2026-08-20T11:00:00Z",
+            "captureHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "coverage": {
+            "status": "complete",
+            "warnings": [],
+            "missingFields": []
+          },
+          "data": {
+            "leaderGameplayId": "OP16-080",
+            "mainDeckCounts": {
+              "EB01-005": 2,
+              "OP05-019": 4,
+              "OP12-002": 4,
+              "OP16-002": 4,
+              "OP16-003": 2,
+              "OP16-008": 2,
+              "OP16-009": 4,
+              "OP16-010": 4,
+              "OP16-011": 4,
+              "OP16-014": 4,
+              "OP16-016": 2,
+              "OP16-017": 4,
+              "OP16-020": 4,
+              "OP16-021": 2,
+              "OP16-118": 4
+            },
+            "mainDeckSize": 50,
+            "gameplayHash": "sha256:dbd5c50316ba51b2b1d0b7a8d802e53e10174c6f86817cb1e8532734ef653482",
+            "displayName": "Teach OP16 (fixture)",
+            "notes": "Sanitized Task 3 legality fixture."
+          },
+          "snapshotId": "deck-teach-op16-e8aca6e0ce88dce0",
+          "contentHash": "sha256:e8aca6e0ce88dce0c17fecbdfee566164bcbbaf58f55cbeadee02a85d3c37924"
+        }
+      ],
+      "settings": {
+        "strategyCandidate": "valueRanked",
+        "strategyOpponent": "valueRanked",
+        "engineRevision": "engine-commit-fixture",
+        "maxCommands": 800,
+        "maxTurns": 40,
+        "comparisonSeed": 20260820
+      }
+    },
+    "runnerScript": {
+      "schemaVersion": 1,
+      "kind": "environment-fake-runner-script",
+      "arms": {
+        "base": {
+          "cells": {
+            "sha256:5e06c0ad39e7396253a534a92c09d06101dc723fe4c15916baa17a6a63e4608c|play": {
+              "wins": 110,
+              "losses": 90
+            },
+            "sha256:5e06c0ad39e7396253a534a92c09d06101dc723fe4c15916baa17a6a63e4608c|draw": {
+              "wins": 96,
+              "losses": 104
+            },
+            "sha256:562f4f95983acd6dc76c6c9566e5adc370a79184214064b8bdf167c42c85af1c|play": {
+              "wins": 130,
+              "losses": 70
+            },
+            "sha256:562f4f95983acd6dc76c6c9566e5adc370a79184214064b8bdf167c42c85af1c|draw": {
+              "wins": 106,
+              "losses": 94
+            },
+            "sha256:dbd5c50316ba51b2b1d0b7a8d802e53e10174c6f86817cb1e8532734ef653482|play": {
+              "wins": 120,
+              "losses": 80
+            },
+            "sha256:dbd5c50316ba51b2b1d0b7a8d802e53e10174c6f86817cb1e8532734ef653482|draw": {
+              "wins": 88,
+              "losses": 112
+            }
+          }
+        },
+        "variant": {
+          "cells": {
+            "sha256:5e06c0ad39e7396253a534a92c09d06101dc723fe4c15916baa17a6a63e4608c|play": {
+              "wins": 118,
+              "losses": 82
+            },
+            "sha256:5e06c0ad39e7396253a534a92c09d06101dc723fe4c15916baa17a6a63e4608c|draw": {
+              "wins": 96,
+              "losses": 104
+            },
+            "sha256:562f4f95983acd6dc76c6c9566e5adc370a79184214064b8bdf167c42c85af1c|play": {
+              "wins": 124,
+              "losses": 76
+            },
+            "sha256:562f4f95983acd6dc76c6c9566e5adc370a79184214064b8bdf167c42c85af1c|draw": {
+              "wins": 110,
+              "losses": 90
+            },
+            "sha256:dbd5c50316ba51b2b1d0b7a8d802e53e10174c6f86817cb1e8532734ef653482|play": {
+              "wins": 132,
+              "losses": 68
+            },
+            "sha256:dbd5c50316ba51b2b1d0b7a8d802e53e10174c6f86817cb1e8532734ef653482|draw": {
+              "wins": 90,
+              "losses": 110
+            }
+          }
+        }
+      }
+    }
+  }
+}

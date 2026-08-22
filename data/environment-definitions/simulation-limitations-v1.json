@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "definitionId": "simulation-limitations-v1",
+  "reviewedAt": "2026-08-22T00:00:00Z",
+  "review": {
+    "status": "reviewed",
+    "authority": "OPCG-Go simulation capability review"
+  },
+  "limitations": [
+    {
+      "code": "second_player_first_turn_attack",
+      "evidenceLocation": "docs/simulation.md#task-11--neither-player-may-attack-on-their-own-first-turn",
+      "affectedCapability": "first_turn_legality",
+      "status": "closed",
+      "blocksOfficialStrength": true
+    },
+    {
+      "code": "counter_and_block_policy_missing",
+      "evidenceLocation": "docs/simulation.md#task-13--blocking-and-trigger-are-open-policy-surfaces-not-oversights",
+      "affectedCapability": "defensive_policy",
+      "status": "open",
+      "blocksOfficialStrength": true
+    },
+    {
+      "code": "trigger_activation_forced",
+      "evidenceLocation": "docs/simulation.md#audited-against-the-official-rule-manual--2026-08-19",
+      "affectedCapability": "trigger_activation_policy",
+      "status": "open",
+      "blocksOfficialStrength": true
+    },
+    {
+      "code": "attack_target_policy_missing",
+      "evidenceLocation": "docs/simulation.md#the-bot-cannot-choose-an-attack-target-at-all--verified-2026-08-19-do-not-re-derive",
+      "affectedCapability": "attack_target_policy",
+      "status": "open",
+      "blocksOfficialStrength": true
+    }
+  ]
+}

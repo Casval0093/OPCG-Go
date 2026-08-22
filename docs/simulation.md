@@ -1721,3 +1721,59 @@ Do not write these figures into `docs/research-findings.md`. Nami / Teach / G/B 
 - The bot does not value Life, which the elimination-bracket tiebreak rewards.
 - Mulligan policy is whatever the engine's default is; the Comprehensive Rules allow one
   all-or-nothing mulligan (5-2-1-6) and it has not been checked that the bot uses it sensibly.
+
+## Simulated results as ENVIRONMENT evidence — added 2026-08-21
+
+The environment layer (`docs/environment-data.md`) consumes this simulator through a job/result
+contract, and it is stricter about what a simulated number may be called than this document has had
+to be. Three things follow, and none of them is a criticism of the harness.
+
+- **A simulated report is one of six evidence classes and can never be another.** It may score
+  strength; it may never set a field share. Field weights come only from empirical event evidence
+  with a `full-field` frame. Nothing in `sim/results/` is environment evidence at all — the
+  environment layer refuses that summary and the arena decision log by name
+  (`legacy_evidence_rejected`), because neither carries an identity, a denominator or a content
+  hash.
+- **No simulated report currently makes an unqualified official tournament-strength claim, and the
+  reason is on this page.** The five limitations recorded above — the bot cannot choose an attack
+  target, never counters, never blocks, always activates a `[Trigger]`, and the second player may
+  illegally attack on their own first turn — each have a reviewed row in
+  `data/environment-definitions/simulation-limitations-v1.json`, and those rows are what
+  `evaluateCapabilityGate` reads. There are **four** rows for the five defects, because the counter
+  step and the block step are one resolver branch with one fix and share
+  `counter_and_block_policy_missing`; the other three are `second_player_first_turn_attack`,
+  `trigger_activation_forced` and `attack_target_policy_missing`.
+  **Phase 1 fixed one and a half of those five defects, and the register was reconciled to match on
+  2026-08-22 — three rows open, one closed, gate unchanged.** `second_player_first_turn_attack` is
+  genuinely gone (Task 1.1) and its row is now `status: "closed"`, pointing at that section.
+  `counter_and_block_policy_missing` is **half** fixed — Task 1.2 gave the defender a real counter
+  policy, Task 1.3 leaves blocking a deliberate open policy surface — so its row **stays open on the
+  block half alone** and now points at Task 1.3, the evidence for why it is still open. Reading "the
+  bot now counters" as closing that row would have handed an `official` claim to a simulator that
+  still never blocks: **half a fix does not close a row.** A closed row is closed in place, never
+  deleted, so the register still reads as the full list of defects this gate has been asked about.
+  **A defect documented here with no row would be invisible to the gate**, so closing the recorded
+  rows would reach `official` while a real defect stands — the register and this page have to be
+  changed together, and
+  `environment/capability.test.mjs` pins the row set, each row's status BY NAME (never a blanket
+  "every row is open" loop, which a legitimate closure turns into a lie), and the resolvability of
+  every row's `evidenceLocation` anchor. **Any row left `status: "open"` degrades a run to
+  `diagnostic_estimate`, regardless of its `blocksOfficialStrength` flag** — that flag is descriptive
+  metadata and deliberately NOT a gate, because a hash-valid snapshot with every flag flipped to
+  `false` would otherwise slip into `official` while every limitation is still open.
+  On top of that, the clock gate needs an accepted ClockModel that
+  **nothing in this repository infers yet**, and even with one the claim stays withheld under
+  blocker `round_timeout_unadjudicated` until a round-timeout adjudicator actually runs — and that
+  adjudicator must declare, per cell, how many completed games it EVALUATED, so a block of empty
+  cells is refused rather than counted as a measurement. A
+  timed-out round is a double loss, so an unadjudicated zero is unmeasured rather than measured.
+- **The confidence interval's exclusions are published, not implied.** `confidence.excludes` names
+  `field_selection_uncertainty`, `deck_choice_uncertainty`, `pilot_skill_uncertainty`,
+  `engine_fidelity_uncertainty` and `clock_model_uncertainty`. It is sampling noise around a fixed
+  seed schedule. Every warning on this page about policy quality being unmeasured lands inside
+  `engine_fidelity_uncertainty` and `pilot_skill_uncertainty`, i.e. outside the interval.
+
+The whole chain is exercised offline, with no device and no vendored engine, by
+`node --test tests/environment-e2e.test.mjs`: it injects a fake runner at the same seam
+`createSimulateShRunner` occupies, and it asserts that exactly one module in the pipeline's import
+graph can start a child process at all.

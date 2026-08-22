@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "kind": "environment-fake-runner-script",
+  "note": "The default outcome script for tests/fixtures/environment/fake-simulation-runner.mjs. It pins no hash and no seed: the fake runner receives the real job, so every envelope hash is computed at run time by Task 10's own buildRawJobResult. Outcomes are assigned by seed-array index (first `wins` indexes win, the rest lose), which makes every aggregate exact.",
+  "default": {
+    "wins": 100,
+    "losses": 100
+  },
+  "cells": {
+    "leader:OP16-001|play": {
+      "wins": 110,
+      "losses": 90
+    },
+    "leader:OP16-001|draw": {
+      "wins": 96,
+      "losses": 104
+    },
+    "leader:OP16-080|play": {
+      "wins": 120,
+      "losses": 80
+    },
+    "leader:OP16-080|draw": {
+      "wins": 88,
+      "losses": 112
+    }
+  }
+}

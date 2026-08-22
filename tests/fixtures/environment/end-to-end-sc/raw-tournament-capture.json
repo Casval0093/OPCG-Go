@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 2,
+  "source": "JiHuanShe Android visible UI",
+  "status": "ok",
+  "surface": "tournament",
+  "capturedAt": "2026-08-19T04:00:00Z",
+  "sourceRef": {
+    "providerEventId": "e2e-sc-event-001",
+    "sanitizedRoute": "app:tournament-detail"
+  },
+  "data": {
+    "identity": {
+      "title": "端到端合成赛事(SC)",
+      "game": "航海王简中",
+      "status": "已结束",
+      "startLabel": "2026-08-18",
+      "participantCountLabel": "8人",
+      "formatLabel": "标准赛"
+    },
+    "results": {
+      "activeTab": "赛果",
+      "rows": [
+        { "providerRowId": "r1", "rank": 1, "record": "3-0-0", "score": 9, "joinToken": "e2e-sc-1", "rawArchetypeLabel": "合成黑黄蒂奇" },
+        { "providerRowId": "r2", "rank": 2, "record": "3-0-0", "score": 9, "joinToken": "e2e-sc-2", "rawArchetypeLabel": "合成红艾斯" },
+        { "providerRowId": "r3", "rank": 3, "record": "2-1-0", "score": 6, "joinToken": "e2e-sc-3", "rawArchetypeLabel": "合成黑黄蒂奇" },
+        { "providerRowId": "r4", "rank": 4, "record": "2-1-0", "score": 6, "joinToken": "e2e-sc-4", "rawArchetypeLabel": "合成黑黄蒂奇" },
+        { "providerRowId": "r5", "rank": 5, "record": "1-2-0", "score": 3, "joinToken": "e2e-sc-5", "rawArchetypeLabel": "合成红艾斯" },
+        { "providerRowId": "r6", "rank": 6, "record": "1-2-0", "score": 3, "joinToken": "e2e-sc-6", "rawArchetypeLabel": "合成黑黄蒂奇" },
+        { "providerRowId": "r7", "rank": 7, "record": "0-3-0", "score": 0, "joinToken": "e2e-sc-7", "rawArchetypeLabel": "合成红艾斯" },
+        { "providerRowId": "r8", "rank": 8, "record": "0-3-0", "score": 0, "joinToken": "e2e-sc-8", "rawArchetypeLabel": "合成黑黄蒂奇" }
+      ]
+    },
+    "decks": {
+      "activeTab": "卡组",
+      "distributionRows": [
+        { "rawArchetypeLabel": "合成红艾斯", "count": 3, "percentageLabel": "37.5%" },
+        { "rawArchetypeLabel": "合成黑黄蒂奇", "count": 5, "percentageLabel": "62.5%" }
+      ],
+      "entrantRows": [
+        { "providerRowId": "d1", "joinToken": "e2e-sc-1", "rawArchetypeLabel": "合成黑黄蒂奇" },
+        { "providerRowId": "d2", "joinToken": "e2e-sc-2", "rawArchetypeLabel": "合成红艾斯" },
+        { "providerRowId": "d3", "joinToken": "e2e-sc-3", "rawArchetypeLabel": "合成黑黄蒂奇" },
+        { "providerRowId": "d4", "joinToken": "e2e-sc-4", "rawArchetypeLabel": "合成黑黄蒂奇" },
+        { "providerRowId": "d5", "joinToken": "e2e-sc-5", "rawArchetypeLabel": "合成红艾斯" },
+        { "providerRowId": "d6", "joinToken": "e2e-sc-6", "rawArchetypeLabel": "合成黑黄蒂奇" },
+        { "providerRowId": "d7", "joinToken": "e2e-sc-7", "rawArchetypeLabel": "合成红艾斯" },
+        { "providerRowId": "d8", "joinToken": "e2e-sc-8", "rawArchetypeLabel": "合成黑黄蒂奇" }
+      ],
+      "sampleFrameLabel": "全部参赛卡组"
+    }
+  },
+  "lifecycle": { "launchMode": "headless", "startedByInvocation": true }
+}
