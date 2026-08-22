@@ -1,0 +1,101 @@
+{
+  "list": "sim/decks/ace-op16.json",
+  "leader": "OP16-001",
+  "freeze": "current ace-op16.json (engine-buildable proxy, not a Limitless Ace list)",
+  "compared": "2026-08-22",
+  "source": "Limitless print; SC rulings when ambiguous; no aggregators. Bandai EN tie-break only.",
+  "verdict": "clear",
+  "blocks_matchup": false,
+  "counts": {
+    "unique_effect": 13,
+    "match": 12,
+    "cosmetic": 0,
+    "parked": 1,
+    "firing_miss": 0,
+    "vanilla_out": 3
+  },
+  "vanilla_out": [
+    {
+      "id": "EB01-005",
+      "name": "Doma"
+    },
+    {
+      "id": "OP12-002",
+      "name": "Edward.Newgate"
+    },
+    {
+      "id": "OP16-016",
+      "name": "Ramba"
+    }
+  ],
+  "cards": [
+    {
+      "id": "OP16-001",
+      "name": "Portgas.D.Ace",
+      "result": "match"
+    },
+    {
+      "id": "OP05-019",
+      "name": "Fire Fist",
+      "result": "match"
+    },
+    {
+      "id": "OP16-002",
+      "name": "Izo",
+      "result": "match"
+    },
+    {
+      "id": "OP16-003",
+      "name": "Edward.Newgate",
+      "result": "match"
+    },
+    {
+      "id": "OP16-008",
+      "name": "Squard",
+      "result": "match"
+    },
+    {
+      "id": "OP16-009",
+      "name": "Speed Jil",
+      "result": "match"
+    },
+    {
+      "id": "OP16-010",
+      "name": "Namule",
+      "result": "match"
+    },
+    {
+      "id": "OP16-011",
+      "name": "Vista",
+      "result": "match"
+    },
+    {
+      "id": "OP16-014",
+      "name": "Marco",
+      "result": "match"
+    },
+    {
+      "id": "OP16-017",
+      "name": "LittleOars Jr.",
+      "result": "match"
+    },
+    {
+      "id": "OP16-020",
+      "name": "If You're Coming with Me... Kiss Your Lives Goodbye!!",
+      "result": "match"
+    },
+    {
+      "id": "OP16-021",
+      "name": "Moby Dick",
+      "result": "match"
+    },
+    {
+      "id": "OP16-118",
+      "name": "Portgas.D.Ace",
+      "result": "parked",
+      "primitive": "setCounterLiteral",
+      "notes": "Already parked. Not reopened."
+    }
+  ],
+  "notes": "Now #2 Ace list is clear. Parked OP16-118 stays parked."
+}
