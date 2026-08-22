@@ -119,6 +119,37 @@ function zoneOffsetAt(epochMs, timeZone) {
   return localAsUtc - epochMs;
 }
 
+// Extracts the declared offset (in ms, same sign convention as zoneOffsetAt: positive means
+// local is ahead of UTC) from an already-validated RFC 3339 timestamp string.
+function timestampOffsetMillis(value) {
+  const match = RFC3339_PATTERN.exec(value);
+  const offset = match[8];
+  if (offset === "Z") return 0;
+  const sign = offset[0] === "-" ? -1 : 1;
+  const offsetHour = Number(offset.slice(1, 3));
+  const offsetMinute = Number(offset.slice(4, 6));
+  return sign * (offsetHour * 60 + offsetMinute) * 60_000;
+}
+
+// C2: a timestamp's own declared offset must agree with what its declared IANA zone actually
+// yields at that instant. Without this, malformed upstream data (a real offset paired with a
+// zone it does not belong to) silently computes a wrong UTC instant and can admit an
+// out-of-window event or reject an in-window one.
+function assertOffsetMatchesZone(value, timeZone, path) {
+  const epoch = Date.parse(value);
+  const declaredOffsetMs = timestampOffsetMillis(value);
+  const actualOffsetMs = zoneOffsetAt(epoch, timeZone);
+  if (declaredOffsetMs !== actualOffsetMs) {
+    fail("time_invalid", `${path} declared offset does not match ${timeZone} at that instant`, {
+      path,
+      value,
+      timeZone,
+      declaredOffsetMs,
+      actualOffsetMs,
+    });
+  }
+}
+
 function localBoundaryMillis(localDate, timeZone, hour, minute, second, millisecond) {
   const [year, month, day] = localDate.split("-").map(Number);
   const targetAsUtc = utcMillisForLocalParts({ year, month, day, hour, minute, second, millisecond });
@@ -158,22 +189,16 @@ function parseInstant(value, path, { allowDate = false } = {}) {
   return Date.parse(value);
 }
 
+// I9: the event must carry the explicit Task 5 time union at its declared location (data.time,
+// or event.time for a bare data-shaped input) or this returns null and assertEventTime fails
+// closed. This must never reconstruct a union from loose eventStartedAt/eventEndedAt fields or
+// borrow a timezone from event.environment — that duplicates the Task 7 normalizer's job and,
+// worse, invents data the source never declared.
 function extractEventTime(event) {
   const data = isRecord(event?.data) ? event.data : event;
   if (!isRecord(data)) return null;
   if (isRecord(data.time)) return data.time;
   if (isRecord(event?.time)) return event.time;
-  if (isRecord(data.eventStartedAt) && data.eventStartedAt.precision === "day") {
-    return data.eventStartedAt;
-  }
-  if (data.eventStartedAt !== undefined) {
-    return {
-      precision: "timestamp",
-      eventStartedAt: data.eventStartedAt,
-      ...(data.eventEndedAt === undefined ? {} : { eventEndedAt: data.eventEndedAt }),
-      timeZone: data.timeZone ?? event?.environment?.timeZone,
-    };
-  }
   return null;
 }
 
@@ -201,8 +226,16 @@ function assertEventTime(value) {
     return value;
   }
   if (value.precision === "timestamp") {
+    // I2: whitelist timestamp union keys exactly, the same way day precision already does.
+    if (Object.keys(value).some((key) => !["precision", "eventStartedAt", "eventEndedAt", "timeZone"].includes(key))) {
+      fail("time_invalid", "timestamp precision contains unsupported fields", { value });
+    }
     assertTimestamp(value.eventStartedAt, "event.time.eventStartedAt");
-    if (value.eventEndedAt !== undefined) assertTimestamp(value.eventEndedAt, "event.time.eventEndedAt");
+    assertOffsetMatchesZone(value.eventStartedAt, value.timeZone, "event.time.eventStartedAt");
+    if (value.eventEndedAt !== undefined) {
+      assertTimestamp(value.eventEndedAt, "event.time.eventEndedAt");
+      assertOffsetMatchesZone(value.eventEndedAt, value.timeZone, "event.time.eventEndedAt");
+    }
     if (value.eventEndedAt !== undefined && Date.parse(value.eventEndedAt) < Date.parse(value.eventStartedAt)) {
       fail("time_invalid", "event end precedes event start", { value });
     }

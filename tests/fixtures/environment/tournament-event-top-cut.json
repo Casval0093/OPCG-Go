@@ -35,7 +35,7 @@
     "status": "completed",
     "participantCount": { "value": 8, "label": "8人" },
     "evidenceBlocks": {
-      "results": { "status": "complete" },
+      "results": { "coverage": { "status": "complete", "warnings": [], "missingFields": [] } },
       "field": {
         "sampleFrame": "top-cut",
         "denominator": { "value": 8, "label": "8人" },

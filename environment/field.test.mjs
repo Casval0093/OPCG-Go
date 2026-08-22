@@ -34,6 +34,10 @@ function build(events, options = {}) {
     identity: scIdentity,
     window: fieldWindow,
     sourceRefs: events.map(snapshotRef),
+    // I4: an explicit event-selection policy (with an id) is mandatory input. Tests that care
+    // about a specific policy override this via `options`; everything else just needs a valid
+    // default so the tightened contract does not have to be repeated in every test.
+    selectionPolicy: { id: "fixture-default-selection-v1" },
     ...options,
   });
 }
@@ -202,4 +206,340 @@ test("event-selection policy preserves excluded candidates and allows one explic
   assert.equal(selected.data.selectedEvents.length, 1);
   assert.equal(selected.data.excludedEvents.length, 2);
   assert.equal(selected.data.excludedEvents[1].reason, "not_selected_version");
+});
+
+// C1: chooseEvents seeded `excluded` from the policy but never removed those keys from the
+// candidate set, so the versions.length === 1 shortcut selected them anyway. An event key that
+// a policy both supplies as evidence and excludes is a contradiction and must fail closed,
+// never be silently counted.
+test("C1: an event key that a policy both supplies and excludes is a duplicate_event, never counted", () => {
+  assert.throws(
+    () => build([eventA, eventB], {
+      selectionPolicy: {
+        id: "fixture-c1-conflicting-exclusion",
+        excluded: [{ eventKey: "fixture-full-field-a", reason: "duplicate_of_b" }],
+      },
+    }),
+    (error) => error.code === "duplicate_event",
+  );
+});
+
+// C3: every input event snapshot must declare kind === "tournament_event" exactly. Before the
+// fix, any hash-valid snapshot of any kind carrying a field block (via the
+// evidenceBlocks.field ?? field alias) was accepted as tournament field evidence.
+test("C3: event snapshot kind must be exactly tournament_event", () => {
+  const base = readFixture("tournament-event-full-field-a.json");
+
+  const marketIndex = finalizeSnapshot({ ...base, kind: "market_index" }, "fixture-c3-market-index");
+  assert.throws(() => build([marketIndex]), (error) => error.code === "field_not_representative");
+
+  const fieldKind = finalizeSnapshot({ ...base, kind: "field" }, "fixture-c3-field-kind");
+  assert.throws(() => build([fieldKind]), (error) => error.code === "field_not_representative");
+
+  const madeUp = finalizeSnapshot({ ...base, kind: "totally-made-up" }, "fixture-c3-made-up");
+  assert.throws(() => build([madeUp]), (error) => error.code === "field_not_representative");
+});
+
+// I1: absent top-level coverage status must fail closed exactly like the strict block-level
+// check, evidenceBlocks.results must be complete, and an event's own asOf must not be later
+// than the field window's asOf.
+test("I1: top-level coverage status absent fails closed instead of being accepted", () => {
+  const base = readFixture("tournament-event-full-field-a.json");
+  const noCoverageStatus = finalizeSnapshot({
+    ...base,
+    coverage: {},
+  }, "fixture-i1-no-coverage-status");
+  assert.throws(() => build([noCoverageStatus]), (error) => error.code === "field_not_representative");
+});
+
+test("I1: incomplete results evidence fails closed", () => {
+  const base = readFixture("tournament-event-full-field-a.json");
+  const incompleteResults = finalizeSnapshot({
+    ...base,
+    data: {
+      ...base.data,
+      evidenceBlocks: {
+        ...base.data.evidenceBlocks,
+        results: { status: "partial" },
+      },
+    },
+  }, "fixture-i1-incomplete-results");
+  assert.throws(() => build([incompleteResults]), (error) => error.code === "field_not_representative");
+});
+
+// R1 (fix round 2): every evidence block carries its own canonical
+// coverage: { status, warnings, missingFields } object - the shape the field block's own
+// block.coverage?.status check already reads, and the shape Task 7's normalizer emits. The
+// results block must be read the same way (resultsBlock.coverage?.status), not via a flat
+// resultsBlock.status. A flat shape (status without a nested coverage object) must now be
+// rejected - it reads as coverage being entirely absent, so it fails closed exactly like the
+// I1 rule already requires for absent/undeclared coverage elsewhere.
+test("R1: results evidence must use the canonical nested coverage.status, not a flat status", () => {
+  const base = readFixture("tournament-event-full-field-a.json");
+
+  const nestedComplete = finalizeSnapshot({
+    ...base,
+    data: {
+      ...base.data,
+      evidenceBlocks: {
+        ...base.data.evidenceBlocks,
+        results: { coverage: { status: "complete", warnings: [], missingFields: [] } },
+      },
+    },
+  }, "fixture-r1-results-nested-complete");
+  assert.doesNotThrow(() => build([nestedComplete]));
+
+  const nestedIncomplete = finalizeSnapshot({
+    ...base,
+    data: {
+      ...base.data,
+      evidenceBlocks: {
+        ...base.data.evidenceBlocks,
+        results: { coverage: { status: "partial", warnings: ["top_cut"], missingFields: [] } },
+      },
+    },
+  }, "fixture-r1-results-nested-partial");
+  assert.throws(() => build([nestedIncomplete]), (error) => error.code === "field_not_representative");
+
+  const absentCoverage = finalizeSnapshot({
+    ...base,
+    data: {
+      ...base.data,
+      evidenceBlocks: {
+        ...base.data.evidenceBlocks,
+        results: {},
+      },
+    },
+  }, "fixture-r1-results-absent-coverage");
+  assert.throws(() => build([absentCoverage]), (error) => error.code === "field_not_representative");
+
+  // The old flat shape - exactly what the pre-R1 reader accepted - must now be rejected,
+  // because it has no nested coverage object at all.
+  const flatShape = finalizeSnapshot({
+    ...base,
+    data: {
+      ...base.data,
+      evidenceBlocks: {
+        ...base.data.evidenceBlocks,
+        results: { status: "complete" },
+      },
+    },
+  }, "fixture-r1-results-flat-shape");
+  assert.throws(() => build([flatShape]), (error) => error.code === "field_not_representative");
+});
+
+test("I1: an event asOf later than the field window asOf is rejected", () => {
+  const base = readFixture("tournament-event-full-field-a.json");
+  const futureAsOf = finalizeSnapshot({
+    ...base,
+    asOf: "2026-08-21",
+  }, "fixture-i1-future-asof");
+  assert.throws(() => build([futureAsOf]), (error) => error.code === "field_not_representative");
+});
+
+// I3: participantCountOf/unresolvedCountOf already cross-check their aliases and fail on
+// disagreement; rows/distributionRows, archetypeId/canonicalArchetypeId/canonicalId, and
+// players/count/playerCount must follow the same pattern instead of resolving by silent
+// precedence.
+test("I3: row and block aliases fail closed on disagreement instead of resolving by precedence", () => {
+  const base = readFixture("tournament-event-full-field-a.json");
+
+  const playersVsCount = finalizeSnapshot({
+    ...base,
+    data: {
+      ...base.data,
+      evidenceBlocks: {
+        ...base.data.evidenceBlocks,
+        field: {
+          ...base.data.evidenceBlocks.field,
+          rows: [
+            { archetypeId: "leader:OP16-001", players: 2, count: 99 },
+            { archetypeId: "leader:OP16-080", players: 3 },
+          ],
+        },
+      },
+    },
+  }, "fixture-i3-players-count");
+  assert.throws(() => build([playersVsCount]), (error) => error.code === "field_not_representative");
+
+  const rowsVsDistributionRows = finalizeSnapshot({
+    ...base,
+    data: {
+      ...base.data,
+      evidenceBlocks: {
+        ...base.data.evidenceBlocks,
+        field: {
+          ...base.data.evidenceBlocks.field,
+          distributionRows: [
+            { archetypeId: "leader:OP16-001", players: 999 },
+            { archetypeId: "leader:OP16-080", players: 3 },
+          ],
+        },
+      },
+    },
+  }, "fixture-i3-rows-distributionrows");
+  assert.throws(() => build([rowsVsDistributionRows]), (error) => error.code === "field_not_representative");
+
+  const archetypeIdVsCanonical = finalizeSnapshot({
+    ...base,
+    data: {
+      ...base.data,
+      evidenceBlocks: {
+        ...base.data.evidenceBlocks,
+        field: {
+          ...base.data.evidenceBlocks.field,
+          rows: [
+            { archetypeId: "leader:OP16-001", canonicalArchetypeId: "leader:OP16-080", players: 2 },
+            { archetypeId: "leader:OP16-080", players: 3 },
+          ],
+        },
+      },
+    },
+  }, "fixture-i3-archetype-alias");
+  assert.throws(() => build([archetypeIdVsCanonical]), (error) => error.code === "field_not_representative");
+});
+
+// I4: the selection policy and its id are mandatory input, explicitSelection entries must be
+// validated even for a single-version event key, and a selection matching no supplied candidate
+// must fail closed.
+test("I4: the selection policy and its id are mandatory input", () => {
+  assert.throws(
+    () => buildFieldSnapshot({
+      events: [eventA],
+      identity: scIdentity,
+      window: fieldWindow,
+      sourceRefs: [snapshotRef(eventA)],
+    }),
+    (error) => error.code === "duplicate_event",
+  );
+  assert.throws(
+    () => buildFieldSnapshot({
+      events: [eventA],
+      identity: scIdentity,
+      window: fieldWindow,
+      sourceRefs: [snapshotRef(eventA)],
+      selectionPolicy: {},
+    }),
+    (error) => error.code === "duplicate_event",
+  );
+});
+
+test("I4: an explicit selection naming a version that was not supplied fails closed even with only one supplied version", () => {
+  assert.throws(
+    () => build([eventA], {
+      selectionPolicy: {
+        id: "fixture-i4-bogus-selection",
+        selected: [{ eventKey: "fixture-full-field-a", snapshotId: "bogus-snapshot-id-that-does-not-exist" }],
+      },
+    }),
+    (error) => error.code === "duplicate_event",
+  );
+});
+
+// I5: through the buildFieldSnapshot path, event-time and window-time defects surface as
+// field_not_representative, not the standalone time.mjs time_invalid code.
+test("I5: time and window defects surface through buildFieldSnapshot as field_not_representative", () => {
+  const base = readFixture("tournament-event-full-field-a.json");
+
+  const unknownPrecision = finalizeSnapshot({
+    ...base,
+    data: {
+      ...base.data,
+      time: { precision: "unknown", timeZone: "Asia/Shanghai" },
+    },
+  }, "fixture-i5-unknown-precision");
+  assert.throws(() => build([unknownPrecision]), (error) => error.code === "field_not_representative");
+
+  const { time: _removedTime, ...dataWithoutTime } = base.data;
+  const missingTime = finalizeSnapshot({
+    ...base,
+    data: dataWithoutTime,
+  }, "fixture-i5-missing-time");
+  assert.throws(() => build([missingTime]), (error) => error.code === "field_not_representative");
+
+  assert.throws(
+    () => build([eventA], { window: { ...fieldWindow, asOf: "2026-13-40" } }),
+    (error) => error.code === "field_not_representative",
+  );
+
+  assert.throws(
+    () => build([eventA], { window: { ...fieldWindow, startLocalDate: "2026-08-25" } }),
+    (error) => error.code === "field_not_representative",
+  );
+});
+
+// I7: the core rows-vs-denominator guard (classified + unresolvedParticipants !== denominator)
+// was pinned by no test; the existing "denominator disagreements" test only fires the earlier
+// alias-disagreement guard.
+//
+// A single-event undercount is not enough to isolate this guard: with only one event, the
+// aggregate share-sum-to-one check (share = players / totalParticipants) is numerically
+// equivalent to classified === denominator and would independently catch the same mismatch,
+// so mutating the guard alone would not isolate to this test. This fixture pairs an
+// undercounting event (denominator 5, rows sum 4) with a compensating overcounting event
+// (denominator 7, rows sum 8) so the aggregate totals and share-sum still balance to 1 even
+// though each event's own denominator disagrees with its own rows - only the per-event guard
+// this test targets can catch it.
+test("I7: rows summing to less than an agreeing denominator/participantCount fails the coverage-equality guard", () => {
+  const baseA = readFixture("tournament-event-full-field-a.json");
+  const rowsUndercount = finalizeSnapshot({
+    ...baseA,
+    data: {
+      ...baseA.data,
+      evidenceBlocks: {
+        ...baseA.data.evidenceBlocks,
+        field: {
+          ...baseA.data.evidenceBlocks.field,
+          rows: [
+            { archetypeId: "leader:OP16-001", players: 2, rawArchetypeLabel: "合成红艾斯" },
+            { archetypeId: "leader:OP16-080", players: 2, rawArchetypeLabel: "合成黑黄蒂奇" },
+          ],
+        },
+      },
+    },
+  }, "fixture-i7-rows-undercount");
+
+  const baseB = readFixture("tournament-event-full-field-b.json");
+  const rowsOvercount = finalizeSnapshot({
+    ...baseB,
+    data: {
+      ...baseB.data,
+      evidenceBlocks: {
+        ...baseB.data.evidenceBlocks,
+        field: {
+          ...baseB.data.evidenceBlocks.field,
+          rows: [
+            { archetypeId: "leader:OP16-001", players: 4, rawArchetypeLabel: "合成红艾斯" },
+            { archetypeId: "leader:OP16-080", players: 4, rawArchetypeLabel: "合成黑黄蒂奇" },
+          ],
+        },
+      },
+    },
+  }, "fixture-i7-rows-overcount");
+
+  assert.throws(() => build([rowsUndercount, rowsOvercount]), (error) => error.code === "field_not_representative");
+});
+
+// I8: a classified row's archetype id must be canonical ("leader:<gameplayId>"), not merely a
+// non-empty string. A raw, unmapped provider label must be treated the same as an unresolved
+// mapping.
+test("I8: a non-canonical archetype id (raw provider label) is rejected as unresolved_mapping", () => {
+  const base = readFixture("tournament-event-full-field-a.json");
+  const rawLabelRow = finalizeSnapshot({
+    ...base,
+    data: {
+      ...base.data,
+      evidenceBlocks: {
+        ...base.data.evidenceBlocks,
+        field: {
+          ...base.data.evidenceBlocks.field,
+          rows: [
+            { archetypeId: "合成红艾斯", players: 2 },
+            { archetypeId: "leader:OP16-080", players: 3 },
+          ],
+        },
+      },
+    },
+  }, "fixture-i8-raw-label");
+  assert.throws(() => build([rawLabelRow]), (error) => error.code === "unresolved_mapping");
 });

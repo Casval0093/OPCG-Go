@@ -2,10 +2,15 @@ import { EnvironmentError } from "./errors.mjs";
 import { finalizeSnapshot, snapshotRef, verifySnapshot } from "./snapshot.mjs";
 import { assertNativeEnvironment } from "./rules.mjs";
 import { eventQualifies } from "./time.mjs";
+import { sha256Canonical } from "./hash.mjs";
 
 const FULL_HASH_PATTERN = /^sha256:[0-9a-f]{64}$/;
-const DEFAULT_SELECTION_POLICY_ID = "explicit-source-order-v1";
 const AGGREGATION_POLICY_ID = "participant-count-v1";
+// v1 canonical archetype-id grammar (I8): "leader:<gameplayId>", e.g. "leader:OP16-001". A
+// classified row whose archetype id does not match this shape was never actually resolved to a
+// real card mapping, even though it may look like a non-empty string (e.g. a raw, unmapped
+// provider label such as "合成红艾斯").
+const CANONICAL_ARCHETYPE_ID_PATTERN = /^leader:[A-Za-z0-9][A-Za-z0-9_-]*$/;
 
 function fail(code, message = code, details = {}) {
   const rendered = message.startsWith(`${code}:`) ? message : `${code}: ${message}`;
@@ -28,6 +33,38 @@ function assertFullHash(value, path) {
     fail("snapshot_hash_invalid", `${path} must be a full sha256 hash`, { path, value });
   }
   return value;
+}
+
+// I3: cross-checks alias candidates the same way participantCountOf/unresolvedCountOf already
+// do - every alias that is actually present must agree, or the block is self-contradictory and
+// fails closed rather than being resolved by silent precedence. Canonical hashing (never ad hoc
+// JSON.stringify, per this module's own hashing rule) gives a structural, order-sensitive
+// comparison so array/object aliases such as rows vs distributionRows are compared by content,
+// not by reference.
+function agreeingCandidates(candidates, label) {
+  const present = candidates.filter((value) => value !== undefined && value !== null);
+  if (present.length <= 1) return present[0];
+  let canonicalForms;
+  try {
+    canonicalForms = present.map((value) => sha256Canonical(value));
+  } catch (error) {
+    fail("field_not_representative", `${label} aliases could not be compared`, {
+      cause: error?.code ?? error?.message,
+    });
+  }
+  if (new Set(canonicalForms).size !== 1) {
+    fail("field_not_representative", `${label} aliases disagree`, { values: present });
+  }
+  return present[0];
+}
+
+function assertCanonicalArchetypeId(archetypeId, index) {
+  if (!CANONICAL_ARCHETYPE_ID_PATTERN.test(archetypeId)) {
+    fail("unresolved_mapping", "field row archetype id is not in canonical leader:<gameplayId> form", {
+      index,
+      archetypeId,
+    });
+  }
 }
 
 function eventData(event) {
@@ -79,7 +116,7 @@ function participantCountOf(data, block) {
 }
 
 function rowsOf(block) {
-  const rows = block.rows ?? block.distributionRows;
+  const rows = agreeingCandidates([block.rows, block.distributionRows], "field distribution rows");
   if (!Array.isArray(rows) || rows.length === 0) {
     fail("field_not_representative", "field distribution rows are required");
   }
@@ -107,11 +144,18 @@ function normalizeRows(block) {
   const seen = new Set();
   for (const [index, row] of rowsOf(block).entries()) {
     if (!isRecord(row)) fail("field_not_representative", "field rows must be objects", { index });
-    const archetypeId = row.archetypeId ?? row.canonicalArchetypeId ?? row.canonicalId;
+    const archetypeId = agreeingCandidates(
+      [row.archetypeId, row.canonicalArchetypeId, row.canonicalId],
+      `field row [${index}] archetype id`,
+    );
     if (typeof archetypeId !== "string" || archetypeId.length === 0) {
       fail("unresolved_mapping", "field row has no resolved canonical archetype", { index, row });
     }
-    const players = row.players ?? row.count ?? row.playerCount;
+    assertCanonicalArchetypeId(archetypeId, index);
+    const players = agreeingCandidates(
+      [row.players, row.count, row.playerCount],
+      `field row [${index}] players`,
+    );
     if (!Number.isSafeInteger(players) || players <= 0) {
       fail("field_not_representative", "field row players must be a positive integer", { index, players });
     }
@@ -125,10 +169,24 @@ function normalizeRows(block) {
 }
 
 function validateFieldEvidence(event) {
-  if (event.coverage?.status !== undefined && event.coverage.status !== "complete") {
+  // I1: absent/undeclared top-level coverage status must fail closed, exactly like the strict
+  // block-level check below - not just an explicitly non-"complete" status.
+  if (event.coverage?.status !== "complete") {
     fail("field_not_representative", "event snapshot coverage is incomplete", { eventKey: eventKeyOf(event) });
   }
   const data = eventData(event);
+  const resultsBlock = data.evidenceBlocks?.results;
+  // R1: every evidence block carries its own canonical coverage: { status, warnings,
+  // missingFields } object - the same shape the field block's own block.coverage?.status check
+  // below already reads, and the shape Task 7's normalizer emits. A flat resultsBlock.status
+  // (no nested coverage object) reads as coverage being entirely absent and fails closed, the
+  // same as any other absent/undeclared coverage in this module.
+  if (!isRecord(resultsBlock) || resultsBlock.coverage?.status !== "complete") {
+    fail("field_not_representative", "event results evidence must be complete", {
+      eventKey: eventKeyOf(event),
+      status: resultsBlock?.coverage?.status,
+    });
+  }
   const block = fieldBlockOf(event);
   if (block.sampleFrame !== "full-field") {
     fail("field_not_representative", "only full-field evidence can contribute to field shares", {
@@ -169,9 +227,14 @@ function validateFieldEvidence(event) {
 }
 
 function selectionPolicyOf(input) {
-  const policy = input.selectionPolicy ?? input.eventSelection ?? {};
-  if (!isRecord(policy)) fail("duplicate_event", "event selection policy must be an object");
-  const id = policy.id ?? policy.policyId ?? DEFAULT_SELECTION_POLICY_ID;
+  // I4: the brief requires the input to include an explicit event-selection policy - it is
+  // mandatory, not a convenience default. Neither the policy object nor its id may be silently
+  // synthesized.
+  const policy = input.selectionPolicy ?? input.eventSelection;
+  if (!isRecord(policy)) {
+    fail("duplicate_event", "an explicit event-selection policy object is required");
+  }
+  const id = policy.id ?? policy.policyId;
   requiredString(id, "selectionPolicy.id", "duplicate_event");
   const excluded = policy.excluded ?? policy.excludedEvents ?? input.excludedEvents ?? [];
   if (!Array.isArray(excluded)) fail("field_not_representative", "excluded events must be an array");
@@ -222,6 +285,15 @@ function verifySourceRefs(events, sourceRefs) {
   return sourceRefs.map((ref, index) => {
     const event = events[index];
     verifySnapshot(event);
+    // C3: every input event snapshot must actually be tournament evidence. Without this, any
+    // hash-valid snapshot of any kind carrying a field block (via the evidenceBlocks.field ??
+    // field alias) could pass as tournament field evidence.
+    if (event.kind !== "tournament_event") {
+      fail("field_not_representative", "event snapshot kind must be tournament_event", {
+        index,
+        kind: event.kind,
+      });
+    }
     const expected = snapshotRef(event);
     if (!isRecord(ref)) fail("snapshot_ref_mismatch", "source ref must be an object", { index });
     assertFullHash(ref.contentHash, `sourceRefs[${index}].contentHash`);
@@ -262,14 +334,43 @@ function chooseEvents(events, sourceRefs, policy) {
     list.push(entry);
     byEventKey.set(entry.eventKey, list);
   }
+  // C1: an event key the policy declares excluded must never also be selected, even when only
+  // one version of it was supplied. Supplying evidence for a key while also excluding it is a
+  // contradiction in the input and fails closed rather than the exclusion being silently
+  // ignored.
+  const excludedEventKeys = new Set(policy.excluded.map((entry) => entry.eventKey));
   const excluded = [...policy.excluded];
   const selected = [];
   for (const [eventKey, versions] of byEventKey) {
+    if (excludedEventKeys.has(eventKey)) {
+      fail("duplicate_event", "event key is both supplied as evidence and excluded by the selection policy", {
+        eventKey,
+      });
+    }
+    const choices = explicitSelection(policy, eventKey);
     if (versions.length === 1) {
+      // I4: explicitSelection must be validated even when only one version of a key exists - a
+      // selection that names a version other than the one actually supplied is a contradiction,
+      // not something to silently ignore because there was "nothing to choose between".
+      if (choices.length > 0) {
+        if (choices.length !== 1) {
+          fail("duplicate_event", "explicit selection for a single-version event key must name exactly one selection", {
+            eventKey,
+          });
+        }
+        const matches = versions.filter((entry) => selectionMatches(
+          choices[0], entry.event, entry.sourceRef, entry.eventEvidenceHash,
+        ));
+        if (matches.length !== 1) {
+          fail("duplicate_event", "explicit event version selection does not match the supplied event", {
+            eventKey,
+            selection: choices[0],
+          });
+        }
+      }
       selected.push(versions[0]);
       continue;
     }
-    const choices = explicitSelection(policy, eventKey);
     if (choices.length !== 1) {
       fail("duplicate_event", "one event key has multiple evidence versions without explicit selection", {
         eventKey,
@@ -301,6 +402,26 @@ function chooseEvents(events, sourceRefs, policy) {
   return { selected, excluded };
 }
 
+// I5: time and window defects are only meaningful to buildFieldSnapshot as "this cannot become
+// field evidence". The standalone time.mjs utilities keep their own time_invalid code for
+// direct misuse (per the controller ruling), but through this path they are remapped to
+// field_not_representative. Identity/timezone mismatches are a distinct failure mode and are
+// left to propagate unchanged.
+function mapTimeErrors(fn) {
+  try {
+    return fn();
+  } catch (error) {
+    if (error instanceof EnvironmentError && error.code === "time_invalid") {
+      fail("field_not_representative", "event time evidence is invalid for field aggregation", {
+        cause: error.code,
+        causeMessage: error.message,
+        ...error.details,
+      });
+    }
+    throw error;
+  }
+}
+
 export function buildFieldSnapshot({ events, identity, window, sourceRefs, selectionPolicy, eventSelection, excludedEvents } = {}) {
   if (!Array.isArray(events) || events.length === 0) fail("field_not_representative", "events must be a non-empty ordered array");
   if (!isRecord(identity)) fail("environment_identity_mismatch", "field identity must be an object");
@@ -324,7 +445,16 @@ export function buildFieldSnapshot({ events, identity, window, sourceRefs, selec
   for (const entry of selected) {
     const event = entry.event;
     assertIdentityMatch(event, nativeIdentity);
-    if (!eventQualifies(event, window)) {
+    // I1: an event cannot contribute evidence dated after the field window's own reporting
+    // cutoff.
+    if (event.asOf > window.asOf) {
+      fail("field_not_representative", "event asOf is later than the field window asOf", {
+        eventKey: entry.eventKey,
+        eventAsOf: event.asOf,
+        windowAsOf: window.asOf,
+      });
+    }
+    if (!mapTimeErrors(() => eventQualifies(event, window))) {
       fail("field_not_representative", "event is outside the selected completed-event window", {
         eventKey: entry.eventKey,
       });
@@ -347,15 +477,15 @@ export function buildFieldSnapshot({ events, identity, window, sourceRefs, selec
     });
   }
 
+  // I6: no aggregate-level "coveredParticipants === totalParticipants" guard here. Every
+  // selected event already passed validateFieldEvidence's per-event rows-vs-denominator check
+  // above, and unresolvedParticipants is provably 0 there too (the standalone
+  // unresolved_mapping check above throws first whenever it would be positive) - so
+  // classifiedParticipants === totalParticipants is an arithmetic identity by the time this sum
+  // runs. A copy of that check here was unreachable from any external input (mutation-verified:
+  // neutering it turns zero tests red) and was deleted rather than kept as a vacuous guard. See
+  // task-5-report.md, "Fix round 1", for the full mutation-check transcript.
   const coveredParticipants = classifiedParticipants + unclassifiedParticipants;
-  if (coveredParticipants !== totalParticipants || unclassifiedParticipants !== 0) {
-    fail("field_not_representative", "field participant coverage is incomplete", {
-      totalParticipants,
-      classifiedParticipants,
-      unclassifiedParticipants,
-      coveredParticipants,
-    });
-  }
   const archetypes = [...archetypePlayers.entries()]
     .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
     .map(([archetypeId, players]) => ({

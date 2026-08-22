@@ -136,3 +136,106 @@ test("freshnessAgeDays rejects invalid and future evidence", () => {
     (error) => error.code === "freshness_invalid",
   );
 });
+
+// C2: a timestamp's declared RFC 3339 offset must agree with what its declared IANA zone
+// actually yields at that instant. Asia/Shanghai has no DST, so its real offset is always
+// +08:00; any other declared offset for that zone is malformed upstream data and must fail
+// closed rather than being used to compute a (silently wrong) UTC instant.
+test("C2: a timestamp's offset must match its declared IANA zone at that instant", () => {
+  const wrongOffset = {
+    status: "completed",
+    environment: { timeZone: "Asia/Shanghai" },
+    data: {
+      eventKey: "c2-wrong-offset",
+      time: {
+        precision: "timestamp",
+        eventStartedAt: "2026-08-19T23:00:00+05:00",
+        eventEndedAt: "2026-08-20T01:00:00+05:00",
+        timeZone: "Asia/Shanghai",
+      },
+    },
+  };
+  assert.throws(() => eventQualifies(wrongOffset, window), (error) => error.code === "time_invalid");
+
+  // Same bug, but the wrong offset happens to land the computed UTC instant back inside the
+  // window: this must still fail closed rather than silently returning true.
+  const wrongOffsetOutOfWindow = {
+    status: "completed",
+    environment: { timeZone: "Asia/Shanghai" },
+    data: {
+      eventKey: "c2-wrong-offset-out-of-window",
+      time: {
+        precision: "timestamp",
+        eventStartedAt: "2026-08-21T00:30:00+16:00",
+        timeZone: "Asia/Shanghai",
+      },
+    },
+  };
+  assert.throws(() => eventQualifies(wrongOffsetOutOfWindow, window), (error) => error.code === "time_invalid");
+
+  // The same wall clock, correctly offset, is genuinely out of window (not a throw, just false).
+  const correctOffsetOutOfWindow = {
+    status: "completed",
+    environment: { timeZone: "Asia/Shanghai" },
+    data: {
+      eventKey: "c2-correct-offset-out-of-window",
+      time: {
+        precision: "timestamp",
+        eventStartedAt: "2026-08-21T00:30:00+08:00",
+        timeZone: "Asia/Shanghai",
+      },
+    },
+  };
+  assert.equal(eventQualifies(correctOffsetOutOfWindow, window), false);
+});
+
+// I2: timestamp precision must whitelist its union keys exactly the way day precision already
+// does. Before the fix, a "timestamp" object could carry a stray "localDate" or any other junk
+// key and still be accepted.
+test("I2: timestamp precision rejects foreign union keys the same way day precision does", () => {
+  const dayShapedTimestamp = {
+    status: "completed",
+    environment: { timeZone: "Asia/Shanghai" },
+    data: {
+      eventKey: "i2-timestamp-with-localdate",
+      time: {
+        precision: "timestamp",
+        eventStartedAt: "2026-08-20T12:00:00+08:00",
+        timeZone: "Asia/Shanghai",
+        localDate: "2026-08-20",
+      },
+    },
+  };
+  assert.throws(() => eventQualifies(dayShapedTimestamp, window), (error) => error.code === "time_invalid");
+
+  const junkKeyTimestamp = {
+    status: "completed",
+    environment: { timeZone: "Asia/Shanghai" },
+    data: {
+      eventKey: "i2-timestamp-with-junk-key",
+      time: {
+        precision: "timestamp",
+        eventStartedAt: "2026-08-20T12:00:00+08:00",
+        timeZone: "Asia/Shanghai",
+        bogusField: "nonsense",
+      },
+    },
+  };
+  assert.throws(() => eventQualifies(junkKeyTimestamp, window), (error) => error.code === "time_invalid");
+});
+
+// I9: extractEventTime must not synthesize a time union from loose eventStartedAt/eventEndedAt
+// fields, and must never borrow event.environment.timeZone when the source declared none. The
+// event carries the explicit Task 5 union at its declared location (data.time) or fails closed.
+test("I9: loose eventStartedAt/eventEndedAt fields are never synthesized into a time union", () => {
+  const looseEvent = {
+    status: "completed",
+    environment: { timeZone: "Asia/Shanghai" },
+    data: {
+      eventKey: "i9-loose-fields",
+      eventStartedAt: "2026-08-20T12:00:00+08:00",
+      eventEndedAt: "2026-08-20T14:00:00+08:00",
+    },
+  };
+  assert.throws(() => eventQualifies(looseEvent, window), (error) => error.code === "time_invalid");
+});
