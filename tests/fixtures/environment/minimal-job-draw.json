@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "kind": "environment-simulation-job",
+  "plan": {
+    "schemaVersion": 1,
+    "kind": "environment-simulation-job-plan",
+    "fixedSeat": "draw",
+    "seeds": [
+      43001,
+      43002,
+      43003
+    ],
+    "completedGameTarget": 3,
+    "strategyCandidate": "valueRanked",
+    "strategyOpponent": "valueRanked",
+    "engineRevision": "e3200badd6b33a2e25d3d4514adc44dd0d31493e",
+    "maxCommands": 800,
+    "maxTurns": 40,
+    "planHash": "sha256:4b7d00ace768ef652ac964400d9b54403f2fc2b2bfb2e12556b61a53728bb898"
+  },
+  "candidate": {
+    "displayName": "ST01 Straw Hat starter (Task 10 smoke fixture)",
+    "leaderGameplayId": "ST01-001",
+    "mainDeckCounts": {
+      "ST01-002": 4,
+      "ST01-003": 4,
+      "ST01-004": 4,
+      "ST01-005": 4,
+      "ST01-006": 4,
+      "ST01-007": 4,
+      "ST01-008": 4,
+      "ST01-009": 4,
+      "ST01-010": 4,
+      "ST01-011": 2,
+      "ST01-012": 2,
+      "ST01-013": 2,
+      "ST01-014": 2,
+      "ST01-015": 2,
+      "ST01-016": 2,
+      "ST01-017": 2
+    },
+    "artifactHash": "sha256:bb0c8e39db458cd4cb2324c42c945aaf102253a9a8eb10ee30b3ea3155739c17",
+    "gameplayHash": "sha256:91646d9b3a78a1c17a99a0baf838076d82d101379061936efc2544d6d0f43bc3"
+  },
+  "opponent": {
+    "displayName": "ST01 Straw Hat starter (Task 10 smoke fixture)",
+    "leaderGameplayId": "ST01-001",
+    "mainDeckCounts": {
+      "ST01-002": 4,
+      "ST01-003": 4,
+      "ST01-004": 4,
+      "ST01-005": 4,
+      "ST01-006": 4,
+      "ST01-007": 4,
+      "ST01-008": 4,
+      "ST01-009": 4,
+      "ST01-010": 4,
+      "ST01-011": 2,
+      "ST01-012": 2,
+      "ST01-013": 2,
+      "ST01-014": 2,
+      "ST01-015": 2,
+      "ST01-016": 2,
+      "ST01-017": 2
+    },
+    "artifactHash": "sha256:bb0c8e39db458cd4cb2324c42c945aaf102253a9a8eb10ee30b3ea3155739c17",
+    "gameplayHash": "sha256:91646d9b3a78a1c17a99a0baf838076d82d101379061936efc2544d6d0f43bc3"
+  },
+  "jobId": "sha256:9cfd92c5364b43b067a634b40450c73662f055add15e56b76020ecff7f9a64ee"
+}
