@@ -111,8 +111,15 @@ describe("OP16-076 The Three Admirals!!", () => {
     const boost = engine.pendingDecision("effectTargetSelection", "north").steps[0];
     if (boost?.kind !== "selectEntity") throw new Error("Expected the +4000 recipient.");
     // "your Leader or Character cards" -- unfiltered, so the non-Admiral Namule is a legal
-    // recipient even though the Admiral is what unlocked the ability.
-    expect(boost.candidates.map((candidate) => candidate.ref.id)).toContain(namuleId);
+    // recipient even though the Admiral is what unlocked the ability. `toEqual` is what kills
+    // `zones drop "leader"`: `toContain` the Character stays green without the Leader.
+    expect(boost.candidates.map((candidate) => candidate.ref.id).sort()).toEqual(
+      [
+        engine.leader("north"),
+        namuleId,
+        engine.findCardInZone("north", "character", admiralA),
+      ].sort(),
+    );
     engine.resolveDecision("effectTargetSelection", { selectedIds: [namuleId] }, "north");
 
     expect(

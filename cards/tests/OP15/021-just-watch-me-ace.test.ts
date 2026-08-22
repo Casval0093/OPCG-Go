@@ -91,4 +91,36 @@ describe("OP15-021 Just Watch Me, Ace!!!", () => {
     if (counter?.kind !== "selectEntity") throw new Error("Expected a Counter decision.");
     expect(counter.candidates.map((candidate) => candidate.ref.id)).toContain(counterId);
   });
+
+  test("[Counter] gives an opponent Character -3000 -- the same number the [Main] pins", () => {
+    // The candidate-only test above cannot see `player opponent->self` or the two negative-value
+    // mutants on this block: they leave the Event a Counter candidate. The [Main] already pins
+    // Blue Gilly at exactly 2000; the [Counter] must too.
+    const engine = OnePieceTestEngine.create(
+      { leaderCardId: op15Krieg001, character: [{ card: op10BlueGilly054, playedOnTurn: 0 }] },
+      {
+        hand: [op15JustWatchMeAce021],
+        activeDon: 4,
+        trash: Array.from({ length: 4 }, () => op04Spiderweb035),
+      },
+      { firstPlayer: "north", activeSeat: "south" },
+    );
+    const attackerId = engine.findCardInZone("south", "character", op10BlueGilly054);
+    const counterId = engine.findCardInZone("north", "hand", op15JustWatchMeAce021);
+
+    engine.declareAttack(attackerId, engine.leader("north"), "south");
+    engine.resolveDecision("battleCounter", { selectedIds: [counterId] }, "north");
+
+    const debuff = engine.pendingDecision("effectTargetSelection", "north").steps[0];
+    expect(debuff?.kind).toBe("selectEntity");
+    if (debuff?.kind !== "selectEntity") throw new Error("Expected the Counter's power target.");
+    expect(debuff.candidates.map((candidate) => candidate.ref.id)).toEqual([attackerId]);
+    engine.resolveDecision("effectTargetSelection", { selectedIds: [attackerId] }, "north");
+
+    expect(
+      engine
+        .getView("south")
+        .players.south.characters.find((card) => card?.instanceId === attackerId)?.power,
+    ).toBe(2000);
+  });
 });

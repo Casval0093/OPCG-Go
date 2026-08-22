@@ -144,4 +144,30 @@ describe("OP15-095 Gum-Gum Storm", () => {
     expect(candidateIds).toContain(engine.leader("north"));
     expect(candidateIds).toContain(atmosId);
   });
+
+  test("[Counter] with 13 cards already in the trash does not fire", () => {
+    // Every other Counter fixture is already ≥15 in trash after this Event joins it, so
+    // `delete condition:zoneCount` on the Counter block was free. 13 + this card = 14, the
+    // same below-threshold the [Main] already pins (ruling #930's 14-already-there is the
+    // *inside* of the line, because the Event counts itself).
+    const engine = OnePieceTestEngine.create(
+      { leaderCardId: op15Krieg001, character: [{ card: op02Thatch007, playedOnTurn: 0 }] },
+      {
+        leaderCardId: op15Krieg001,
+        hand: [CARD],
+        activeDon: 1,
+        trash: Array.from({ length: 13 }, () => op03Genzo046),
+      },
+      { firstPlayer: "north", activeSeat: "south" },
+    );
+    const attackerId = engine.findCardInZone("south", "character", op02Thatch007);
+    const counterId = engine.findCardInZone("north", "hand", CARD);
+    const lifeBefore = engine.getView("north").players.north.lifeCount;
+
+    engine.declareAttack(attackerId, engine.leader("north"), "south");
+    engine.resolveDecision("battleCounter", { selectedIds: [counterId] }, "north");
+
+    expect(engine.getView("north").prompts).toHaveLength(0);
+    expect(engine.getView("north").players.north.lifeCount).toBe(lifeBefore - 1);
+  });
 });

@@ -44,6 +44,11 @@ describe("OP15-054 And No One Else Can Have It! It's Our Memento of Him", () => 
     engine.playCard(CARD, "south");
     engine.resolveDecision("effectActionChoice", { optionId: "0" }, "south");
 
+    // Draw 2 is what `amount 2->1` used to survive: trash-one-Atmos still works at 1. After the
+    // Event leaves hand (5 -> 4) the two draws must leave 6 in hand and 1 in a 3-card deck.
+    expect(engine.getState().players.south.hand).toHaveLength(6);
+    expect(engine.getState().players.south.deck).toHaveLength(1);
+
     // Draw 2, then trash 1 -- one of the drawn Atmos copies, so the counterexamples stay in hand.
     engine.resolveDecision(
       "effectTrashFromHandSelection",
