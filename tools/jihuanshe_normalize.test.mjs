@@ -1108,3 +1108,76 @@ test("I-1: startLabel is screened so a malformed one cannot echo an identifier i
   assert.equal(String(error.message).includes("13800138000"), false);
   assert.ok(String(error.message).includes("[redacted]"));
 });
+
+test("I-1: spaced, hyphenated and full-width CN mobiles are redacted in place; names survive", () => {
+  // Compact 11-digit is already pinned above. These three shapes reached the published body
+  // verbatim before the phone span learned separators and full-width digits. A personal name
+  // has no shape, so 张伟 stays -- this is still an identifier screen, not an identity screen.
+  const shapes = [
+    { raw: "138 0013 8000", field: "title" },
+    { raw: "138-0013-8000", field: "organizerLabel" },
+    { raw: "１３８００１３８０００", field: "locationLabel" },
+  ];
+  for (const { raw, field } of shapes) {
+    const snapshot = screenedTournamentSnapshot({ [field]: `主办人张伟 ${raw} 深圳` });
+    const serialized = JSON.stringify(snapshot);
+    assert.equal(serialized.includes(raw), false, raw);
+    assert.equal(snapshot.data.identity[field], "主办人张伟 [redacted] 深圳", raw);
+    assert.ok(
+      snapshot.coverage.warnings.includes(`sensitive_value_redacted:data.identity.${field}:phone_number`),
+      raw,
+    );
+  }
+});
+
+test("I-1: an e-mail address is redacted IN PLACE and names its own shape", () => {
+  // The email_address rule has been in SENSITIVE_VALUE_SPANS since I-1; the composite probe
+  // never put an address in any field, so deleting the rule left the suite green. This one
+  // would have failed before the rule existed.
+  const snapshot = screenedTournamentSnapshot({
+    organizerLabel: "李娜 (alice.organizer+sc@example.com)",
+    title: "上海周赛 主办人张伟",
+  });
+  const serialized = JSON.stringify(snapshot);
+  assert.equal(serialized.includes("alice.organizer+sc@example.com"), false);
+  assert.equal(snapshot.data.identity.organizerLabel, "李娜 ([redacted])");
+  assert.equal(snapshot.data.identity.title, "上海周赛 主办人张伟");
+  assert.ok(snapshot.coverage.warnings.includes("sensitive_value_redacted:data.identity.organizerLabel:email_address"));
+});
+
+test("I-1: rawArchetypeLabel on results, entrant and distribution rows is value-screened", () => {
+  const envelope = fixture("capture/tournament-full-field-v2.json");
+  envelope.data.results.rows[0].rawArchetypeLabel = "合成红艾斯 138 0013 8000";
+  envelope.data.decks.entrantRows[1].rawArchetypeLabel = "合成黑黄蒂奇 联系 alice@example.com";
+  envelope.data.decks.distributionRows[0].rawArchetypeLabel = "合成红艾斯 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9";
+  const [snapshot] = normalizeJiHuanSheCapture(Buffer.from(JSON.stringify(envelope)), context);
+  const serialized = JSON.stringify(snapshot);
+
+  for (const secret of ["138 0013 8000", "alice@example.com", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"]) {
+    assert.equal(serialized.includes(secret), false, secret);
+  }
+  assert.equal(snapshot.data.evidenceBlocks.results.rows[0].rawArchetypeLabel, "合成红艾斯 [redacted]");
+  assert.ok(snapshot.data.evidenceBlocks.field.unresolvedLabels.includes("合成黑黄蒂奇 联系 [redacted]"));
+  assert.ok(snapshot.coverage.warnings.includes("sensitive_value_redacted:data.results.rows[0].rawArchetypeLabel:phone_number"));
+  assert.ok(snapshot.coverage.warnings.includes("sensitive_value_redacted:data.decks.entrantRows[1].rawArchetypeLabel:email_address"));
+  assert.ok(snapshot.coverage.warnings.includes("sensitive_value_redacted:data.decks.distributionRows[0].rawArchetypeLabel:credential"));
+});
+
+test("I-1: market row language, condition and grade labels are value-screened", () => {
+  const market = fixture("capture/market-visible-viewport-v2.json");
+  market.data.rows[0].languageLabel = "简体中文 138-0013-8000";
+  market.data.rows[0].conditionLabel = "全新 微信 shopowner_x";
+  market.data.rows[1].gradeLabel = "未评级 alice@example.com";
+  const [snapshot] = normalizeJiHuanSheCapture(Buffer.from(JSON.stringify(market)), context);
+  const serialized = JSON.stringify(snapshot);
+
+  for (const secret of ["138-0013-8000", "shopowner_x", "alice@example.com"]) {
+    assert.equal(serialized.includes(secret), false, secret);
+  }
+  assert.equal(snapshot.data.rows[0].languageLabel, "简体中文 [redacted]");
+  assert.equal(snapshot.data.rows[0].conditionLabel, "全新 微信 [redacted]");
+  assert.equal(snapshot.data.rows[1].gradeLabel, "未评级 [redacted]");
+  assert.ok(snapshot.coverage.warnings.includes("sensitive_value_redacted:data.rows[0].languageLabel:phone_number"));
+  assert.ok(snapshot.coverage.warnings.includes("sensitive_value_redacted:data.rows[0].conditionLabel:contact_id"));
+  assert.ok(snapshot.coverage.warnings.includes("sensitive_value_redacted:data.rows[1].gradeLabel:email_address"));
+});

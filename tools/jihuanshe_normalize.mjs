@@ -153,8 +153,17 @@ const SENSITIVE_VALUE_SPANS = Object.freeze([
     pattern: /(?<![A-Za-z0-9])(authorization|bearer|password|passwd|secret|api[-_ ]?key)(\s*[:：]\s*|\s+)([\s\S]+)$/iu,
     replace: (_match, label, separator) => `${label}${separator}${REDACTION_MARKER}`,
   },
-  // A mainland-China mobile number -- the exact shape Task 8's market screen rejects.
-  { code: "phone_number", personalIdentifier: true, pattern: /1[3-9]\d{9}/gu, replace: () => REDACTION_MARKER },
+  // A mainland-China mobile number -- compact 11 digits, the same digits with spaces or
+  // hyphens between groups (138 0013 8000 / 138-0013-8000), and the full-width digit
+  // forms (１３８…). Separators may be ASCII space/hyphen or their full-width twins.
+  // The compact shape is a zero-separator special case of the same span, so the
+  // existing 11-digit probes stay redacted.
+  {
+    code: "phone_number",
+    personalIdentifier: true,
+    pattern: /[1１][3-9３-９](?:[\s\u3000\-－]*[\d０-９]){9}/gu,
+    replace: () => REDACTION_MARKER,
+  },
   {
     code: "email_address",
     personalIdentifier: true,
@@ -802,7 +811,17 @@ export function normalizeTournamentCapture(envelope, context) {
   if (!isRecord(resultsBlock)) fail("normalization_failed", "data.results is required");
   assertNoUnknownFields(resultsBlock, "data.results", new Set(["activeTab", "rows"]));
   if (!Array.isArray(resultsBlock.rows)) fail("normalization_failed", "data.results.rows must be an array");
-  const resultsRows = resultsBlock.rows.map(assertResultsRow);
+  const resultsRows = resultsBlock.rows.map((row, index) => {
+    const asserted = assertResultsRow(row, index);
+    return {
+      ...asserted,
+      rawArchetypeLabel: screenFreeText(
+        asserted.rawArchetypeLabel,
+        `data.results.rows[${index}].rawArchetypeLabel`,
+        screenWarnings,
+      ),
+    };
+  });
 
   const decksBlock = data.decks;
   if (!isRecord(decksBlock)) fail("normalization_failed", "data.decks is required");
@@ -817,8 +836,28 @@ export function normalizeTournamentCapture(envelope, context) {
     });
   }
   const sampleFrameLabel = decksBlock.sampleFrameLabel;
-  const distributionRows = decksBlock.distributionRows.map(assertDistributionRow);
-  const entrantRows = decksBlock.entrantRows.map(assertEntrantRow);
+  const distributionRows = decksBlock.distributionRows.map((row, index) => {
+    const asserted = assertDistributionRow(row, index);
+    return {
+      ...asserted,
+      rawArchetypeLabel: screenFreeText(
+        asserted.rawArchetypeLabel,
+        `data.decks.distributionRows[${index}].rawArchetypeLabel`,
+        screenWarnings,
+      ),
+    };
+  });
+  const entrantRows = decksBlock.entrantRows.map((row, index) => {
+    const asserted = assertEntrantRow(row, index);
+    return {
+      ...asserted,
+      rawArchetypeLabel: screenFreeText(
+        asserted.rawArchetypeLabel,
+        `data.decks.entrantRows[${index}].rawArchetypeLabel`,
+        screenWarnings,
+      ),
+    };
+  });
 
   // I2(a): an absent or unparseable participantCountLabel is `null` here, never a throw --
   // `evaluateFieldFrame`'s check 1 (`denominator_missing`) and Task 5's own consumption both
@@ -1009,10 +1048,9 @@ export function normalizeMarketCapture(envelope, context) {
   assertContext(context);
   if (!isRecord(envelope)) fail("normalization_failed", "market envelope must be an object");
 
-  // I-1: the market surface gets the SAME independent value screen. Task 8 screens card labels at
-  // capture time, but this module is a pure function over arbitrary bytes and cannot inherit an
-  // upstream guarantee -- which is precisely the reasoning the review found unsound for the
-  // tournament body.
+  // I-1: the market surface gets the SAME independent value screen, including the row-level
+  // language/condition/grade labels -- Task 8 screens card labels at capture time, but this
+  // module is a pure function over arbitrary bytes and cannot inherit an upstream guarantee.
   const screenWarnings = [];
   const sourceRefInfo = assertSourceRef(envelope, screenWarnings);
   requiredString(envelope.capturedAt, "capturedAt");
@@ -1066,13 +1104,20 @@ export function normalizeMarketCapture(envelope, context) {
         gameplayId = mappingEntry.gameplayId;
       }
     }
+    const path = `data.rows[${index}]`;
     return {
       providerRowId: row.providerRowId,
       rawCardLabel,
       printingId: row.printingId ?? null,
-      languageLabel: row.languageLabel ?? null,
-      conditionLabel: row.conditionLabel ?? null,
-      gradeLabel: row.gradeLabel ?? null,
+      languageLabel: row.languageLabel === undefined
+        ? null
+        : screenFreeText(row.languageLabel, `${path}.languageLabel`, screenWarnings),
+      conditionLabel: row.conditionLabel === undefined
+        ? null
+        : screenFreeText(row.conditionLabel, `${path}.conditionLabel`, screenWarnings),
+      gradeLabel: row.gradeLabel === undefined
+        ? null
+        : screenFreeText(row.gradeLabel, `${path}.gradeLabel`, screenWarnings),
       gameplayId,
       currency: "CNY",
       observedPrice: parseCnyPrice(row.observedPriceLabel, `data.rows[?].observedPriceLabel`),
