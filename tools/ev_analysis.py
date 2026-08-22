@@ -11,6 +11,14 @@ Usage:
     python3 tools/ev_analysis.py --no-nash
 
 Requires: numpy. scipy is optional (Nash is skipped without it).
+
+PROVENANCE (Task 12). This command reads ONE artifact and it is a legacy one:
+`data/op16-matchup-matrix.json` mixes tournament shares with ladder matchups, is EN, and
+was never reconciled into a single population. It is therefore permanently
+`legacy_unverified` / `historical_only` / not environment-eligible, and every invocation
+announces that in machine-readable form before it prints a number. Nothing here reads,
+writes, or routes environment data: environment strength lives in `environment/` and is
+reached through `tools/environment_data.mjs` and `tools/environment_evaluate.mjs`.
 """
 
 from __future__ import annotations
@@ -22,6 +30,55 @@ import sys
 import numpy as np
 
 DEFAULT_MATRIX = "data/op16-matchup-matrix.json"
+
+# The single line a machine reads. Everything after it is for humans.
+PROVENANCE_MARKER = "legacy-provenance"
+
+# Labels the artifact must declare, and the values two of them are pinned to. The command
+# refuses to run rather than print a weakened claim: "permanently legacy" has to be
+# enforced somewhere, and the tool that reads the artifact is the only place that can.
+REQUIRED_META_LABELS = ("evidence_status", "source_edition", "applicability", "environment_eligible")
+# ALL FOUR are pinned, not just the two that read as dangerous. An earlier version pinned only
+# `evidence_status` and `environment_eligible`, which made the "refuses to run if those labels are
+# weakened" claim in CLAUDE.md, docs/environment-data.md and this artifact's own `provenance_note`
+# false for the other two: `source_edition -> "SC"` and `applicability -> "current"` both printed
+# the weakened value and exited 0. Relabelling this EN artifact as SC, or as currently applicable,
+# is exactly the forgery the labels exist to prevent, so it is refused too.
+PINNED_META_VALUES = {
+    "evidence_status": "legacy_unverified",
+    "source_edition": "EN",
+    "applicability": "historical_only",
+    "environment_eligible": False,
+}
+
+
+def legacy_provenance(blob, shares) -> dict:
+    """The six labels every invocation announces, read from the artifact's own `_meta`.
+
+    Read, never hardcoded: the matrix is the record. A matrix that has lost its labels
+    must fail loudly instead of having them supplied by whichever tool opens it.
+    """
+    meta = blob.get("_meta", {})
+    missing = [key for key in REQUIRED_META_LABELS if key not in meta]
+    if missing:
+        raise SystemExit(f"matrix is missing its provenance labels: {', '.join(missing)}")
+    for key, pinned in PINNED_META_VALUES.items():
+        if meta[key] is not pinned and meta[key] != pinned:
+            raise SystemExit(
+                f"matrix _meta.{key} is {meta[key]!r}, not {pinned!r}: this artifact is "
+                "permanently legacy and this command will not print a weaker claim"
+            )
+    unmodelled = blob.get("unmodelled_field", {}).get("share_pct")
+    if unmodelled is None:
+        raise SystemExit("matrix does not declare its unmodelled remainder (unmodelled_field.share_pct)")
+    return {
+        "evidenceStatus": meta["evidence_status"],
+        "sourceEdition": meta["source_edition"],
+        "applicability": meta["applicability"],
+        "coveredFieldPct": round(float(shares.sum()), 2),
+        "unmodelledFieldPct": round(float(unmodelled), 2),
+        "environmentEligible": bool(meta["environment_eligible"]),
+    }
 
 
 def load(path: str):
@@ -112,6 +169,15 @@ def main() -> None:
 
     blob, names, matrix, shares = load(args.matrix)
 
+    # FIRST, before consistency, EV, sensitivity or Nash: what this evidence is and is not.
+    provenance = legacy_provenance(blob, shares)
+    print(f"{PROVENANCE_MARKER}: {json.dumps(provenance, sort_keys=True)}")
+    print(
+        "LEGACY EV -- historical EN evidence, never reconciled to one population. It cannot "
+        "enter an Environment Manifest as native or as proxy evidence, and it cannot create "
+        "SC/latest or EN/latest. See docs/environment-data.md."
+    )
+
     problems = check_consistency(names, matrix)
     if problems:
         print("!! MATRIX INCONSISTENT — mirrored pairs must sum to 100:", file=sys.stderr)
@@ -120,7 +186,11 @@ def main() -> None:
     else:
         print("matrix consistency: OK (all mirrored pairs sum to 100)")
 
-    print(f"covered field: {shares.sum():.2f}% of the metagame (renormalized)")
+    print(
+        f"covered field: {provenance['coveredFieldPct']:.2f}% of the metagame; "
+        f"{provenance['unmodelledFieldPct']:.2f}% is unmodelled and NOT covered "
+        "(shares are renormalized within the covered part only)"
+    )
     if warn := blob.get("_meta", {}).get("bias_warning"):
         print(f"\nBIAS WARNING: {warn}\n")
 

@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 2,
+  "source": "JiHuanShe Android visible UI",
+  "status": "ok",
+  "surface": "market",
+  "capturedAt": "2026-08-19T05:00:00Z",
+  "sourceRef": {
+    "providerEventId": "e2e-sc-market-b",
+    "sanitizedRoute": "app:market"
+  },
+  "data": {
+    "identity": { "game": "航海王简中" },
+    "query": { "searchLabel": "OP16", "filterLabels": ["简中"], "sortLabel": "价格升序" },
+    "rows": [
+      {
+        "providerRowId": "m1",
+        "rawCardLabel": "合成艾斯 正常",
+        "printingId": "OP16-001",
+        "languageLabel": "简体中文",
+        "conditionLabel": "全新",
+        "gradeLabel": "未评级",
+        "observedPriceLabel": "¥777.00",
+        "previousPriceLabel": "¥701.00"
+      },
+      {
+        "providerRowId": "m2",
+        "rawCardLabel": "合成蒂奇 正常",
+        "printingId": "OP16-080",
+        "languageLabel": "简体中文",
+        "conditionLabel": "全新",
+        "gradeLabel": "未评级",
+        "observedPriceLabel": "¥12.00",
+        "previousPriceLabel": "¥19.00"
+      }
+    ],
+    "visibleRowCount": 2,
+    "paginationComplete": false
+  },
+  "lifecycle": { "launchMode": "headless", "startedByInvocation": true }
+}

@@ -693,6 +693,170 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   re-graft** — `python3 tools/graft_cards.py` is idempotent and takes seconds.
   Still true and worth keeping: having cards in `data/cards-OP16-en.json` is **not** the same as
   having them in `@tcg/op-cards`; the graft step is what closes that gap.
+- **Every number now carries its evidence class, and the classes never mix — the `environment/`
+  layer, 2026-08-21. Read `docs/environment-data.md` before quoting any strength number.**
+  Six classes: **empirical field** (real participant counts and archetype rows), **empirical
+  matchup** (recorded results), **simulated**, **proxy** (another edition's matchups, borrowed by
+  name), **market** (prices), **legacy** (the OP16 matrix). Only empirical `full-field` event
+  evidence may set a field share. Market evidence may never touch strength. The consequences that
+  are easy to get wrong, each verified against the code before being written here (the list grew on
+  2026-08-22, so do not quote a count of it):
+  - **A proxy borrows matchups and nothing else.** Cross-edition borrowing is confined to
+    `matchupPolicy.proxyPriorRef`; every other reference, `references.field` included, must match the
+    Manifest's own native identity. So an EN share cannot become an SC share by being filed in an SC
+    folder — and widening this needs three sites changed together (`environment/manifest.mjs` says
+    which).
+  - **`data/op16-matchup-matrix.json` is PERMANENTLY legacy.** It now declares
+    `evidence_status: legacy_unverified`, `source_edition: EN`, `applicability: historical_only`,
+    `environment_eligible: false`, and `tools/ev_analysis.py` prints all six labels as one JSON line
+    (`legacy-provenance: {...}`) **before** consistency, EV, sensitivity or Nash. It also prints
+    **88.29% covered and 11.71% unmodelled on the same line**, so the covered share can never be
+    read as the whole field. `buildManifest` refuses it as native **and** as proxy evidence
+    (`legacy_evidence_rejected`) — including through `matchupPolicy.proxyPriorRef`, the one seam that
+    permits cross-edition borrowing at all — and the command refuses to run when **any of the four
+    labels** is weakened: all of `evidence_status`, `source_edition`, `applicability` and
+    `environment_eligible` are pinned in `PINNED_META_VALUES`. (An earlier version pinned only two,
+    so `source_edition -> "SC"` and `applicability -> "current"` both printed and exited 0, which made
+    this sentence false for half the labels. Fixed by pinning all four, one test per label.)
+    **The six EV values are unchanged and pinned to 1e-6** by `tools/test_ev_analysis.py` —
+    relabelling provenance moved no number (measured diff: 0.0).
+  - **The reviewed-limitation REGISTER is the gate; the prose is not — and they must agree row for
+    row. Corrected 2026-08-22.** `data/environment-definitions/simulation-limitations-v1.json` held
+    **three** rows while two documents said five, with **no row at all** for the
+    always-activates-`[Trigger]` defect that `docs/simulation.md` documents as genuinely open. Had
+    the owner closed the three recorded rows believing that closed all five, `evaluateCapabilityGate`
+    would have flipped to `official` with a documented defect invisible to it — the third instance of
+    this defect shape on that branch. The register now carries **four** rows —
+    `second_player_first_turn_attack`, `counter_and_block_policy_missing` (one row for two defects:
+    the counter step and the block step are one resolver branch with one fix),
+    `trigger_activation_forced`, `attack_target_policy_missing` — and both documents describe that
+    mapping explicitly. **Every `evidenceLocation` now resolves**: they were
+    `CLAUDE.md:second-player-first-turn-attack`-style anchors that appear in neither this file nor
+    `docs/simulation.md`, and are now `docs/simulation.md#<heading>` anchors checked by a test.
+    **Adding the row changed the limitation-definition hash by design** — "closing a blocker requires
+    a reviewed file change and therefore a new capability hash" is the mechanism, not a regression;
+    nothing pins the literal hash, because `limitationDefinitionHash` is recomputed from the
+    retained rows at verify time.
+  - **An adjudication that adjudicated NOTHING used to satisfy the last gate — fixed 2026-08-22.**
+    `environment/simulation.mjs` set `applied: timeoutAdjudication !== null`, a presence flag, and
+    `environment/report.mjs` gated the official claim on `!unadjudicated`. Reproduced through the
+    real orchestrator: an accepted clock, a zero-open-limitation capability snapshot, and an
+    adjudication whose every cell was `{ timedOutSeeds: [] }` yielded `officialStrengthClaim: true`,
+    `blockers: []`, `adjudicatedSeeds: 0`. **You did not have to forge a verdict — you had to supply
+    none.** Each cell must now declare `evaluatedSeeds`, the completed games the clock model actually
+    looked at; the orchestrator reconciles it against the games that cell really played (cache reuse
+    included) and `aggregateEnvironment` reconciles the total against the games the report
+    aggregates, the same treatment `adjudicatedCells` and the clock reference already had. "The model
+    ran and found no timeouts" stays expressible; an empty block does not.
+  - **Four documentation claims about this layer were wrong and are corrected — 2026-08-22.**
+    (a) `market_unavailable` is pushed unconditionally and never consults
+    `marketStalenessBlocksStrength`; when that flag IS set the outcome is a hard `stale_latest`
+    refusal with **no report**, not a blocker; and the whole market block sits behind
+    `if (selector.mode !== "alias") return;`, so neither market warning is reachable when resolving
+    by `--manifest-id`. (b) `evaluationMode` has **three** values, not two — `resolver.mjs` emits
+    `proxy` for a proxy Manifest, so code branching on `!== "diagnostic_estimate"` mis-classifies
+    every proxy report. (c) `clock_model_unavailable` and `round_timeout_unadjudicated` are
+    **mutually exclusive**, not alternatives: the second is pushed only when `evaluationMode` is
+    already `official`. (d) The clock gate **refuses outright** without `--allow-diagnostic` — it
+    degrades only WITH the flag.
+  - **An orphaned `${avdLockPath}.recovery` mutex deadlocks recovery permanently, and `rm` is the
+    only exit.** `tools/jihuanshe_lifecycle.mjs` removes it in a `finally`, so only a hard kill
+    (SIGKILL, OOM, power loss) can strand it. Every later recovery then loses the `wx` race and
+    reports `avd_recovery_lost_race` — "another caller is already recovering this lock" — which
+    points the operator at a process that does not exist. Recognise it by that code repeating across
+    separate, serial invocations with no capture running; a genuine race clears on the next attempt.
+    Staleness handling is deliberately NOT implemented: the mutex carries no liveness proof, so an
+    age-based reclaim would be a guess.
+  - **No simulated report makes an unqualified `official` tournament-strength claim today, and there
+    are TWO independent reasons.** (1) Nothing in this repository infers a ClockModel, so the clock
+    gate closes and the report is a `diagnostic_estimate` with blocker `clock_model_unavailable`.
+    (2) Even *with* an accepted ClockModel — `evaluationMode` then reads `official` — the claim is
+    still withheld under `round_timeout_unadjudicated`, because no round-timeout adjudicator has run
+    and an unadjudicated zero is unmeasured rather than measured. Since a timed-out round here is a
+    **double loss**, that is a missing outcome class, not a rounding error. `evaluationMode` and
+    `officialStrengthClaim` are therefore SEPARATE fields; do not read the first as the second. The
+    open engine limitations in `docs/simulation.md` (no attack-target choice, never counters, never
+    blocks) close the capability gate independently of both.
+  - **Market snapshots are metadata and that is measured, not asserted.** They reach a report only as
+    `metadata.marketRefs` with `marketEvidenceUsedForStrength: false`; staleness is a `warning`
+    (`market_stale`, `market_unavailable`), never a blocker, unless a Manifest opts in.
+    `tests/environment-e2e.test.mjs` runs the whole pipeline against two different market fixtures
+    and asserts every EV, confidence, stratum and coverage value is identical while the Manifest hash
+    and the market refs both change.
+  - **A bare `jihuanshe_refresh.mjs refresh` publishes into THIS checkout's `data/sources/`, which is
+    NOT gitignored.** `--root` defaults to the checkout, so an exploratory refresh dirties tracked
+    state. Always pass an explicit `--root` unless the intent is genuinely to commit the snapshots.
+    Routine refresh is headless; a visible emulator appears only when the owner runs `reauth`.
+  - **A non-publishable provider event id is redacted AT BIRTH, so the id, the filename and the body
+    agree — corrected 2026-08-22, and the old divergence note is WITHDRAWN.** A phone-number-shaped
+    provider event id, or one outside the safe short-identifier charset, is replaced by the fixed
+    marker `redacted` in the snapshot id stem, in the on-disk filename and in
+    `source.sourceRef.providerEventId`; the event key falls back to the identity-derived key so the
+    event still dedupes against later captures of itself. **The redaction is irreversible by
+    CONSTRUCTION, not by cost:** the raw id is never hashed, encoded or stored anywhere, so there is
+    no preimage. The scheme it replaces — `sha256(stem).slice(7,23)` — was 64 unsalted bits over a
+    fully known 11-digit template, measured at 1.22M candidates/s, i.e. the whole CN mobile space in
+    about two core-hours. That is obfuscation, not redaction; do not reintroduce a digest OF the
+    value as a redaction. What survives is the residual outbound screen in
+    `tools/jihuanshe_refresh.mjs`, which now also carries no preimage and exists only for ids read
+    off disk from an older build.
+  - **The snapshot BODY is value-screened, not merely key-screened — added 2026-08-22.** The
+    normalizer's `SENSITIVE_KEY_PATTERN` matches KEY NAMES and could never see a phone number inside
+    the VALUE of a perfectly allowlisted field; a review probe put a personal name, a phone number, a
+    WeChat id and `李娜 (13900001111)` into an event's identity and every one landed verbatim in
+    `data/sources/**`, which is not gitignored. Task 9's recorded "the body rests on Tasks 7/8"
+    boundary was unsound — Task 7 screens keys and Task 8 screens only market card labels.
+    `screenFreeText` in `tools/jihuanshe_normalize.mjs` now screens every free-text provider label on
+    both surfaces (title, organizer, location, format and status labels, `participantCountLabel`,
+    `sanitizedRoute`, market card and query labels) for phone, e-mail, WeChat/QQ,
+    `Authorization`/`Bearer`/token shapes and an over-length cap, reusing Task 8's
+    `looksLikeMarketCardLabel` family. It **redacts the offending SPAN and warns**
+    (`sensitive_value_redacted:<field>:<shape>` in `coverage.warnings`); it never drops the field and
+    never fails the capture, because an SC store event keeps its evidentiary value without the
+    organizer's phone number and a hard failure would make legitimate store events unpublishable.
+    **It is NOT a personal-name detector and cannot be** — a name has no shape — so free text is
+    still free text and `data/sources/**` still wants reading before it is committed. A venue address
+    is likewise retained in full: it is a place, not a person.
+
+  **What the layer does NOT establish.** `node --test tests/environment-e2e.test.mjs` drives the
+  entire chain — raw synthetic SC capture bytes → normalizer → FieldSnapshot → Manifest → resolve →
+  plan → injected fake runner → report, plus a synthetic EN environment and a side-by-side
+  comparison — with **no device, no emulator, no ADB and no network**. It is a CONTRACT test. It
+  proves identity, hashing, weighting, separation and refusal; it measures nothing about the real
+  metagame. **No live SC Manifest and no `SC/latest` exist** (that promotion drives the
+  owner-authenticated session and is owner-gated), and **no EN Manifest and no `EN/latest` exist** —
+  a public Limitless page may declare the full entrant count while its statistics rows cover only the
+  submitted or successful subset, which is subset evidence, not a field share. Subset, Top Cut,
+  unknown-frame and incompletely-mapped data may be retained and inspected; none of it may produce
+  EN field shares. **A fixture-only EN run is never live EN evidence.**
+- **A Manifest with `roundPolicy.clockModelRef: null` used to resolve and then produce NO REPORT AT
+  ALL — FIXED 2026-08-21, do not re-derive.** `environment/resolver.mjs`'s
+  `unavailable("clock_model_absent")` was the one of its **four** call sites that passed no `cause`,
+  so it pushed `{ code, reason, cause: undefined }`; `aggregateEnvironment` spread that blocker into
+  the payload it hashes, and canonical hashing correctly rejects `undefined` — so the run died with
+  `canonical_unsupported_value` and there was no report, not even a degraded one. Reproduced end to
+  end. Nothing covered it because every Task 11 fixture reaches `diagnostic_estimate` through a
+  *closed gate* (which carries a defined cause) rather than an *absent reference*.
+  **The fix is one argument: `unavailable("clock_model_absent", "clock_model_ref_null")`.** Regression
+  test: *"an ABSENT clock reference still produces a report, and its blocker carries a cause"* in
+  `tests/environment-e2e.test.mjs` — it asserts the report is produced and that the blocker's `cause`
+  key is both PRESENT and not `undefined` (a present-but-undefined key is what broke hashing, so
+  checking only presence would not have caught it). Reverting the one-line fix turns it red;
+  mutation-verified.
+  **The two closed-clock gates are different and both are now covered:** an absent reference reports
+  `reason: "clock_model_absent"`, a real model whose effective interval has closed reports
+  `reason: "clock_gate_closed"`. Do not collapse the two E2E arms into one.
+- **`blocksOfficialStrength` is DESCRIPTIVE METADATA, NOT A GATE — do not "fix" the code to make it
+  one.** `evaluateCapabilityGate` (`environment/capability.mjs`) filters the reviewed-limitation list
+  on `status === "open"` **alone**, and that is deliberate: a hash-valid capability snapshot with
+  every limitation's flag flipped to `false` would otherwise slip into `official` while every
+  limitation is still genuinely open. Measured: `{status: "open", blocksOfficialStrength: false}`
+  still yields `diagnostic_estimate`, still reports `officialStrengthClaim: false`, and still refuses
+  with `simulation_not_ready` absent `--allow-diagnostic`. An earlier version of
+  `docs/environment-data.md` described the gate as `open` AND `blocksOfficialStrength` — a reader who
+  trusted that, flipped the flag to reach `official`, then "fixed" the code to match the doc would
+  reintroduce exactly the forgery the code defends against. The flag records *why* a limitation
+  matters; `status` decides whether it binds.
 
 ## What the EV tooling is for — decided 2026-08-17
 
@@ -735,7 +899,18 @@ README.md                       public-facing overview
 docs/charter.md                 goal, decisions, open questions
 docs/engine-audit.md            engine comparison, throughput measurements, options A-D
 docs/research-findings.md       all verified competitive data (matrix, leaders, OP17)
-tools/ev_analysis.py            field-weighted EV + Nash + sensitivity   <- run this
+docs/environment-data.md        the six evidence classes, the commands, and every boundary
+environment/                    the environment layer: snapshots, identity, legality, gates,
+                                Manifests, matchup evidence, simulation orchestration, reports
+environment/index.mjs           the public surface; import from here, not from private files
+sim/environment-contract.mjs    the job/result contract between environment/ and the engine
+tools/environment_data.mjs      build-deck | build-field | build-manifest | resolve
+tools/environment_evaluate.mjs  evaluate | compare --mode variants | compare --mode environments
+tools/jihuanshe_normalize.mjs   exact capture bytes -> typed event/market snapshots (pure)
+tools/jihuanshe_refresh.mjs     headless refresh + publication; visible owner-driven reauth
+tests/environment-e2e.test.mjs  whole pipeline offline: no device, no ADB, no network
+tests/fixtures/environment/     shared environment fixtures, incl. the end-to-end SC/EN datasets
+tools/ev_analysis.py            LEGACY EN matrix: field-weighted EV + Nash + sensitivity
 tools/coverage_report.py        card-effect encoding coverage against the vendored engine
 tools/variant_audit.py          alternate-art printings vs the base encoding they inherit
 tools/audit_encodings.py        is the encoding RIGHT (not just present) -> docs/encoding-audit.md
@@ -767,7 +942,7 @@ vendor/                         gitignored; created by bootstrap.sh
 ## Commands
 
 ```bash
-python3 tools/ev_analysis.py                      # who is the best deck right now
+python3 tools/ev_analysis.py                      # LEGACY EN matrix; prints its provenance first
 python3 tools/ev_analysis.py --sensitivity Teach  # how fragile is that answer
 ./scripts/bootstrap.sh                            # ~2 min; ends with the engine suite passing
 python3 tools/coverage_report.py --exclude-promos # encoding backlog
@@ -777,7 +952,13 @@ python3 tools/correct_cards.py --check            # are the 48 corrections still
 ./runs/status.sh                                  # aggregate the sweep
 python3 tools/mutation_check.py --vendor-set OP06 # mutation-check one upstream set, serially
 python3 tools/verify_limitless.py OP06-054        # what does the adjudicator actually print
-python3 -m unittest discover -s tools -p 'test_*.py'   # tools/ regression tests (56)
+python3 -m unittest discover -s tools -p 'test_*.py'   # the whole tools/ regression suite
+node --test environment/*.test.mjs                 # the environment layer
+node --test tests/environment-e2e.test.mjs         # whole pipeline offline: no device, no network
+node tools/environment_data.mjs resolve --root R --selector SC/latest \
+    --candidate-deck-id ID --candidate-deck-hash sha256:... [--allow-diagnostic]
+node tools/environment_evaluate.mjs evaluate --plan P --runner RUNNER --results-root R
+node tools/jihuanshe_refresh.mjs status --root SCRATCH   # ALWAYS pass --root; see the fact above
 node --test tools/jihuanshe_capture.test.mjs      # headless lifecycle/navigation safety tests
 node --test tools/jihuanshe_reader.test.mjs       # JiHuanShe parser/security tests
 node --test arena/log.test.ts                     # decision-log suite (14); needs NO engine clone
@@ -952,6 +1133,13 @@ The `tools/` tests are stdlib `unittest`, matching the tools' own stdlib-only co
    capture time and raw labels, and do not substitute top-cut frequency for field share. Until a
    captured SC share dataset is normalized and checked in, every share-weighted number in
    `docs/research-findings.md` remains an EN proxy and must be labelled as one.
+   **Continued 2026-08-21: the normalize-and-publish half is now built, the live run is not.**
+   `tools/jihuanshe_normalize.mjs` turns exact capture bytes into typed event snapshots (its
+   full-field ladder demotes a subset rather than promoting it), and `tools/jihuanshe_refresh.mjs`
+   publishes them as immutable source snapshots. What is still missing is a *live* capture
+   aggregated into a FieldSnapshot and promoted to a Manifest, which is owner-gated because it
+   drives the authenticated session. So the sentence above stands unchanged: **no SC Manifest and no
+   `SC/latest` exist**, and every share-weighted number is still an EN proxy.
 
 **Answered 2026-08-17: SC matches other regions on banlist and rotation.** Both were open since
 day one. Note precisely what this does and does not buy: an identical *legal pool*, not an

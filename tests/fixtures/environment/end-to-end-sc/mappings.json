@@ -1,0 +1,11 @@
+{
+  "fixture_only": true,
+  "schemaVersion": 1,
+  "mappingVersion": "e2e-mapping-fixture-v1",
+  "entries": {
+    "合成红艾斯": { "archetypeId": "leader:OP16-001", "leaderGameplayId": "OP16-001" },
+    "合成黑黄蒂奇": { "archetypeId": "leader:OP16-080", "leaderGameplayId": "OP16-080" },
+    "合成艾斯 正常": { "gameplayId": "OP16-001", "printingId": "OP16-001" },
+    "合成蒂奇 正常": { "gameplayId": "OP16-080", "printingId": "OP16-080" }
+  }
+}

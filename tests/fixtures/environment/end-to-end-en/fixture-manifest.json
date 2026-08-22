@@ -1,0 +1,14 @@
+{
+  "fixture_only": true,
+  "note": "Synthetic, sanitized EN end-to-end dataset. It is NOT Limitless data and NOT any live EN source. It exists only to prove that a second environment stays separate from SC. It can never justify a production EN Manifest or an EN/latest alias.",
+  "files": {
+    "synthetic-event.json": {
+      "markerCarried": true,
+      "reason": null
+    },
+    "outcome-script.json": {
+      "markerCarried": true,
+      "reason": null
+    }
+  }
+}

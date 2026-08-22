@@ -1,0 +1,22 @@
+{
+  "fixture_only": true,
+  "note": "Outcome script for tests/fixtures/environment/fake-simulation-runner.mjs. NOT a measurement: these win/loss counts are hand-chosen so every reported EV is exactly hand-checkable. The SC and EN copies of this file are byte-identical on purpose -- the E2E asserts it -- so any difference between the two reports comes from the FIELD WEIGHTS and nothing else. Per cell: 200 games, 0 unfinished, 0 tool failures, which is exactly the minimum completed games per seat the Manifest requires.",
+  "cells": {
+    "leader:OP16-001|play": {
+      "wins": 100,
+      "losses": 100
+    },
+    "leader:OP16-001|draw": {
+      "wins": 90,
+      "losses": 110
+    },
+    "leader:OP16-080|play": {
+      "wins": 120,
+      "losses": 80
+    },
+    "leader:OP16-080|draw": {
+      "wins": 110,
+      "losses": 90
+    }
+  }
+}

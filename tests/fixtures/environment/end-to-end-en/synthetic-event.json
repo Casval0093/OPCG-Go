@@ -1,0 +1,46 @@
+{
+  "fixture_only": true,
+  "schemaVersion": 1,
+  "kind": "tournament_event",
+  "environment": {
+    "edition": "EN",
+    "metagameRegion": "GLOBAL_EN",
+    "language": "en",
+    "formatId": "standard-block2-op16",
+    "timeZone": "America/Los_Angeles"
+  },
+  "asOf": "2026-08-20",
+  "source": {
+    "provider": "fixture",
+    "surface": "tournament",
+    "sourceRef": {
+      "providerEventId": "e2e-en-event-001",
+      "fixtureOnly": true,
+      "note": "Synthetic. NOT Limitless, NOT any live EN source. Exists only to prove that a second environment stays separate from SC; it can never justify an EN Manifest or an EN/latest alias."
+    },
+    "capturedAt": "2026-08-19T12:00:00Z",
+    "captureHash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  },
+  "coverage": { "status": "complete", "warnings": [], "missingFields": [] },
+  "data": {
+    "eventKey": "fixture:e2e-en-event-001",
+    "identity": { "title": "Synthetic EN end-to-end event", "providerEventId": "e2e-en-event-001" },
+    "time": { "precision": "day", "localDate": "2026-08-18", "timeZone": "America/Los_Angeles" },
+    "status": "completed",
+    "participantCount": { "value": 8, "label": "8 players" },
+    "evidenceBlocks": {
+      "results": { "coverage": { "status": "complete", "warnings": [], "missingFields": [] } },
+      "field": {
+        "sampleFrame": "full-field",
+        "denominator": { "value": 8, "label": "8 players" },
+        "rows": [
+          { "archetypeId": "leader:OP16-001", "players": 5, "rawArchetypeLabel": "Synthetic Red Ace" },
+          { "archetypeId": "leader:OP16-080", "players": 3, "rawArchetypeLabel": "Synthetic Black/Yellow Teach" }
+        ],
+        "unresolvedParticipants": 0,
+        "coverage": { "status": "complete", "warnings": [], "missingFields": [] }
+      }
+    },
+    "eventEvidenceHash": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+  }
+}
