@@ -424,23 +424,34 @@ not passing.
 Print plus `parse_rulings.py --card` on each of the 7 cards agrees with the existing encodings.
 No card is B, C, or D; no DSL change. The 08-22 sweep row above is the measurement; this is
 the adjudication. Pinning tests landed on the same tree and
-`python3 tools/mutation_check.py --card` now reports, verbatim:
+`python3 tools/mutation_check.py --card` (usual invocation, one process per card,
+`--jsonl` appended) now reports, verbatim:
 
 ```
 ok OP15-021: 11/11 mutants killed
+{"card": "OP15-021", "status": "ok", "killed": 11, "mutants": 11, "survivors": []}
 ok OP15-024: 5/5 mutants killed
+{"card": "OP15-024", "status": "ok", "killed": 5, "mutants": 5, "survivors": []}
 ok OP15-054: 9/9 mutants killed
+{"card": "OP15-054", "status": "ok", "killed": 9, "mutants": 9, "survivors": []}
 ok OP15-056: 9/9 mutants killed
+{"card": "OP15-056", "status": "ok", "killed": 9, "mutants": 9, "survivors": []}
 ok OP15-095: 13/13 mutants killed
+{"card": "OP15-095", "status": "ok", "killed": 13, "mutants": 13, "survivors": []}
 ok OP16-048: 8/8 mutants killed
+{"card": "OP16-048", "status": "ok", "killed": 8, "mutants": 8, "survivors": []}
 ok OP16-076: 10/10 mutants killed
+{"card": "OP16-076", "status": "ok", "killed": 10, "mutants": 10, "survivors": []}
 ```
 
-Those are the same seven cards as the 08-22 survivor table (the 08-21 replica
-figures were 8/11, 4/5, 8/9, 6/9, 12/13, 7/8, 9/10). The tool prints survivors
-only; each run printed none, so the 11 listed labels died with the rest of that
-card. `runs/OP15.jsonl` and `runs/OP16.jsonl` are left as the 08-22 sweep record.
-`OP15-112` was already 6/6 and was not re-opened.
+The 11 labels from the table above (`player opponent->self @L72`,
+`value -3000->-2000 @L73`, `value -3000->3000 @L73`, `delete condition:turn @L47`,
+`amount 2->1 @L39`, `amount 2->1 @L57`, `delete condition:leaderName @L44`,
+`player self->opponent @L57`, `delete condition:zoneCount @L59`,
+`zones drop "leader" @L70`, `zones drop "leader" @L64`) are not in any
+`survivors` array. The 08-21 replica figures were 8/11, 4/5, 8/9, 6/9, 12/13,
+7/8, 9/10. `runs/OP15.jsonl` and `runs/OP16.jsonl` stay the 08-22 sweep record.
+`OP15-112` was already 6/6 and was not re-opened. The 11 checks are in. No miss.
 
 **Independently replicated.** A different session, on a different tree, ran
 `mutation_shard.py --fresh` over OP15+OP16 on 2026-08-21 after the operator widening merged and
