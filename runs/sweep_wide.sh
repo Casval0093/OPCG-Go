@@ -1,0 +1,89 @@
+#!/usr/bin/env bash
+# Widened-instrument mutation sweep: pre-OP15 sets ONLY, 8 workers x private engine clone.
+#
+# Same mechanics as runs/sweep_all.sh (per-PID waits, 130 = paused), minus OP15/OP16:
+# runs/OP15.jsonl and runs/OP16.jsonl are contended by other work and are NOT re-run here.
+# The old five-operator results live in runs/v2/; the 62.3 % baseline in docs/mutation-sweep.md
+# refers to them. This sweep writes runs/<SET>.jsonl fresh with the widened operator set
+# (tools/mutation_check.py operators 6-11, adopted from docs/mutation-operators.md ranks 1-6).
+#
+# Bounded mode: `SWEEP_BUDGET=270 ./runs/sweep_wide.sh` stops the workers cleanly after N
+# seconds (SIGTERM; mutation_sweep.py restores every encoding and exits 130). Re-run with the
+# same command to resume — every set runs with --resume.
+set -uo pipefail
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+run() {
+  local w="$1"; shift
+  local engine="$ROOT/.clones/w$w/submodules/one-piece/packages/engine"
+  local rc=0
+  for s in "$@"; do
+    # Do not stop at the first bad set: the remaining ones are independent. The worst status wins.
+    python3 "$ROOT/tools/mutation_sweep.py" --vendor-set "$s" \
+      --engine "$engine" --repo "$ROOT" --jsonl "$ROOT/runs/$s.jsonl" --resume || rc=$?
+    # 130 means paused by design; stop this worker's remaining sets so a budget stop is prompt.
+    if [ "$rc" -eq 130 ]; then return 130; fi
+  done
+  return $rc
+}
+
+declare -a PIDS=() LABELS=()
+launch() { local w="$1"; shift; run "$w" "$@" > "$ROOT/runs/w$w.out" 2>&1 & PIDS+=("$!"); LABELS+=("w$w: $*"); }
+
+launch 0 OP14EB04 EB02
+launch 1 OP10 EB03
+launch 2 OP05 OP01
+launch 3 OP06 OP13
+launch 4 OP08 OP03 EB01
+launch 5 OP07 OP04 PRB01
+launch 6 OP11 OP02
+launch 7 OP12 OP09 PRB02
+
+if [ "${SWEEP_BUDGET:-0}" -gt 0 ]; then
+  # Stop THIS sweep's workers after the budget so an external timeout never SIGKILLs a mutant
+  # into place. TERM is trapped by the tool: encodings restored, records flushed, exit 130.
+  # Signal each worker's children (the python sweep it is running right now), never by command
+  # line — `pkill -f mutation_sweep.py` would also TERM sweeps other work is running on this
+  # host, and the header above explicitly expects concurrent OP15/OP16 mutation work. The
+  # wrappers themselves are left alone: TERMing a wrapper would orphan its python child, which
+  # is the one holding a mutant that needs restoring.
+  ( sleep "$SWEEP_BUDGET"
+    for pid in "${PIDS[@]}"; do pkill -TERM -P "$pid" 2>/dev/null || true; done ) &
+  TIMER=$!
+fi
+
+failed=0
+paused=0
+for i in "${!PIDS[@]}"; do
+  if wait "${PIDS[$i]}"; then
+    echo "ok      ${LABELS[$i]}"
+  else
+    status=$?
+    if [ "$status" -eq 130 ]; then
+      paused=$((paused + 1))
+      echo "PAUSED  ${LABELS[$i]} — re-run to resume"
+    else
+      failed=$((failed + 1))
+      echo "FAILED  ${LABELS[$i]} (exit $status) — see runs/${LABELS[$i]%%:*}.out" >&2
+    fi
+  fi
+done
+
+if [ "${SWEEP_BUDGET:-0}" -gt 0 ]; then
+  kill "$TIMER" 2>/dev/null || true
+  wait "$TIMER" 2>/dev/null || true
+fi
+
+if [ "$failed" -ne 0 ]; then
+  echo "sweep FAILED this round: $failed worker(s) failed, $paused paused, of ${#PIDS[@]}." >&2
+  exit 1
+fi
+if [ "$paused" -ne 0 ]; then
+  # A pause is the budget stop working as designed: encodings restored, records flushed,
+  # resumable with the same command. Exit 130 (the workers' own pause code) so callers can
+  # tell it from success — an `&&`-chained gate must not read a partial corpus as complete —
+  # and from a real failure, which alone exits 1.
+  echo "sweep PAUSED this round: $paused of ${#PIDS[@]} worker(s) stopped on budget; re-run to resume."
+  exit 130
+fi
+echo "sweep complete"

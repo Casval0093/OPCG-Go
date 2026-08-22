@@ -46,7 +46,7 @@ export const op16Mr2BonKureiBentham036: CharacterCard = {
       {
         trigger: "whenAttacking",
         // "base power becomes the same as" is `setBasePowerFrom`, not `setPower`: it copies the
-        // source's PRINTED base power and applies the delta, so modifiers already on this card
+        // source's EFFECTIVE base power as a replacement, so modifiers already on this card
         // stack on top instead of being absorbed (which is what parks OP16-058/OP16-106 on the
         // missing setBasePowerLiteral primitive). Modeled on OP06/characters/009-shuraiya.ts,
         // which prints this clause verbatim with a different duration.

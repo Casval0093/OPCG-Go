@@ -3,6 +3,7 @@
 #   ./scripts/simulate.sh --games 200 [--a DECK] [--b DECK] [--compare DECK] [--strategy NAME]
 # Policy-quality ladder: give each DECK its own policy and read the win rate as a policy score.
 #   ./scripts/simulate.sh --games 200 --a D --b D --strategy-a valueRanked --strategy-b random
+# Counter-policy knobs (see docs/simulation.md, "Knobs"): --counter avg-cost=3 --counter enabled=0
 # Task 10: a strict, fixed-seat environment job (mutually exclusive with every flag above):
 #   ./scripts/simulate.sh --job path/to/job.json --out /private/tmp/out.raw.json
 # Task 10: the vendored harness suite (batch-runner + environment-job adapter, end to end):
@@ -29,7 +30,7 @@ export SIM_ROOT="$ROOT" SIM_RUN=1
 opt_a=0; opt_b=0; opt_compare=0; opt_games=0; opt_seed=0; opt_first=0
 opt_strategy=0; opt_strategy_a=0; opt_strategy_b=0; opt_turn_budget=0; opt_max_commands=0
 opt_dump_catalog=0; opt_diag_prompts=0; opt_puzzles=0; opt_patch_ordercards=0
-opt_job=0; opt_out=0; opt_harness=0
+opt_job=0; opt_out=0; opt_harness=0; opt_counter=0
 job_path=""
 
 while [ $# -gt 0 ]; do case "$1" in
@@ -58,6 +59,16 @@ while [ $# -gt 0 ]; do case "$1" in
   --dump-catalog) export SIM_DUMP_CATALOG=1; opt_dump_catalog=1; shift;;
   --diag-prompts) export SIM_DIAG_PROMPTS=1; opt_diag_prompts=1; shift;;
   --puzzles) export SIM_PUZZLES=1; opt_puzzles=1; shift;;
+  # From main (#25): counter-policy knobs, e.g. --counter avg-cost=3 --counter enabled=0. NAME is
+  # upper-cased and dashes become underscores, so it maps to OPCG_COUNTER_<NAME>; counter-policy.ts
+  # holds the table of names it reads. Deliberately generic: a knob added there needs no change
+  # here. opt_counter makes it participate in --job/--harness-tests mode exclusivity like every
+  # other legacy override, and clear_ambient_legacy_vars() unsets the whole OPCG_COUNTER_* family.
+  --counter)
+    _k="${2%%=*}"; _v="${2#*=}"
+    [ "$_k" != "$2" ] || { echo "--counter wants NAME=VALUE, got: $2" >&2; exit 2; }
+    export "OPCG_COUNTER_$(printf '%s' "$_k" | tr 'a-z-' 'A-Z_')=$_v"
+    opt_counter=1; shift 2;;
   --patch-ordercards) export SIM_PATCH_ORDERCARDS=1; opt_patch_ordercards=1; shift;;
   --harness-tests) opt_harness=1; shift;;
   *) echo "unknown option: $1" >&2; exit 2;;
@@ -68,7 +79,8 @@ any_legacy_or_diagnostic_flag() {
     || [ "$opt_seed" = "1" ] || [ "$opt_first" = "1" ] || [ "$opt_strategy" = "1" ] \
     || [ "$opt_strategy_a" = "1" ] || [ "$opt_strategy_b" = "1" ] || [ "$opt_turn_budget" = "1" ] \
     || [ "$opt_max_commands" = "1" ] || [ "$opt_dump_catalog" = "1" ] || [ "$opt_diag_prompts" = "1" ] \
-    || [ "$opt_puzzles" = "1" ] || [ "$opt_patch_ordercards" = "1" ]
+    || [ "$opt_puzzles" = "1" ] || [ "$opt_patch_ordercards" = "1" ] \
+    || [ "$opt_counter" = "1" ]
 }
 
 # Task 10: --job is mutually exclusive with every legacy override, turn/command budget flag,
@@ -99,6 +111,10 @@ clear_ambient_legacy_vars() {
   unset SIM_DECK_A SIM_DECK_B SIM_COMPARE SIM_FIRST SIM_GAMES SIM_SEED \
     SIM_STRATEGY SIM_STRATEGY_A SIM_STRATEGY_B SIM_TURN_BUDGET SIM_MAX_COMMANDS \
     SIM_DUMP_CATALOG SIM_DIAG_PROMPTS SIM_PUZZLES SIM_PATCH_ORDERCARDS
+  # Merge with main (#25): the counter-policy knobs are a SECOND ambient family. A job is meant to
+  # be immutable, so an OPCG_COUNTER_* left in the caller's shell must not silently retune the bot
+  # mid-job any more than an ambient SIM_STRATEGY may. Prefix expansion needs bash, which this is.
+  for _cv in ${!OPCG_COUNTER_@}; do unset "$_cv"; done
 }
 
 if [ "$opt_job" = "1" ]; then

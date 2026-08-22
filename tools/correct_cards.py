@@ -56,6 +56,7 @@ INSERT_BEFORE = {
     "counter": ["trigger", "traits", "attribute", "effect", "effects"],
     "trigger": ["traits", "attribute", "effect", "effects"],
     "traits": ["attribute", "effect", "effects"],
+    "alternateNames": ["attribute", "effect", "effects"],
 }
 
 # ST01 declares shared trait arrays (`const strawHat = ["Straw Hat Crew"];`) and writes
@@ -214,6 +215,17 @@ def apply_one(block: str, correction: dict, consts: dict[str, str] | None = None
             return block, "DRIFT"
         return block.replace(correction["from"], correction["to"], 1), "applied"
 
+    # `fragment-all` rewrites EVERY occurrence in the block, for a literal that legitimately
+    # appears more than once in one card (EB01-043 carries two identical `value: "CP",` filters).
+    # A plain fragment would apply to the first and then report `ok` forever after, leaving the
+    # rest stale. `from` is checked first so a partially applied block still completes.
+    if kind == "fragment-all":
+        if correction["from"] in block:
+            return block.replace(correction["from"], correction["to"]), "applied"
+        if correction["to"] in block:
+            return block, "ok"
+        return block, "DRIFT"
+
     span = field_span(block, field)
     if span is None:
         if want is None:
@@ -284,7 +296,7 @@ def main(argv: list[str] | None = None) -> int:
         missing = [k for k in ("id", "kind", "field", "from", "to") if k not in correction]
         if missing:
             problems.append(f"row {index} ({correction.get('id', '?')}): missing {missing}")
-        elif correction["kind"] not in ("number", "traits", "string", "fragment"):
+        elif correction["kind"] not in ("number", "traits", "string", "fragment", "fragment-all"):
             problems.append(f"row {index} ({correction['id']}): unknown kind {correction['kind']!r}")
         elif correction["from"] == correction["to"]:
             problems.append(f"row {index} ({correction['id']}): `from` equals `to`, so it asserts "

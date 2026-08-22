@@ -709,5 +709,78 @@ class FragmentTest(CorrectCardsTest):
         self.assertEqual(self.read("OP06/054-borsalino.ts"), before)
 
 
+class FragmentAllTest(CorrectCardsTest):
+    """`kind: "fragment-all"` rewrites EVERY occurrence of a literal inside the block.
+
+    EB01-043 carries two identical `value: "CP",` filters; a plain fragment would fix the
+    first and report the block correct forever after. `from` is checked first, so a block
+    that was left half-rewritten still completes instead of reporting drift.
+    """
+
+    def seed(self) -> None:
+        self.write("EB01/043-spandine.ts", HEADER + card(
+            "eb01Spandine043",
+            "EB01-043",
+            "cost: 3,",
+            "power: 4000,",
+            "effects: {",
+            "    effects: [",
+            '      { filters: [{ filter: "trait", value: "CP", match: "includes" }] },',
+            '      { filters: [{ filter: "trait", value: "CP", match: "includes" }] },',
+            "    ],",
+            "  },",
+        ))
+
+    ENUM = 'value: ["CP0", "CP9"],'
+
+    def test_every_occurrence_is_replaced(self) -> None:
+        self.seed()
+
+        code, _ = self.run_tool(correction(
+            "EB01-043", "fragment-all", "effects", 'value: "CP",', self.ENUM))
+
+        after = self.read("EB01/043-spandine.ts")
+        self.assertEqual(code, 0)
+        self.assertEqual(after.count(self.ENUM), 2)
+        self.assertNotIn('value: "CP",', after)
+
+    def test_second_run_is_ok_not_applied(self) -> None:
+        self.seed()
+        self.run_tool(correction(
+            "EB01-043", "fragment-all", "effects", 'value: "CP",', self.ENUM))
+        settled = self.read("EB01/043-spandine.ts")
+
+        code, text = self.run_tool(correction(
+            "EB01-043", "fragment-all", "effects", 'value: "CP",', self.ENUM))
+
+        self.assertEqual(code, 0)
+        self.assertIn("already-correct 1", text)
+        self.assertIn("applied 0", text)
+        self.assertEqual(self.read("EB01/043-spandine.ts"), settled)
+
+    def test_a_half_applied_block_completes_instead_of_drifting(self) -> None:
+        self.seed()
+        half = self.read("EB01/043-spandine.ts").replace('value: "CP",', self.ENUM, 1)
+        self.write("EB01/043-spandine.ts", half)
+
+        code, _ = self.run_tool(correction(
+            "EB01-043", "fragment-all", "effects", 'value: "CP",', self.ENUM))
+
+        after = self.read("EB01/043-spandine.ts")
+        self.assertEqual(code, 0)
+        self.assertEqual(after.count(self.ENUM), 2)
+
+    def test_absent_fragment_is_drift(self) -> None:
+        self.seed()
+        before = self.read("EB01/043-spandine.ts")
+
+        code, text = self.run_tool(correction(
+            "EB01-043", "fragment-all", "effects", 'value: "CP9",', self.ENUM))
+
+        self.assertIn("DRIFT", text)
+        self.assertEqual(code, 1)
+        self.assertEqual(self.read("EB01/043-spandine.ts"), before)
+
+
 if __name__ == "__main__":
     unittest.main()

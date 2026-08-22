@@ -33,7 +33,9 @@ wrong *in the same direction* reads as correct to both. It is a real but bounded
 `OP13-084` St. Shepherd Ju Peter carries an encoded `[On Play]` deck search that is **not on the
 card**. Official SC ruling #747 quotes the card in full and its second ability is
 *"[Your Turn] If you have 10 or more cards in your trash, all of your {Five Elders} type
-Characters' base power becomes 7000"* — which needs the parked `setBasePowerLiteral` primitive.
+Characters' base power becomes 7000"* — which needed a literal base-power setter. **That primitive
+exists as of 2026-08-20 (the `setBasePower` patches in `tools/patch_engine.py`), so this card is
+unblocked; it is still unfixed.**
 The engine's own printed `effect` string agrees with the fabricated encoding, which is exactly why
 no check has ever caught it. Already recorded in `docs/encoding-audit.md`; listed here because it
 is the one card on which fixing the test would be wasted work — the clause the mutant perturbs does
@@ -85,12 +87,14 @@ expect(withoutCamie.getView("south").decisions.some((d) => d.title.includes("Blo
 built as `` `${playerName} may block` `` (`src/engine/queue.ts:55`). The substring `"Blocker"`
 never appears in any prompt label, so the assertion was `false === false` unconditionally.
 
-Fixed as **patch 8** in `tools/patch_engine.py`, using the idiom the Borsalino patch already
+Fixed by the `tests: OP07-030 Pappag asserted a condition that is always true`
+patch, using the idiom the Borsalino patch already
 established — `expect(() => engine.pendingDecision("battleBlocker", seat)).toThrow()`. Verified: the
 test still passes, and Pappag's `delete filter:name` mutant now **dies** (0/1 → 1/1).
 
-This is the third test of this exact class carried locally, after `OP06-054` Borsalino (patch 6) and
-`EB03-008` Hibari (patch 7). Per the standing rule, nothing goes upstream.
+This is the third test of this exact class carried locally, after `tests: OP06-054's Blocker threshold asserted the defect, not the card`
+and `tests: EB03-008 Hibari used a non-SWORD card as its SWORD body`.
+Per the standing rule, nothing goes upstream.
 
 ## Equivalent mutants worth suppressing rather than re-triaging
 

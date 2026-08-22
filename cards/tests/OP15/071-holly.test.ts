@@ -3,7 +3,7 @@ import type { LeaderCard } from "@tcg/op-types";
 import { op03Namule007, op05Ohm101, op15Holly071, op16PortgasDAce001 } from "@tcg/op-cards";
 
 import { registerCards } from "../../../../cards/src/runtime-catalog.ts";
-import { OnePieceTestEngine } from "../../../src/index.ts";
+import { type CardRef, OnePieceTestEngine } from "../../../src/index.ts";
 
 // Ruling #910 is the twin of #909 on OP15-070 Fuza; see that test for why a statically-named
 // synthetic Leader stands in for a name-granting one, and why both name fields matter.
@@ -40,6 +40,40 @@ function hollyBoard(leaderCardId: LeaderCard = op16PortgasDAce001) {
     { leaderCardId: op16PortgasDAce001, life: 5 },
     SOUTH_ATTACKS,
   );
+}
+
+// The base-power clause is [Opponent's Turn], so it needs the mirror of SOUTH_ATTACKS.
+//
+// `southLife` is a parameter because op05Ohm101 carries "If you have 2 or less Life cards, this
+// Character gains +1000 power" as a permanent effect of its own. At 5 Life that is off and Ohm is
+// a plain 5000 body; at 2 Life it is a REAL power modifier live during the opponent's turn, which
+// is what makes the stacking test below possible without inventing a synthetic card.
+const NORTH_ATTACKS = { firstPlayer: "south", activeSeat: "north" } as const;
+
+function hollyBoardOnOpponentTurn(leaderCardId: LeaderCard = op16PortgasDAce001, southLife = 5) {
+  return OnePieceTestEngine.create(
+    {
+      leaderCardId,
+      character: [
+        { card: op15Holly071, playedOnTurn: 0 },
+        { card: op05Ohm101, playedOnTurn: 0 },
+        { card: op03Namule007, playedOnTurn: 0 },
+      ],
+      life: southLife,
+    },
+    { leaderCardId: op16PortgasDAce001, life: 5 },
+    NORTH_ATTACKS,
+  );
+}
+
+function characterPower(engine: OnePieceTestEngine, card: CardRef) {
+  const instanceId = engine.findCardInZone("south", "character", card);
+  return engine.getView("south").players.south.characters.find((c) => c?.instanceId === instanceId)
+    ?.power;
+}
+
+function leaderPower(engine: OnePieceTestEngine) {
+  return engine.getView("south").players.south.leader.power;
 }
 
 function attackLeaderAndCountLifeLoss(engine: OnePieceTestEngine, attackerId: string) {
@@ -108,5 +142,61 @@ describe("OP15-071 Holly", () => {
     const engine = hollyBoard();
 
     expect(attackLeaderAndCountLifeLoss(engine, engine.leader("south"))).toBe(1);
+  });
+
+  test("[Opponent's Turn] your [Ohm] and this Character both reach base power 6000", () => {
+    // Ohm is 5000 printed and Holly 4000, so the two actions climb to the same literal from
+    // different bases -- and `value: 6000 -> 5000` on the Ohm half would land Ohm exactly back on
+    // its printed 5000, which is why the assertion has to be the exact number rather than "went up".
+    const engine = hollyBoardOnOpponentTurn();
+
+    expect(characterPower(engine, op05Ohm101)).toBe(6000);
+    expect(characterPower(engine, op15Holly071)).toBe(6000);
+  });
+
+  test("[Opponent's Turn] a non-[Ohm] Character and an ordinary Leader are untouched", () => {
+    // The name filter's negative control across both zones: delete it and Namule and the Leader,
+    // both 5000, become 6000.
+    const engine = hollyBoardOnOpponentTurn();
+
+    expect(characterPower(engine, op03Namule007)).toBe(5000);
+    expect(leaderPower(engine)).toBe(5000);
+  });
+
+  test("on YOUR own turn the base power clause is off", () => {
+    const engine = hollyBoard();
+
+    expect(characterPower(engine, op05Ohm101)).toBe(5000);
+    expect(characterPower(engine, op15Holly071)).toBe(4000);
+  });
+
+  test("ruling #910: a Leader named [Ohm] reaches base power 6000 as well", () => {
+    const engine = hollyBoardOnOpponentTurn(ohmNamedLeader);
+
+    expect(leaderPower(engine)).toBe(6000);
+  });
+
+  test("a +power modifier STACKS on the new base rather than being absorbed by it", () => {
+    // This is the whole reason the clause needs `setBasePower` and not `setPower`. At 2 Life
+    // op05Ohm101's own permanent +1000 is live, so the printed reading is 6000 base + 1000 = 7000.
+    // `setPower` sets TOTAL power -- it subtracts getCardPower at resolution -- and would clamp
+    // this to 6000, which is also what the un-encoded card read. Neither number is reachable by
+    // accident: on your own turn the same board reads 5000 + 1000 = 6000.
+    const engine = hollyBoardOnOpponentTurn(op16PortgasDAce001, 2);
+    expect(characterPower(engine, op05Ohm101)).toBe(7000);
+
+    const ownTurn = OnePieceTestEngine.create(
+      {
+        leaderCardId: op16PortgasDAce001,
+        character: [
+          { card: op15Holly071, playedOnTurn: 0 },
+          { card: op05Ohm101, playedOnTurn: 0 },
+        ],
+        life: 2,
+      },
+      { leaderCardId: op16PortgasDAce001, life: 5 },
+      SOUTH_ATTACKS,
+    );
+    expect(characterPower(ownTurn, op05Ohm101)).toBe(6000);
   });
 });

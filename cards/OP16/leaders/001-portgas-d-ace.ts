@@ -54,7 +54,7 @@ export const op16PortgasDAce001: LeaderCard = {
                       { filter: "power", comparison: "gte", value: 8000 },
                     ],
                     [
-                      { filter: "trait", value: "Whitebeard Pirates", match: "includes" },
+                      { filter: "trait", value: ["Whitebeard Pirates", "Former Whitebeard Pirates", "Whitebeard Pirates Allies"], match: "includes" },
                       { filter: "power", comparison: "gte", value: 8000 },
                     ],
                   ],

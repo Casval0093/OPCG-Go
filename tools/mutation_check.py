@@ -116,14 +116,93 @@ def _filter_spans(scan: str) -> list[tuple[int, int, str]]:
     return spans
 
 
+def _close_brace(scan: str, open_i: int) -> int | None:
+    """Index just past the `}` matching the `{` at open_i, or None if unbalanced."""
+    depth = 0
+    i = open_i
+    while i < len(scan):
+        if scan[i] == "{":
+            depth += 1
+        elif scan[i] == "}":
+            depth -= 1
+            if depth == 0:
+                return i + 1
+        i += 1
+    return None
+
+
+def _effects_spans(scan: str) -> list[tuple[int, int]]:
+    r"""(start, end) brace spans of each card-level `effects: { … }` body.
+
+    The new operators are scoped to this body: unscoped, the card's own `name:`, its printings'
+    `id:` and `artVariants[].type:` all become false mutation sites (see
+    docs/mutation-operators.md). `\beffects:\s*{` matches only the CardEffects block — neither
+    `effect: "…"` text fields nor the nested `effects: [` action arrays, and `\b` keeps
+    `permanentEffects:`/`replacementEffects:` from matching.
+    """
+    spans = []
+    for m in re.finditer(r"\beffects:\s*\{", scan):
+        open_i = scan.index("{", m.start())
+        end = _close_brace(scan, open_i)
+        if end is not None:
+            spans.append((open_i, end))
+    return spans
+
+
+def _innermost_object(scan: str, pos: int) -> tuple[int, int] | None:
+    """Brace span of the innermost `{ … }` enclosing `pos`.
+
+    The type-validity guards have to key on the enclosing OBJECT's own keys — not a character
+    window — because e.g. a `player:` site and the `self: true` that forbids flipping it are
+    siblings in the same `Target` object (docs/mutation-operators.md, "Type-validity traps").
+    """
+    stack: list[int] = []
+    home: int | None = None
+    for i in range(pos):
+        if scan[i] == "{":
+            stack.append(i)
+        elif scan[i] == "}":
+            if stack:
+                stack.pop()
+    if not stack:
+        return None
+    home = stack[-1]
+    end = _close_brace(scan, home)
+    return (home, end) if end is not None else None
+
+
+def _swallow_comma(scan: str, end: int) -> int:
+    """Extend a deletion span past a following comma, so deleting an array element or an object
+    member leaves valid TypeScript in both the inline and block layouts. Inline whitespace after
+    the comma goes too, so `[ "a", "b" ]` narrows to `[ "b" ]`, not `[  "b" ]`. Newlines are
+    kept: the next element's indentation is its own."""
+    j = end
+    while j < len(scan) and scan[j] in " \t":
+        j += 1
+    if j < len(scan) and scan[j] == ",":
+        j += 1
+        while j < len(scan) and scan[j] in " \t":
+            j += 1
+        return j
+    return end
+
+
 def _mutants(src: str) -> list[Mutant]:
     """Generate perturbations of a card's encoding, each targeting a real past defect.
 
     Sites are located in a comment-masked copy and applied to the real source, so offsets line up
     but prose is never mutated.
+
+    Operators 6–11 (the widened set, adopted from docs/mutation-operators.md ranks 1–6) are
+    scoped to the card-level `effects: { … }` body; operators 1–5 predate the scoping and are
+    left byte-identical so their numbers remain comparable to the 2026-08-19 baseline.
     """
     out: list[Mutant] = []
     scan = _mask_comments(src)
+    spans = _effects_spans(scan)
+
+    def scoped(pos: int) -> bool:
+        return any(s <= pos < e for s, e in spans)
 
     # 1. Delete each filter object. Catches "this filter is never consulted" — the cardCategory
     #    case, and any filter a test's fixtures happen to satisfy either way.
@@ -182,6 +261,156 @@ def _mutants(src: str) -> list[Mutant]:
                 src[: m.start()] + "oncePerTurn: false" + src[m.end() :],
             )
         )
+
+    # ── Widened set (docs/mutation-operators.md ranks 1–6, adopted 2026-08-21) ──
+    # Each models a defect class the original five cannot reach; together they take the
+    # zero-mutant population from ~20 % of the corpus to ~2 cards.
+
+    # 6. Flip player scoping. "KO one of your opponent's Characters" encoded as `self` is
+    #    invisible to every operator above, and player: is the second-largest decision site in
+    #    the corpus (~3,400). Two exclusions, both keyed on the innermost enclosing object:
+    #    a `self: true` Target already pins the side (flipping `player` there is half a defect),
+    #    and a `shuffleDeck` action's `player` flip is an EQUIVALENT mutant — the opponent's
+    #    deck order is as unknown to the test as your own.
+    for m in re.finditer(r'player:\s*"(self|opponent)"', scan):
+        if not scoped(m.start()):
+            continue
+        obj = _innermost_object(scan, m.start())
+        body = scan[obj[0] : obj[1]] if obj else ""
+        if re.search(r"\bself:\s*true\b", body) or "shuffleDeck" in body:
+            continue
+        frm, to = m.group(1), "opponent" if m.group(1) == "self" else "self"
+        out.append(
+            Mutant(
+                f"player {frm}->{to} @{_at(src, m.start())}",
+                src[: m.start()] + f'player: "{to}"' + src[m.end() :],
+            )
+        )
+
+    # 7. Delete a condition object — the "gate no test consults" shape of operator 1, in the
+    #    `conditions:` / `condition:` spelling. Two guards, both from the type declarations:
+    #    `ConditionalAction.predicate` is a REQUIRED Condition, so a `{ condition: … }` object
+    #    that is the value of a `predicate:` key must be skipped (deleting it breaks the build,
+    #    and deleting the key breaks it worse); and in the singular form the object is the value
+    #    of an OPTIONAL `condition:` key, so the key must go with the object — deleting the
+    #    object alone emits `condition: ,`.
+    for m in re.finditer(r'\{\s*condition:\s*"(\w+)"', scan):
+        if not scoped(m.start()):
+            continue
+        end = _close_brace(scan, m.start())
+        if end is None:
+            continue
+        key = re.search(r"(\w+)\s*:\s*$", scan[: m.start()])
+        if key:
+            if key.group(1) == "predicate":
+                continue
+            # Singular `condition: { … }` (or any other key): remove key AND object.
+            start, stop = key.start(1), _swallow_comma(scan, end)
+        else:
+            # Array element under `conditions: [ … ]`.
+            start, stop = m.start(), _swallow_comma(scan, end)
+        out.append(
+            Mutant(f"delete condition:{m.group(1)} @{_at(src, start)}", src[:start] + src[stop:])
+        )
+
+    # 8. Negative values: sign flip, plus one power step for debuffs of 1000+. Operator 3's
+    #    regex cannot match a leading `-`, so every debuff in the corpus went unmutated — the
+    #    exact field where tools/variant_audit.py found 16 printings that lost their `−`.
+    for m in re.finditer(r"value:\s*(-\d{1,6})\b", scan):
+        if not scoped(m.start()):
+            continue
+        v = int(m.group(1))
+        out.append(
+            Mutant(
+                f"value {v}->{-v} @{_at(src, m.start())}",
+                src[: m.start()] + f"value: {-v}" + src[m.end() :],
+            )
+        )
+        if -v >= 1000:
+            stepped = v + 1000  # -3000 -> -2000: one power step towards zero
+            out.append(
+                Mutant(
+                    f"value {v}->{stepped} @{_at(src, m.start())}",
+                    src[: m.start()] + f"value: {stepped}" + src[m.end() :],
+                )
+            )
+
+    # 9. Narrow `zones: […]` by dropping "leader". This is operator 4's real target in the
+    #    spelling the corpus actually uses: `Target` declares `zones: Zone[]` and the
+    #    Leader-inclusion distinction (rulings #979/#993, the C1/C2 defect) lives on the
+    #    ~270 `["leader", "character"]` sites, not on the 27 singular `zone:` ones. Narrowing
+    #    only — widening is rejected (the Leader is not a legal object for ko/trash/return, so
+    #    the widened mutant is exactly equivalent), and dropping `"leader"` from a `Zone[]` is
+    #    always type-valid.
+    for m in re.finditer(r"zones:\s*\[([^\]]*)\]", scan):
+        if not scoped(m.start()):
+            continue
+        members = re.findall(r'"([^"]+)"', m.group(1))
+        if "leader" not in members or len(members) < 2:
+            continue
+        lm = re.search(r'"leader"', m.group(1))
+        assert lm is not None
+        a, b = m.start(1) + lm.start(), m.start(1) + lm.end()
+        rest = scan[b : m.end() - 1]
+        if rest.lstrip().startswith(","):
+            # leader is not the last element: remove it and the following comma
+            b = _swallow_comma(scan, b)
+            while a > m.start(1) and scan[a - 1] in " \t":
+                a -= 1  # keep `["character"]` rather than `[ "character"]`
+        else:
+            # leader is last: remove the preceding comma too
+            a = scan.rfind(",", m.start(1), a)
+        out.append(
+            Mutant(
+                f'zones drop "leader" @{_at(src, a)}',
+                src[:a] + src[b:],
+            )
+        )
+
+    # 10. Lower an `amount:` by one (N ≥ 2), outside `upTo` blocks. Models "up to 2" encoded as
+    #     "up to 1" — or exactly-2 as exactly-1. The widening direction is rejected: raising an
+    #     upper bound the fixture does not saturate is unobservable, so only the narrowing
+    #     direction can be killed. An `upTo: true` sibling means the amount is already an upper
+    #     bound the test may not saturate; skip those sites rather than manufacture survivors.
+    for m in re.finditer(r"amount:\s*(\d+)", scan):
+        if not scoped(m.start()):
+            continue
+        n = int(m.group(1))
+        if n < 2:
+            continue
+        obj = _innermost_object(scan, m.start())
+        if obj and re.search(r"\bupTo:\s*true\b", scan[obj[0] : obj[1]]):
+            continue
+        out.append(
+            Mutant(
+                f"amount {n}->{n - 1} @{_at(src, m.start())}",
+                src[: m.start()] + f"amount: {n - 1}" + src[m.end() :],
+            )
+        )
+
+    # 11. Drop one keyword from a `keywords: […]` grant — a missing or spurious [Blocker] /
+    #     [Rush]. One mutant per member, so a two-keyword grant is checked on both halves.
+    for m in re.finditer(r"keywords:\s*\[([^\]]*)\]", scan):
+        if not scoped(m.start()):
+            continue
+        for km in re.finditer(r'"([^"]+)"', m.group(1)):
+            kw = km.group(1)
+            a, b = m.start(1) + km.start(), m.start(1) + km.end()
+            rest = scan[b : m.end() - 1]
+            if rest.lstrip().startswith(","):
+                b = _swallow_comma(scan, b)
+                while a > m.start(1) and scan[a - 1] in " \t":
+                    a -= 1
+            else:
+                prev = scan.rfind(",", m.start(1), a)
+                if prev != -1:
+                    a = prev
+            out.append(
+                Mutant(
+                    f'keywords drop "{kw}" @{_at(src, a)}',
+                    src[:a] + src[b:],
+                )
+            )
 
     return out
 

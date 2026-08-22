@@ -257,9 +257,17 @@ binding constraint. Policy legality was.
 | Block 2+ vanilla control (no effects) | 100% | 26.7 pts |
 | **Block 2+ real cards, patched** | **100%** | **8.5 pts** |
 
-Only the last is plausible — real first-player advantage is a few points. **Do not calibrate on
-ST01:** the gap tracks how much interaction a deck has, and a degenerate deck gives degenerate
-calibration. Statistical design uses common random numbers so a 1–2 card swap is measured against
+**Every figure in that table was measured on rules that were wrong, and is superseded — see
+`docs/simulation.md`, "Phase 2 — the baseline re-measured, once".** The engine let the SECOND player
+attack on its own first turn, which was worth **+26 to +52 points** of play/draw gap depending on the
+deck; the small gaps above were a rules bug cancelling first-player advantage rather than a
+measurement of it. Re-measured post-fix on 400 paired games per arm: **`ace-op16` −2.50 pts**,
+`mihawk-green-proxy` +34.50 pts.
+
+**Do not calibrate on ST01** — the gap tracks how much interaction a deck has, and a degenerate deck
+gives degenerate calibration. Phase 2 found that lesson reaches further than ST01: those two real
+Block 2+ decks disagree by 37 points under identical rules, so the *deck* is now part of the
+measurement and `mihawk-green-proxy` is unfit for this particular one. Statistical design uses common random numbers so a 1–2 card swap is measured against
 identical shuffles; the null test (identical decks) returns exactly 0.00 pts with 0/100 discordant
 pairs.
 

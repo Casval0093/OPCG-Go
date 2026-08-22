@@ -36,10 +36,11 @@ export const op16CatarinaDevon104: CharacterCard = {
         actions: [
           {
             // "This Character's base power becomes the same as the selected Character's power":
-            // `copyPower` always retargets the card bearing the effect and applies
-            // `copiedPower - basePower(self)`, which is exactly a base-power replacement, and it
-            // reads the SOURCE's current power (getCardPower), not its printed base power. The
-            // `target` here is therefore the card being COPIED FROM, not the card being changed.
+            // `copyPower` always retargets the card bearing the effect and stores a
+            // `type: "setBasePower"` replacement of `getCardPower(source)`, which is exactly a
+            // base-power replacement, and it reads the SOURCE's current power, not its printed
+            // base power. The `target` here is therefore the card being COPIED FROM, not the
+            // card being changed.
             action: "copyPower",
             target: {
               player: "opponent",

@@ -22,3 +22,17 @@ arena/logs/
 # results live in runs/*.jsonl, which IS tracked.
 .clones/
 runs/*.out
+
+# Upstream engine clone for baseline measurements (CLAUDE.md: "measure upstream facts in a CLEAN
+# upstream clone, never in vendor/"). Its WORKING TREE may carry applied patches; the pristine
+# reference is its git HEAD — read baselines with `git show HEAD:<path>`, not from the tree.
+.engine-base/
+
+# Disposable per-worker engine clones (cp -Rc vendor/tcg-engines, APFS copy-on-write). One per
+# worker is mandatory for runs/mutation_shard.py: mutation_check writes its mutant into the
+# cards package next to the engine it is given, so a shared tree makes every verdict noise.
+.mut/
+
+# `--fresh` in runs/mutation_shard.py sets the previous per-set results aside here before a re-run.
+# Useful for cross-checking two independent runs record-for-record; not a deliverable.
+runs/*.jsonl.prev

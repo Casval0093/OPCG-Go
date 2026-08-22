@@ -15,6 +15,7 @@ error — the class of defect this repo keeps getting burned by. In particular:
 from __future__ import annotations
 
 import os
+import re
 import sys
 import tempfile
 import unittest
@@ -293,6 +294,114 @@ class TestMutants(unittest.TestCase):
     def test_comments_are_never_mutated(self):
         src = 'const a = 1;\n// zone: "field" is discussed here\nconst b = 2;\n'
         self.assertEqual(mc._mutants(src), [])
+
+
+class TestWidenedOperators(unittest.TestCase):
+    """The six operators adopted from docs/mutation-operators.md ranks 1–6.
+
+    Each guard here exists because its absence produces a mutant that does not type-check
+    (`predicate:` is a required Condition) or an equivalent mutant (shuffleDeck's player flip)
+    rather than a finding. The tests pin both the fire and the no-fire direction, so a guard
+    deleted out of the tool turns a test red.
+    """
+
+    @staticmethod
+    def _labels(src: str) -> list[str]:
+        return [m.label for m in mc._mutants(src)]
+
+    def test_player_flip_fires_and_swaps_both_ways(self):
+        src = 'effects: {\n  a: { player: "self" },\n  b: { player: "opponent" },\n}\n'
+        labels = self._labels(src)
+        self.assertTrue(any(x.startswith("player self->opponent") for x in labels), labels)
+        self.assertTrue(any(x.startswith("player opponent->self") for x in labels), labels)
+
+    def test_player_flip_skips_self_targeting_and_shuffle_deck(self):
+        """`self: true` already pins the side, and flipping who shuffles is an equivalent
+        mutant — the opponent's deck order is as unknown to the test as your own."""
+        src = (
+            'effects: {\n'
+            '  a: { player: "self", zones: ["character"], self: true },\n'
+            '  b: { action: "shuffleDeck", player: "opponent" },\n'
+            '}\n'
+        )
+        self.assertEqual([x for x in self._labels(src) if x.startswith("player ")], [])
+
+    def test_player_flip_skips_sites_outside_the_effects_body(self):
+        """Scoping is what keeps a card's own metadata from becoming a mutation site."""
+        src = 'const meta = { player: "self" };\neffects: {\n  a: { amount: 1 },\n}\n'
+        self.assertEqual([x for x in self._labels(src) if x.startswith("player ")], [])
+
+    def test_condition_array_element_is_deleted_with_its_comma(self):
+        src = ('effects: {\n  conditions: [{ condition: "turn", value: "your" }, '
+               '{ condition: "donAttached", amount: 1 }],\n}\n')
+        muts = [m for m in mc._mutants(src) if m.label.startswith("delete condition:")]
+        self.assertEqual(len(muts), 2, [m.label for m in muts])
+        for m in muts:
+            self.assertNotIn(", ,", m.source)
+            self.assertNotIn("[,", m.source)
+
+    def test_singular_condition_deletes_the_key_with_the_object(self):
+        """Deleting only the object emits `condition: ,` — a mutant that cannot compile is a
+        false survivor waiting to be reported."""
+        src = ('effects: {\n  actions: [{ action: "ko",\n'
+               '    condition: { condition: "turn", value: "your" },\n  }],\n}\n')
+        muts = [m for m in mc._mutants(src) if m.label.startswith("delete condition:turn")]
+        self.assertEqual(len(muts), 1)
+        self.assertNotIn("condition:", muts[0].source)
+        self.assertIn('action: "ko"', muts[0].source)
+
+    def test_predicate_is_never_deleted(self):
+        """`ConditionalAction.predicate` is a REQUIRED Condition — removing it breaks the
+        build, and a mutant that does not compile is not a measurement."""
+        src = ('effects: {\n  actions: [{ action: "conditional",\n'
+               '    predicate: { condition: "leaderColor", color: "red" },\n'
+               '    whenTrue: [],\n  }],\n}\n')
+        self.assertEqual(
+            [x for x in self._labels(src) if x.startswith("delete condition:")], [])
+
+    def test_negative_value_sign_flip_and_power_step(self):
+        """The lost-`−` defect class: every debuff was unreachable while the threshold regex
+        could not match a leading minus."""
+        src = 'effects: {\n  f: { filter: "power", comparison: "gte", value: -3000 },\n}\n'
+        labels = self._labels(src)
+        self.assertTrue(any(x.startswith("value -3000->3000") for x in labels), labels)
+        self.assertTrue(any(x.startswith("value -3000->-2000") for x in labels), labels)
+
+    def test_negative_value_below_one_power_step_flips_sign_only(self):
+        src = 'effects: {\n  f: { filter: "power", comparison: "gte", value: -2 },\n}\n'
+        labels = [x for x in self._labels(src) if x.startswith("value ")]
+        self.assertEqual(len(labels), 1, labels)
+        self.assertTrue(labels[0].startswith("value -2->2"), labels)
+
+    def test_zones_drop_leader_from_both_positions(self):
+        first = 'effects: {\n  t: { zones: ["leader", "character"] },\n}\n'
+        last = 'effects: {\n  t: { zones: ["character", "leader"] },\n}\n'
+        for src in (first, last):
+            muts = [m for m in mc._mutants(src) if m.label.startswith("zones drop")]
+            self.assertEqual(len(muts), 1, src)
+            self.assertIn('zones: ["character"]', re.sub(r"\s+", " ", muts[0].source))
+
+    def test_zones_single_leader_is_not_narrowed_to_empty(self):
+        src = 'effects: {\n  t: { zones: ["leader"] },\n}\n'
+        self.assertEqual([x for x in self._labels(src) if x.startswith("zones drop")], [])
+
+    def test_amount_lowers_by_one_but_not_inside_upto(self):
+        """`upTo: true` makes the amount an upper bound the fixture may not saturate; lowering
+        it there manufactures survivors, so the site is skipped. Plain amounts narrow."""
+        plain = 'effects: {\n  c: { amount: 3 },\n}\n'
+        upto = 'effects: {\n  c: { amount: 3, upTo: true },\n}\n'
+        one = 'effects: {\n  c: { amount: 1 },\n}\n'
+        labels = self._labels(plain)
+        self.assertTrue(any(x.startswith("amount 3->2") for x in labels), labels)
+        self.assertEqual([x for x in self._labels(upto) if x.startswith("amount ")], [])
+        self.assertEqual([x for x in self._labels(one) if x.startswith("amount ")], [])
+
+    def test_keywords_drops_each_member(self):
+        src = 'effects: {\n  keywords: ["rush", "blocker"],\n}\n'
+        muts = [m for m in mc._mutants(src) if m.label.startswith("keywords drop")]
+        self.assertEqual(len(muts), 2, [m.label for m in muts])
+        self.assertIn('keywords: ["blocker"]', muts[0].source if '"rush"' in muts[0].label
+                      else muts[1].source)
 
 
 if __name__ == "__main__":
