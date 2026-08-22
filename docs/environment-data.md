@@ -126,6 +126,19 @@ as open with NO row would be invisible to `evaluateCapabilityGate`, so closing t
 would reach `official` while a real defect stands — do not describe a limitation as gated unless it
 has a row.
 
+### Who may close a row
+
+Ratified 2026-08-22 as-is: four reviewed rows, three open (`counter_and_block_policy_missing`,
+`trigger_activation_forced`, `attack_target_policy_missing`), one closed in place
+(`second_player_first_turn_attack`). The capability gate stays closed.
+
+- A closure that leaves **zero open rows** (the gate would open to `official`) needs Ping's
+  sign-off. Do not implement that closure without it.
+- A closure that leaves the **gate still closed** (at least one row remains open) may be
+  implementer-made. Record evidence on the row (`evidenceLocation` and the closing change).
+- Half a fix still does not close a row. Closed rows stay in place, never deleted.
+- M-1, M-2, M-3, and M-5 stay deferred and documented. None of them touches a published number.
+
 > **`blocksOfficialStrength` is descriptive metadata, NOT a gate — do not "fix" the code to make it
 > one.** `environment/capability.mjs` filters on `status === "open"` alone and says why: a hash-valid
 > snapshot with every limitation's flag flipped to `false` would otherwise slip into `official` while
