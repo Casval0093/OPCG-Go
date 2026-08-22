@@ -31,6 +31,17 @@ function isRecord(value) {
   return prototype === Object.prototype || prototype === null;
 }
 
+// I7: the command runner and readFile were already injectable seams, but existsSync/statSync were
+// called directly, so every exporter test depended on vendor/ actually existing on the machine
+// running it -- impossible on a fresh clone before bootstrap, since vendor/ is gitignored.
+function defaultPathIsDirectory(path) {
+  try {
+    return existsSync(path) && statSync(path).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
 function defaultRunner(command, args, options = {}) {
   return spawnSync(command, args, {
     ...options,
@@ -200,10 +211,11 @@ export function collectLiveCapabilityInput(options = {}) {
   const repoRoot = resolve(options.repoRoot ?? REPO_ROOT);
   const vendorRoot = relativePathOrAbsolute(repoRoot, options.vendorRoot ?? VENDOR_RELATIVE_PATH);
   const engineRoot = relativePathOrAbsolute(repoRoot, options.engineRoot ?? ENGINE_RELATIVE_ROOT);
-  if (!existsSync(vendorRoot) || !statSync(vendorRoot).isDirectory()) {
+  const pathIsDirectory = options.pathIsDirectory ?? defaultPathIsDirectory;
+  if (!pathIsDirectory(vendorRoot)) {
     fail("vendor_missing", "vendored engine root is missing", { vendorRoot });
   }
-  if (!existsSync(engineRoot) || !statSync(engineRoot).isDirectory()) {
+  if (!pathIsDirectory(engineRoot)) {
     fail("vendor_missing", "vendored One Piece engine package is missing", { engineRoot });
   }
   const commandRunner = options.commandRunner ?? defaultRunner;
@@ -293,10 +305,13 @@ export function collectLiveCapabilityInput(options = {}) {
   return {
     ...environment,
     asOf: options.asOf ?? new Date().toISOString().slice(0, 10),
-    source: options.source ?? {
-      adapter: "live-vendored-engine",
-      capturedAt: new Date().toISOString(),
-    },
+    // I8: a capability snapshot is DERIVED evidence computed from local state, not an acquisition
+    // (controller ruling, following the project's existing Task 5 FieldSnapshot precedent) -- so
+    // its default source envelope carries no runtime generation instant. A `capturedAt` here would
+    // be re-signed into the content hash on every run, so two exports of the SAME engine state a
+    // few seconds apart produced different snapshotId/contentHash with nothing else different.
+    // `engineRevision` is the derivation's own deterministic identity; no clock read is needed.
+    source: options.source ?? { adapter: "live-vendored-engine" },
     coverage: options.coverage ?? { status: "complete", warnings: [], missingFields: [] },
     engineRevision,
     engineWorktreeHash,

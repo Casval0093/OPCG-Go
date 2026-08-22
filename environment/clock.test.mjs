@@ -187,6 +187,97 @@ test("edition, region, language, format, timezone, stage, duration, rules, and i
   }
 });
 
+test("I5: the library never reads host clock time -- an explicit now is required", () => {
+  // Measured live: local Asia/Shanghai time near midnight has a UTC calendar date one day behind
+  // it, so a silent `new Date().toISOString()` default inside the library reads the WRONG day for
+  // a native SC model and can authorize round_timeout using an interval check that has nothing to
+  // do with the identity actually being scored. The fix is to never default host time inside this
+  // library at all -- any defaulting belongs at a CLI boundary outside it.
+  const snapshot = buildClockSnapshot(clockInput());
+  assert.throws(
+    () => evaluateClockGate(snapshot, applicableIdentity()),
+    (error) => error instanceof EnvironmentError && error.code === "clock_model_unavailable",
+  );
+  assert.throws(
+    () => evaluateClockGate(snapshot, applicableIdentity(), {}),
+    (error) => error instanceof EnvironmentError && error.code === "clock_model_unavailable",
+  );
+  assert.throws(
+    () => evaluateClockGate(snapshot, applicableIdentity(), { now: 12345 }),
+    (error) => error instanceof EnvironmentError && error.code === "clock_model_unavailable",
+  );
+  // The explicit-now path still works correctly (unchanged behavior).
+  assert.deepEqual(evaluateClockGate(snapshot, applicableIdentity(), { now: "2026-08-21T00:00:00Z" }), {
+    roundTimeoutPolicy: clockInput().roundTimeoutPolicy,
+  });
+});
+
+test("I6: the returned roundTimeoutPolicy must be consistent with the model's own matched dimensions", () => {
+  // CLAUDE.md ground truth: a timed-out Swiss round is a DOUBLE LOSS; extra turns / a Life-deck-
+  // janken tiebreak apply ONLY in finals/elimination, never Swiss. A model matched as swiss/30
+  // returning a top-cut/45/extra-turns policy is exactly that confusion.
+  assert.throws(
+    () => buildClockSnapshot(clockInput({
+      roundTimeoutPolicy: {
+        ...clockInput().roundTimeoutPolicy,
+        stage: "top-cut",
+        roundDurationMinutes: 45,
+        timeoutScoring: "extra-turns-then-life-tiebreak",
+      },
+    })),
+    (error) => error instanceof EnvironmentError && error.code === "clock_model_invalid",
+  );
+  // Even naming the Swiss stage correctly, the scoring itself must be the double-loss rule.
+  assert.throws(
+    () => buildClockSnapshot(clockInput({
+      roundTimeoutPolicy: { ...clockInput().roundTimeoutPolicy, timeoutScoring: "extra-turns-then-life-tiebreak" },
+    })),
+    (error) => error instanceof EnvironmentError && error.code === "clock_model_invalid",
+  );
+  // A hash-valid snapshot that bypasses buildClockSnapshot (re-finalized directly) must be caught
+  // the same way at verify/gate time, not only at build time.
+  const accepted = buildClockSnapshot(clockInput());
+  const forged = structuredClone(accepted);
+  delete forged.snapshotId;
+  delete forged.contentHash;
+  forged.data.roundTimeoutPolicy = {
+    ...forged.data.roundTimeoutPolicy,
+    stage: "top-cut",
+    roundDurationMinutes: 45,
+    timeoutScoring: "extra-turns-then-life-tiebreak",
+  };
+  const hashValidForged = finalizeSnapshot(forged, "clock-forged-policy-mismatch");
+  assert.throws(
+    () => evaluateClockGate(hashValidForged, applicableIdentity(), { now: "2026-08-21T00:00:00Z" }),
+    (error) => error instanceof EnvironmentError && error.code === "clock_model_unavailable",
+  );
+});
+
+test("I6: computational-ceiling keys nested inside roundTimeoutPolicy are rejected, not just top-level", () => {
+  assert.throws(
+    () => buildClockSnapshot(clockInput({
+      roundTimeoutPolicy: { ...clockInput().roundTimeoutPolicy, turnBudget: 40 },
+    })),
+    (error) => error instanceof EnvironmentError && error.code === "clock_model_invalid",
+  );
+  assert.throws(
+    () => buildClockSnapshot(clockInput({
+      roundTimeoutPolicy: { ...clockInput().roundTimeoutPolicy, computationalCeiling: { max: 100 } },
+    })),
+    (error) => error instanceof EnvironmentError && error.code === "clock_model_invalid",
+  );
+  // Nested one level deeper still must not ride through.
+  assert.throws(
+    () => buildClockSnapshot(clockInput({
+      roundTimeoutPolicy: {
+        ...clockInput().roundTimeoutPolicy,
+        rulesSnapshotRef: { ...rulesSnapshotRef, engineTermination: "turn_budget_exhausted" },
+      },
+    })),
+    (error) => error instanceof EnvironmentError && error.code === "clock_model_invalid",
+  );
+});
+
 test("computational budgets and engine terminations never become round_timeout", () => {
   assert.throws(
     () => buildClockSnapshot(clockInput({ computationalTurnBudget: 40 })),

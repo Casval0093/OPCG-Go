@@ -1,4 +1,5 @@
 import { EnvironmentError } from "./errors.mjs";
+import { gameplayHashForDeck } from "./deck.mjs";
 import { sha256Canonical } from "./hash.mjs";
 import { assertNativeEnvironment, FULL_HASH_PATTERN } from "./rules.mjs";
 import { finalizeSnapshot, verifySnapshot } from "./snapshot.mjs";
@@ -45,6 +46,29 @@ function localDate(value, path) {
     fail("capability_invalid", `${path} must be a valid local calendar date`, { path, value });
   }
   return value;
+}
+
+function assertCompleteCoverage(coverage) {
+  if (!isRecord(coverage)) fail("capability_invalid", "coverage must be an object", { path: "coverage" });
+  if (!Array.isArray(coverage.warnings)) {
+    fail("capability_invalid", "coverage.warnings must be an array", { path: "coverage.warnings" });
+  }
+  if (!Array.isArray(coverage.missingFields)) {
+    fail("capability_invalid", "coverage.missingFields must be an array", { path: "coverage.missingFields" });
+  }
+  if (coverage.status !== "complete") {
+    fail("capability_invalid", "capability coverage must be complete, not partial or structurally incomplete", {
+      path: "coverage.status",
+      status: coverage.status,
+    });
+  }
+  if (coverage.missingFields.length > 0) {
+    fail("capability_invalid", "capability coverage reports missing fields", {
+      path: "coverage.missingFields",
+      missingFields: coverage.missingFields,
+    });
+  }
+  return coverage;
 }
 
 function environmentFromInput(input) {
@@ -230,9 +254,19 @@ function limitationRows(definition, fallback) {
   });
   return {
     definitionId,
-    definitionHash: sha256Canonical(definition),
+    // I4: hashed over the RETAINED projection (definitionId + normalized rows), not the raw input
+    // `definition` object (which also carries reviewedAt/review metadata the snapshot never keeps).
+    // That makes this hash recomputable later from data the snapshot actually retains
+    // (limitationDefinitionId + blockingLimitations) -- see limitationDefinitionProjection below --
+    // so a status flipped to "closed" without a genuinely different reviewed definition changes the
+    // recomputed hash and fails verification, instead of silently reaching "official".
+    definitionHash: sha256Canonical(limitationDefinitionProjection(definitionId, normalized)),
     rows: normalized,
   };
+}
+
+function limitationDefinitionProjection(definitionId, rows) {
+  return { schemaVersion: 1, definitionId, limitations: rows };
 }
 
 function inputCatalogRows(input) {
@@ -252,8 +286,9 @@ export function buildCapabilitySnapshot(input) {
   const environment = environmentFromInput(input);
   const asOf = localDate(input.asOf ?? input.environment?.asOf, "asOf");
   if (!isRecord(input.source)) fail("capability_invalid", "source must be an object", { path: "source" });
-  const coverage = input.coverage ?? { status: "complete", warnings: [], missingFields: [] };
-  if (!isRecord(coverage)) fail("capability_invalid", "coverage must be an object", { path: "coverage" });
+  const coverage = assertCompleteCoverage(
+    input.coverage ?? { status: "complete", warnings: [], missingFields: [] },
+  );
 
   const catalogInputRows = inputCatalogRows(input);
   const catalogHash = normalizeHashInput(input, ["catalogContentHash", "catalogHash"], "catalogContentHash");
@@ -309,23 +344,88 @@ export function buildCapabilitySnapshot(input) {
 }
 
 function capabilityCoverage(snapshot) {
-  try {
-    verifySnapshot(snapshot);
-  } catch (error) {
-    throw error;
-  }
+  verifySnapshot(snapshot);
   if (!isRecord(snapshot) || snapshot.kind !== CAPABILITY_KIND || !isRecord(snapshot.data)) {
     fail("capability_invalid", "snapshot is not a simulation capability snapshot");
   }
   const rows = snapshot.data.gameplayCoverage;
   if (!Array.isArray(rows)) fail("capability_invalid", "capability gameplay coverage is missing");
   const byId = new Map();
+  let printingTotal = 0;
   for (const row of rows) {
     if (!isRecord(row) || typeof row.gameplayId !== "string" || typeof row.executable !== "boolean") {
       fail("capability_invalid", "capability gameplay coverage row is invalid");
     }
     if (byId.has(row.gameplayId)) fail("capability_invalid", "capability gameplay coverage is duplicated", { gameplayId: row.gameplayId });
+    if (!Array.isArray(row.printingIds) || row.printingIds.length === 0) {
+      fail("capability_invalid", "capability gameplay coverage row has no printing IDs", { gameplayId: row.gameplayId });
+    }
+    // I3: `executable` is re-derived from the row's OWN retained evidence rather than trusted as
+    // stored. A snapshot can be re-finalized over arbitrary tampered data and stay hash-valid (the
+    // hash only certifies self-consistency with whatever was signed), so a forged `executable: true`
+    // on a printed-text/no-structured-effects row would otherwise sail through verification and let
+    // the gate call an unencoded card diagnostic-ready.
+    if (typeof row.hasStructuredEffects !== "boolean") {
+      fail("capability_invalid", "capability gameplay coverage row is missing hasStructuredEffects evidence", {
+        gameplayId: row.gameplayId,
+      });
+    }
+    if (row.effectText !== null && typeof row.effectText !== "string") {
+      fail("capability_invalid", "capability gameplay coverage row effectText must be a string or null", {
+        gameplayId: row.gameplayId,
+      });
+    }
+    if (row.triggerText !== null && typeof row.triggerText !== "string") {
+      fail("capability_invalid", "capability gameplay coverage row triggerText must be a string or null", {
+        gameplayId: row.gameplayId,
+      });
+    }
+    const expectedExecutable = row.hasStructuredEffects || (row.effectText === null && row.triggerText === null);
+    if (row.executable !== expectedExecutable) {
+      fail("capability_invalid", "capability gameplay coverage row's executable flag disagrees with its own retained evidence", {
+        gameplayId: row.gameplayId,
+        recorded: row.executable,
+        expected: expectedExecutable,
+      });
+    }
+    printingTotal += row.printingIds.length;
     byId.set(row.gameplayId, row);
+  }
+  // A snapshot can be re-finalized over ARBITRARY tampered data and still be hash-valid (the hash
+  // just certifies self-consistency with whatever content was signed, not truth). These two
+  // cross-checks catch a hash-valid snapshot whose summary counters were forged to disagree with
+  // its own gameplayCoverage rows -- a "hash-valid semantic bypass".
+  if (typeof snapshot.data.gameplayIdCount !== "number" || snapshot.data.gameplayIdCount !== rows.length) {
+    fail("capability_invalid", "gameplayIdCount does not match the gameplay coverage rows", {
+      recorded: snapshot.data.gameplayIdCount,
+      expected: rows.length,
+    });
+  }
+  if (typeof snapshot.data.catalogRowCount !== "number" || snapshot.data.catalogRowCount !== printingTotal) {
+    fail("capability_invalid", "catalogRowCount does not match aggregated printing counts", {
+      recorded: snapshot.data.catalogRowCount,
+      expected: printingTotal,
+    });
+  }
+  // I4: `officialReady` is this gate's most consequential output, and `blockingLimitations[].status`
+  // is what drives it. Recompute limitationDefinitionHash from what the snapshot actually retains
+  // (limitationDefinitionId + blockingLimitations) and reject a mismatch -- otherwise every status
+  // could be flipped to "closed" in place, re-signed, and pass as hash-valid with no way to tell it
+  // apart from a genuinely different reviewed definition.
+  if (!Array.isArray(snapshot.data.blockingLimitations)) {
+    fail("capability_invalid", "blockingLimitations is missing", {});
+  }
+  if (typeof snapshot.data.limitationDefinitionId !== "string" || snapshot.data.limitationDefinitionId.length === 0) {
+    fail("capability_invalid", "limitationDefinitionId is missing", {});
+  }
+  const expectedDefinitionHash = sha256Canonical(
+    limitationDefinitionProjection(snapshot.data.limitationDefinitionId, snapshot.data.blockingLimitations),
+  );
+  if (snapshot.data.limitationDefinitionHash !== expectedDefinitionHash) {
+    fail("capability_invalid", "limitationDefinitionHash does not match the retained blocking limitations", {
+      recorded: snapshot.data.limitationDefinitionHash,
+      expected: expectedDefinitionHash,
+    });
   }
   return byId;
 }
@@ -361,14 +461,61 @@ export function missingExecutableGameplayIds(snapshot, deckSnapshots) {
   return [...ids].sort();
 }
 
+// The coverage check above only looks at IDs (deckGameplayIds tolerates a bare {leaderGameplayId,
+// mainDeckCounts} shape, since Task 3's own construction/legality gates are what own full deck
+// legality). This second gate re-authenticates the deck argument ITSELF: it must be a real,
+// hash-valid DeckSnapshot (Task 3's own envelope, not a hand-built lookalike), and its declared
+// gameplayHash must match a fresh recomputation from its own leaderGameplayId/mainDeckCounts. A
+// deck that only satisfies the coverage check is not enough to be simulated against -- accepting
+// a raw, unverified object here would let a caller assert results for a deck that was never
+// actually authenticated as the deck it claims to be.
+function assertRealDeckSnapshot(deck, index) {
+  try {
+    verifySnapshot(deck);
+  } catch (error) {
+    fail("simulation_not_ready", "deck snapshot failed hash verification", {
+      deckIndex: index,
+      missing: [],
+      cause: error instanceof EnvironmentError ? error.code : String(error?.message ?? error),
+    });
+  }
+  if (deck.kind !== "deck") {
+    fail("simulation_not_ready", "snapshot is not a deck snapshot", { deckIndex: index, missing: [] });
+  }
+  const data = deck.data;
+  let expectedHash;
+  try {
+    expectedHash = gameplayHashForDeck(data?.leaderGameplayId, data?.mainDeckCounts);
+  } catch (error) {
+    fail("simulation_not_ready", "deck snapshot gameplay identity is invalid", {
+      deckIndex: index,
+      missing: [],
+      cause: error instanceof EnvironmentError ? error.code : String(error?.message ?? error),
+    });
+  }
+  if (data.gameplayHash !== expectedHash) {
+    fail("simulation_not_ready", "deck snapshot gameplay hash does not match its declared identity", {
+      deckIndex: index,
+      missing: [],
+    });
+  }
+}
+
+function assertRealDeckSnapshots(deckSnapshots) {
+  deckSnapshots.forEach((deck, index) => assertRealDeckSnapshot(deck, index));
+}
+
 export function evaluateCapabilityGate(snapshot, deckSnapshots) {
   const missing = missingExecutableGameplayIds(snapshot, deckSnapshots);
   if (missing.length > 0) {
     fail("simulation_not_ready", "deck contains unsupported cards", { missing });
   }
-  const blockers = snapshot.data.blockingLimitations.filter((row) => (
-    row.status === "open" && row.blocksOfficialStrength === true
-  ));
+  assertRealDeckSnapshots(deckSnapshots);
+  // `blocksOfficialStrength` is descriptive metadata, not a gate: a limitation row that is still
+  // `status: "open"` always keeps the result diagnostic, regardless of that flag's (forgeable)
+  // value. Otherwise a hash-valid snapshot with every blocker's flag flipped to false would slip
+  // into "official" while every blocker is still genuinely open.
+  const blockers = snapshot.data.blockingLimitations.filter((row) => row.status === "open");
   return blockers.length === 0
     ? { mode: "official", officialReady: true, blockers: [] }
     : { mode: "diagnostic_estimate", officialReady: false, blockers };
