@@ -226,10 +226,13 @@ measurement:
   `official`, so a report degraded by the clock gate carries `clock_model_unavailable` and can never
   also carry the other. (And without `--allow-diagnostic` the clock gate refuses outright, producing
   no report at all rather than a degraded one.) Given that a timed-out round in this format is a
-  **double loss**, that is a missing outcome class rather than a rounding error, and the four
-  reviewed engine limitations in `data/environment-definitions/simulation-limitations-v1.json` — no
-  attack-target choice, no counters and no blocks, a forced `[Trigger]` activation, and the second
-  player's illegal first-turn attack — close the capability gate independently.
+  **double loss**, that is a missing outcome class rather than a rounding error, and the reviewed
+  engine limitations in `data/environment-definitions/simulation-limitations-v1.json` close the
+  capability gate independently. Four rows, of which **three are still open** — no attack-target
+  choice, no blocking, and a forced `[Trigger]` activation. Two of the recorded defects have since
+  been fixed on `main` by Phase 1: the second player's illegal first-turn attack (its row is now
+  `closed`) and the missing counter policy (only half of the row it shares with blocking, so that
+  row stays open).
 - **A green offline end-to-end run is a contract test, not evidence.**
   `tests/environment-e2e.test.mjs` drives the whole chain from synthetic SC and EN fixtures with no
   device, no emulator and no network. It proves identity, hashing, weighting, separation and

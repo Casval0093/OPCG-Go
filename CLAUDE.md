@@ -1408,7 +1408,8 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
     **Adding the row changed the limitation-definition hash by design** — "closing a blocker requires
     a reviewed file change and therefore a new capability hash" is the mechanism, not a regression;
     nothing pins the literal hash, because `limitationDefinitionHash` is recomputed from the
-    retained rows at verify time.
+    retained rows at verify time. **Row count is still four but they are no longer all open** — see
+    the Phase-1 reconciliation bullet below; `second_player_first_turn_attack` is `closed`.
   - **An adjudication that adjudicated NOTHING used to satisfy the last gate — fixed 2026-08-22.**
     `environment/simulation.mjs` set `applied: timeoutAdjudication !== null`, a presence flag, and
     `environment/report.mjs` gated the official claim on `!unadjudicated`. Reproduced through the
@@ -1448,16 +1449,31 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
     **double loss**, that is a missing outcome class, not a rounding error. `evaluationMode` and
     `officialStrengthClaim` are therefore SEPARATE fields; do not read the first as the second. The
     reviewed limitation register closes the capability gate independently of both.
-  - **After the merge with `main` (#24/#25) the register is deliberately STALE, and it fails
-    CLOSED.** Phase 1 on `main` fixed two of the four defects the register still lists as `open` —
-    `second_player_first_turn_attack` and `counter_and_block_policy_missing` (the bot now counters,
-    and neither player may attack on their own first turn; see `docs/simulation.md`). The register
-    was NOT edited during conflict resolution, on purpose: closing a blocker is precisely the
+  - **Phase 1 on `main` fixed ONE AND A HALF of the register's four rows, not two — the register is
+    reconciled and the gate is unchanged (2026-08-22).** The merge commit `ae39273` and its PR
+    comment both said main "fixed two defects this branch's register lists as open". **That is
+    wrong, and the error is the dangerous direction**: acting on it would have closed a row covering
+    a live defect, which is precisely what this register exists to prevent.
+    - `second_player_first_turn_attack` — **genuinely fixed, row now `closed`.** The patch `battle:
+      neither player may attack on their own first turn` is applied (`patch_engine.py --check`
+      51/51, 0 pending), `docs/simulation.md` records it as FIXED 2026-08-20 Phase 1 Task 1.1, and
+      `sim/puzzles.test.ts` asserts the eight-row offered/not-offered table per row.
+    - `counter_and_block_policy_missing` — **HALF fixed, row STAYS OPEN.** `docs/simulation.md`
+      states it verbatim: *"The counter half was fixed by Phase 1 Task 1.2 on 2026-08-20 … The block
+      half is still true and now deliberate."* Task 1.3 keeps blocking an open policy surface on
+      purpose ("blocking has no waste-free rule"). One row covers two defects because they are one
+      resolver branch; **half a fix does not close it.** Its description and `evidenceLocation` were
+      corrected so they stop implying both halves are missing, which is now false.
+    - `trigger_activation_forced` and `attack_target_policy_missing` — untouched by main, still open.
+
+    **The gate outcome did not move**, and that was verified rather than assumed: three rows remain
+    open, so `evaluateCapabilityGate` still returns `diagnostic_estimate` / `officialReady: false`,
+    and `officialStrengthClaim` stays `false`. A closed row is **closed in place, never deleted** —
+    `blockingLimitations` still retains all four and only the gate narrows them to the open subset.
+    The register was correctly NOT edited during the merge itself: closing a blocker is exactly the
     reviewed file change the design requires, it moves `limitationDefinitionHash`, and doing it
-    silently inside a merge is the forgery this whole mechanism exists to prevent. The consequence
-    is conservative — the gate withholds official strength for two defects that no longer exist,
-    never the reverse. Closing them wants a measurement against the merged engine plus a reviewed
-    change; `attack_target_policy_missing` and `trigger_activation_forced` remain genuinely open.
+    silently inside a conflict resolution is the forgery this mechanism exists to prevent.
+    **Hash moved as designed**, `sha256:e294a229…` → `sha256:3013eee7…`; nothing pins a literal.
   - **Market snapshots are metadata and that is measured, not asserted.** They reach a report only as
     `metadata.marketRefs` with `marketEvidenceUsedForStrength: false`; staleness is a `warning`
     (`market_stale`, `market_unavailable`), never a blocker, unless a Manifest opts in.
@@ -1537,7 +1553,9 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   `docs/environment-data.md` described the gate as `open` AND `blocksOfficialStrength` — a reader who
   trusted that, flipped the flag to reach `official`, then "fixed" the code to match the doc would
   reintroduce exactly the forgery the code defends against. The flag records *why* a limitation
-  matters; `status` decides whether it binds.
+  matters; `status` decides whether it binds. **It therefore stays `true` on the one CLOSED row too**
+  — it describes the defect class, not the current gate state, and holding it invariant leaves
+  `status` as the single degree of freedom, so the flag can never be mistaken for the switch.
 
 ## What the EV tooling is for — decided 2026-08-17
 

@@ -100,15 +100,25 @@ the run to `diagnostic_estimate`** (and, without `--allow-diagnostic`, refuses i
 `simulation_not_ready`).
 
 **The register, not the prose, is the gate — and the two must agree row for row.**
-`data/environment-definitions/simulation-limitations-v1.json` carries **four** reviewed rows, and
-they cover the five defects `docs/simulation.md` documents as open:
+`data/environment-definitions/simulation-limitations-v1.json` carries **four** reviewed rows for the
+five defects `docs/simulation.md` documents. **Three are open and one is closed**, so the gate is
+still closed:
 
-| Row | Covers |
-|---|---|
-| `second_player_first_turn_attack` | the second player may illegally attack on their own first turn |
-| `counter_and_block_policy_missing` | the bot never plays a counter **and** never blocks — one resolver branch, one fix, so one row |
-| `trigger_activation_forced` | the resolver always activates a `[Trigger]` instead of choosing |
-| `attack_target_policy_missing` | the bot cannot choose an attack target; every attack hits the leader |
+| Row | Status | Covers |
+|---|---|---|
+| `second_player_first_turn_attack` | **closed** | the second player could illegally attack on their own first turn. Fixed by Phase 1 Task 1.1 (patch `battle: neither player may attack on their own first turn`), asserted per row by `neither player may attack on their own first turn` in `sim/puzzles.test.ts` |
+| `counter_and_block_policy_missing` | open | one row, two defects, because the counter step and the block step are one resolver branch. **The counter half is fixed** (Phase 1 Task 1.2 gave the defender a real counter policy); **the block half is still true and now deliberate** (Task 1.3 — "blocking has no waste-free rule"). The row stays open on the block half alone |
+| `trigger_activation_forced` | open | the resolver always activates a `[Trigger]` instead of choosing |
+| `attack_target_policy_missing` | open | the bot cannot choose an attack target; every attack hits the leader |
+
+**Half a fix does not close a row.** `counter_and_block_policy_missing` is the case that makes the
+point: it is tempting to read "the bot now counters" as closing it, and doing so would hand an
+`official` claim to a simulator that still never blocks. A row closes when every defect it covers is
+gone, not when the most visible one is.
+
+A closed row is **closed in place, never deleted**. The register keeps reading as the full list of
+defects this gate has ever been asked about, `blockingLimitations` on the capability snapshot retains
+all four, and `evaluateCapabilityGate` is the only thing that narrows them to the open subset.
 
 Every row carries a resolvable `evidenceLocation` (a `docs/…#heading` anchor, checked by a test in
 `environment/capability.test.mjs`), and closing all four is what opens the gate. A defect documented
@@ -122,7 +132,10 @@ has a row.
 > every limitation is still genuinely open. Measured: `{status: "open", blocksOfficialStrength:
 > false}` still yields `diagnostic_estimate`, still reports `officialStrengthClaim: false`, and still
 > refuses with `simulation_not_ready` absent `--allow-diagnostic`. The flag records *why* a
-> limitation matters; `status` decides whether it binds.
+> limitation matters; `status` decides whether it binds. It therefore stays `true` on the **closed**
+> row as well — it describes the defect class ("this is the kind of limitation that withholds an
+> official claim while it stands"), not the current gate state, and keeping it invariant leaves
+> `status` as the single degree of freedom, so the flag can never be mistaken for the switch.
 
 Confidence intervals are equally explicit about what they do **not** cover —
 `confidence.excludes` lists `field_selection_uncertainty`, `deck_choice_uncertainty`,

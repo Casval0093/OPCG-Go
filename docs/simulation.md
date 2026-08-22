@@ -1742,11 +1742,22 @@ to be. Three things follow, and none of them is a criticism of the harness.
   `evaluateCapabilityGate` reads. There are **four** rows for the five defects, because the counter
   step and the block step are one resolver branch with one fix and share
   `counter_and_block_policy_missing`; the other three are `second_player_first_turn_attack`,
-  `trigger_activation_forced` and `attack_target_policy_missing`. **A defect documented here with no
-  row would be invisible to the gate**, so closing the recorded rows would reach `official` while a
-  real defect stands — the register and this page have to be changed together, and
-  `environment/capability.test.mjs` pins both the row set and the resolvability of every row's
-  `evidenceLocation` anchor. **Any row left `status: "open"` degrades a run to
+  `trigger_activation_forced` and `attack_target_policy_missing`.
+  **Phase 1 fixed one and a half of those five defects, and the register was reconciled to match on
+  2026-08-22 — three rows open, one closed, gate unchanged.** `second_player_first_turn_attack` is
+  genuinely gone (Task 1.1) and its row is now `status: "closed"`, pointing at that section.
+  `counter_and_block_policy_missing` is **half** fixed — Task 1.2 gave the defender a real counter
+  policy, Task 1.3 leaves blocking a deliberate open policy surface — so its row **stays open on the
+  block half alone** and now points at Task 1.3, the evidence for why it is still open. Reading "the
+  bot now counters" as closing that row would have handed an `official` claim to a simulator that
+  still never blocks: **half a fix does not close a row.** A closed row is closed in place, never
+  deleted, so the register still reads as the full list of defects this gate has been asked about.
+  **A defect documented here with no row would be invisible to the gate**, so closing the recorded
+  rows would reach `official` while a real defect stands — the register and this page have to be
+  changed together, and
+  `environment/capability.test.mjs` pins the row set, each row's status BY NAME (never a blanket
+  "every row is open" loop, which a legitimate closure turns into a lie), and the resolvability of
+  every row's `evidenceLocation` anchor. **Any row left `status: "open"` degrades a run to
   `diagnostic_estimate`, regardless of its `blocksOfficialStrength` flag** — that flag is descriptive
   metadata and deliberately NOT a gate, because a hash-valid snapshot with every flag flipped to
   `false` would otherwise slip into `official` while every limitation is still open.

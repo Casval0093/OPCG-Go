@@ -9,14 +9,14 @@
   "limitations": [
     {
       "code": "second_player_first_turn_attack",
-      "evidenceLocation": "docs/simulation.md#audited-against-the-official-rule-manual--2026-08-19",
+      "evidenceLocation": "docs/simulation.md#task-11--neither-player-may-attack-on-their-own-first-turn",
       "affectedCapability": "first_turn_legality",
-      "status": "open",
+      "status": "closed",
       "blocksOfficialStrength": true
     },
     {
       "code": "counter_and_block_policy_missing",
-      "evidenceLocation": "docs/simulation.md#three-engine-facts-the-batch-turned-up-all-found-by-measurement",
+      "evidenceLocation": "docs/simulation.md#task-13--blocking-and-trigger-are-open-policy-surfaces-not-oversights",
       "affectedCapability": "defensive_policy",
       "status": "open",
       "blocksOfficialStrength": true
