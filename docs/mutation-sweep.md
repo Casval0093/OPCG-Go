@@ -419,6 +419,26 @@ By class: `delete condition:` 3, `player` flip 2, negative-`value` sign/step 2, 
 `zones drop "leader"` 2. Four cards produce zero mutants (1 OP15, 3 OP16) and are **unverified**,
 not passing.
 
+### Triage 2026-08-22 — all 11 are bucket A
+
+Print plus `parse_rulings.py --card` on each of the 7 cards agrees with the existing encodings.
+No card is B, C, or D; no DSL change. The 08-22 sweep row above is the measurement; this is
+the adjudication. Pinning tests landed on the same tree and
+`python3 tools/mutation_check.py --card` now reports, card for card:
+
+| card | before (08-22 sweep) | after pinning tests |
+|---|---|---|
+| `OP15-021` | 8/11 | **11/11** |
+| `OP15-024` | 4/5 | **5/5** |
+| `OP15-054` | 8/9 | **9/9** |
+| `OP15-056` | 6/9 | **9/9** |
+| `OP15-095` | 12/13 | **13/13** |
+| `OP16-048` | 7/8 | **8/8** |
+| `OP16-076` | 9/10 | **10/10** |
+
+The 11 labels that died are exactly the 11 in the table. `runs/OP15.jsonl` and `runs/OP16.jsonl`
+are left as the 08-22 sweep record. `OP15-112` was already 6/6 and was not re-opened.
+
 **Independently replicated.** A different session, on a different tree, ran
 `mutation_shard.py --fresh` over OP15+OP16 on 2026-08-21 after the operator widening merged and
 recorded the same eight cards at the same per-card figures — `OP15-021` 8/11, `OP15-024` 4/5,
