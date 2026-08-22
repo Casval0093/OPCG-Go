@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "kind": "market",
+  "environment": {
+    "edition": "SC",
+    "metagameRegion": "CN",
+    "language": "zh-Hans",
+    "formatId": "standard-block2-op16",
+    "timeZone": "Asia/Shanghai"
+  },
+  "asOf": "2026-08-20",
+  "source": {
+    "provider": "jihuanshe",
+    "surface": "market",
+    "captureHash": "sha256:a88757add263c6208ec12d39f867b2a73d3b7c6dae6c57f8968c7caec8c608d9",
+    "captureHashScope": "exact-raw-envelope-bytes",
+    "capturedAt": "2026-08-20T12:00:00Z",
+    "sourceRef": {
+      "sanitizedRoute": "app:market"
+    },
+    "parserVersion": "jihuanshe-normalizer-v1",
+    "mappingVersion": "jihuanshe-mapping-fixture-v1",
+    "observedAt": "2026-08-20T12:00:00Z",
+    "observedAtSource": "capture_fallback"
+  },
+  "coverage": {
+    "status": "complete",
+    "warnings": [],
+    "missingFields": []
+  },
+  "data": {
+    "identity": {
+      "game": "航海王简中"
+    },
+    "query": {
+      "searchLabel": "OP16-001",
+      "filterLabels": [
+        "简中",
+        "在售"
+      ],
+      "sortLabel": "价格升序"
+    },
+    "scope": "visible-viewport",
+    "visibleRowCount": 3,
+    "paginationComplete": false,
+    "rows": [
+      {
+        "providerRowId": "m1",
+        "rawCardLabel": "OP16-001 艾斯",
+        "printingId": "OP16-001",
+        "languageLabel": "简体中文",
+        "conditionLabel": "全新",
+        "gradeLabel": "未评级",
+        "gameplayId": "OP16-001",
+        "currency": "CNY",
+        "observedPrice": 123.45,
+        "previousPrice": 120
+      },
+      {
+        "providerRowId": "m2",
+        "rawCardLabel": "OP16-001 平行",
+        "printingId": "OP16-001-P",
+        "languageLabel": "简体中文",
+        "conditionLabel": "全新",
+        "gradeLabel": "未评级",
+        "gameplayId": "OP16-001",
+        "currency": "CNY",
+        "observedPrice": 999,
+        "previousPrice": 980
+      },
+      {
+        "providerRowId": "m3",
+        "rawCardLabel": "未知卡牌",
+        "printingId": "UNKNOWN-001",
+        "languageLabel": "简体中文",
+        "conditionLabel": "轻微瑕疵",
+        "gradeLabel": "未评级",
+        "gameplayId": null,
+        "currency": "CNY",
+        "observedPrice": 10,
+        "previousPrice": null
+      }
+    ]
+  },
+  "snapshotId": "jihuanshe-market-2026-08-20-9045b40778346c22",
+  "contentHash": "sha256:9045b40778346c220486e50d67dc9f29587fa659e1c5b7d841d9c64a4fc3cbd0"
+}
