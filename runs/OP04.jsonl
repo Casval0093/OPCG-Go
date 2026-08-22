@@ -49,7 +49,6 @@
 {"card": "OP04-092", "status": "ok", "killed": 3, "mutants": 3, "survivors": []}
 {"card": "OP04-047", "status": "survivors", "killed": 3, "mutants": 4, "survivors": ["delete condition:turn @L45"]}
 {"card": "OP04-053", "status": "ok", "killed": 4, "mutants": 4, "survivors": []}
-{"card": "OP04-065", "status": "ok", "killed": 4, "mutants": 4, "survivors": []}
 {"card": "OP04-068", "status": "ok", "killed": 4, "mutants": 4, "survivors": []}
 {"card": "OP04-070", "status": "survivors", "killed": 3, "mutants": 4, "survivors": ["drop oncePerTurn @L56"]}
 {"card": "OP04-103", "status": "survivors", "killed": 3, "mutants": 4, "survivors": ["zones drop \"leader\" @L39"]}
@@ -62,9 +61,9 @@
 {"card": "OP04-013", "status": "survivors", "killed": 4, "mutants": 5, "survivors": ["value 4000->3000 @L68"]}
 {"card": "OP04-028", "status": "ok", "killed": 5, "mutants": 5, "survivors": []}
 {"card": "OP04-033", "status": "ok", "killed": 5, "mutants": 5, "survivors": []}
+{"card": "OP04-043", "status": "survivors", "killed": 4, "mutants": 5, "survivors": ["delete filter:cost @L75"]}
 {"card": "OP04-109", "status": "ok", "killed": 4, "mutants": 4, "survivors": []}
 {"card": "OP04-012", "status": "ok", "killed": 5, "mutants": 5, "survivors": []}
-{"card": "OP04-043", "status": "survivors", "killed": 4, "mutants": 5, "survivors": ["delete filter:cost @L75"]}
 {"card": "OP04-046", "status": "ok", "killed": 5, "mutants": 5, "survivors": []}
 {"card": "OP04-063", "status": "ok", "killed": 5, "mutants": 5, "survivors": []}
 {"card": "OP04-101", "status": "ok", "killed": 5, "mutants": 5, "survivors": []}
@@ -74,7 +73,7 @@
 {"card": "OP04-039", "status": "survivors", "killed": 3, "mutants": 6, "survivors": ["drop oncePerTurn @L99", "player self->opponent @L93", "delete condition:handCount @L91"]}
 {"card": "OP04-010", "status": "survivors", "killed": 4, "mutants": 6, "survivors": ["delete filter:cardCategory @L56", "value 3000->2000 @L49"]}
 {"card": "OP04-026", "status": "survivors", "killed": 5, "mutants": 6, "survivors": ["player self->opponent @L70"]}
-{"card": "OP04-060", "status": "survivors", "killed": 5, "mutants": 6, "survivors": ["drop oncePerTurn @L96"]}
+{"card": "OP04-065", "status": "survivors", "killed": 5, "mutants": 6, "survivors": ["delete condition:leaderTrait @L40"]}
 {"card": "OP04-083", "status": "ok", "killed": 6, "mutants": 6, "survivors": []}
 {"card": "OP04-086", "status": "ok", "killed": 6, "mutants": 6, "survivors": []}
 {"card": "OP04-097", "status": "ok", "killed": 6, "mutants": 6, "survivors": []}
@@ -97,6 +96,7 @@
 {"card": "OP04-030", "status": "ok", "killed": 8, "mutants": 8, "survivors": []}
 {"card": "OP04-074", "status": "ok", "killed": 6, "mutants": 6, "survivors": []}
 {"card": "OP04-008", "status": "ok", "killed": 8, "mutants": 8, "survivors": []}
+{"card": "OP04-060", "status": "survivors", "killed": 6, "mutants": 8, "survivors": ["drop oncePerTurn @L99", "delete condition:leaderTrait @L71"]}
 {"card": "OP04-085", "status": "survivors", "killed": 6, "mutants": 8, "survivors": ["delete condition:leaderTrait @L35", "value -2->2 @L52"]}
 {"card": "OP04-037", "status": "survivors", "killed": 7, "mutants": 8, "survivors": ["delete condition:leaderTrait @L32"]}
 {"card": "OP04-116", "status": "survivors", "killed": 8, "mutants": 9, "survivors": ["value 6000->5000 @L42"]}

@@ -285,8 +285,8 @@ cleanliness was verified afterwards (`diff -rq` per clone against the worktree's
 | pre-OP15, five operators (2026-08-19) | 1,419 | 4,307 | 2,685 | 62.3 % | 177 | 352 |
 | pre-OP15, eleven operators (2026-08-21) | 1,750 | 9,237 | 6,862 | **74.3 %** | **16** | **21** |
 
-OP15/OP16 were deliberately **not** re-swept — their `runs/*.jsonl` records are contended by
-another live session and remain the old-instrument measurement.
+OP15/OP16 were not re-swept in this run; they were re-swept on **2026-08-22** and have their own
+section below, *The sets this repo owns*.
 
 The wider instrument kills a *larger* share of a *larger* corpus. That is not a contradiction of
 the baseline: the new sites (player scoping, amounts, keywords) are exactly the ones upstream's
@@ -361,11 +361,149 @@ cost), which remains an open proposal.
 The driver is `runs/sweep_wide.sh` (8 workers, `SWEEP_BUDGET=270` per invocation, per-PID waits).
 Total wall time was ~3.5 h across the bounded invocations.
 
+---
+
+## The sets this repo owns — run 2026-08-22
+
+The 2026-08-21 sweep above left OP15/OP16 on the five-operator instrument, so the corpus was
+**mixed**: 19 sets at eleven operators, two at five, and a naive aggregate over `runs/*.jsonl`
+reported a kill rate that described neither. This run closes that, and adds the two encodings `main`
+gained after 08-21 (`EB04-058`, `ST12-010`), which were in no record at all.
+
+**Run conditions.** Merged-`main` tree, engine rebuilt from pristine upstream `e3200bad` → 51
+patches → 707 files grafted → 985 corrections, `patch_engine.py --check` and
+`correct_cards.py --check` both clean. Baseline suite **3,670 files / 6,136 pass / 2 skipped /
+0 fail**. OP15/OP16 via `runs/mutation_shard.py` (the `--set` path, one `mutation_check.py --card`
+process per card) on 5 workers; the vendor sets via `mutation_sweep.py --vendor-set` on 8 clones.
+No card recorded `baseline-red`.
+
+**The first attempt was abandoned, and the reason is a defect in the instrument.** It ran at load
+**67** on this 10-core host because another process was running the engine suite out of the shared
+`vendor/`. `vite.config.ts` sets no `testTimeout`, so vitest's default is 5 s per test, and
+`_run_tests` returns `proc.returncode == 0` — a timeout is scored as a **killed mutant**, and the
+bias is one-directional: it inflates the kill rate and hides survivors. The run was re-done at load
+< 15. Every kill rate on this page is therefore a statement about the machine it was measured on,
+not only about the encodings.
+
+### The sets this repo owns
+
+| set | cards | mutants | killed | kill rate |
+|---|---:|---:|---:|---:|
+| OP15, five operators (archived to `runs/v2/`) | 105 | 256 | 256 | 100 % |
+| OP16, five operators (archived to `runs/v2/`) | 108 | 286 | 286 | 100 % |
+| **OP15, eleven operators** | 105 | **611** | **602** | **98.5 %** |
+| **OP16, eleven operators** | 108 | **595** | **593** | **99.7 %** |
+| `ST12-010` (never swept before) | 1 | 10 | 10 | 100 % |
+| `EB04-058` (never swept before) | 1 | 5 | 5 | 100 % |
+
+**Every one of the 11 survivors is in an operator class that did not exist on 08-19.** Under the
+original five, OP15/OP16 still kill 100 %. So this is not a regression in the encodings or their
+tests; it is the wider instrument reaching sites the old one could not perturb — and it reaches them
+in tests that were authored *with* `mutation_check.py` in the loop, which is the interesting part.
+
+| card | surviving mutant |
+|---|---|
+| `OP15-021` | `player opponent->self @L72` |
+| `OP15-021` | `value -3000->-2000 @L73` |
+| `OP15-021` | `value -3000->3000 @L73` |
+| `OP15-024` | `delete condition:turn @L47` |
+| `OP15-054` | `amount 2->1 @L39` |
+| `OP15-056` | `amount 2->1 @L57` |
+| `OP15-056` | `delete condition:leaderName @L44` |
+| `OP15-056` | `player self->opponent @L57` |
+| `OP15-095` | `delete condition:zoneCount @L59` |
+| `OP16-048` | `zones drop "leader" @L70` |
+| `OP16-076` | `zones drop "leader" @L64` |
+
+By class: `delete condition:` 3, `player` flip 2, negative-`value` sign/step 2, `amount N−1` 2,
+`zones drop "leader"` 2. Four cards produce zero mutants (1 OP15, 3 OP16) and are **unverified**,
+not passing.
+
+**Independently replicated.** A different session, on a different tree, ran
+`mutation_shard.py --fresh` over OP15+OP16 on 2026-08-21 after the operator widening merged and
+recorded the same eight cards at the same per-card figures — `OP15-021` 8/11, `OP15-024` 4/5,
+`OP15-054` 8/9, `OP15-056` 6/9, `OP15-095` 12/13, `OP15-112` 5/6, `OP16-048` 7/8, `OP16-076` 9/10
+(banked in `CLAUDE.md`). Eight of eight, card for card and label for label. That measurement read
+all eight as *stale records* and deferred them to this run; seven of the eight were exactly that,
+and the eighth (`OP15-112`) was not — see below. Treat the agreement as the strongest corroboration
+either run has, and the one disagreement as the reason a "stale corpus" explanation still has to be
+checked card by card.
+
+### One card was a real regression, and the cause was a fixture the trait fix de-fanged
+
+`OP15-112` Raki's `delete filter:cardCategory` mutant was **killed** in the five-operator record and
+**survived** here — the only killed→survivor move anywhere in this run, and it reproduced on an
+independent re-run. It is not engine drift. `cards/tests/OP15/112-raki.test.ts` built its
+false-positive Stage with a **joined trait string**, `traits: ["Sky Island Shandian Warrior"]` — the
+exact shape PR #30 eliminated across 838 real cards:
+
+- under substring matching, `filter: "trait", value: "Shandian Warrior"` matched that joined
+  string, so the Stage reached the candidate pool and only `cardCategory` excluded it — deleting
+  `cardCategory` changed the answer, and the mutant died;
+- under whole-trait equality, the trait filter rejects the Stage by itself, `cardCategory` stops
+  being load-bearing, and the mutant survives while the test stays green.
+
+#30 corrected 17 upstream fixtures of this shape and missed this one, because the sweep that would
+have caught it had not been re-run under the widened instrument. Split to
+`["Sky Island", "Shandian Warrior"]`: test still passes, card back to **6/6**. Every trait string in
+`cards/tests/` was then checked against the 160 exact trait tokens in the corrected catalog —
+**this was the only one**.
+
+### Drift, measured rather than assumed
+
+`main` moved 40 commits past the 08-21 measurement, including #31 (the `basePower` filter, ruling
+#762 — 50 filter sites across 13 sets) and #34 (timed base-power replacements). `OP14EB04` was
+re-swept fresh as the probe: it carries **13 of the 50** `basePower` sites, the densest pre-OP15 set,
+and it is where `EB04-058` landed.
+
+| | cards | mutants | killed |
+|---|---:|---:|---:|
+| recorded 08-21 | 141 | 919 | 659 |
+| re-swept 08-22 | 142 | 930 | 670 |
+
+Every change is attributable to #30's trait work, and **not one mutant moved killed → survivor**:
+
+- `OP14-043`, `OP14-046`, `OP14-047` each lost a `delete filter:trait` **survivor** — whole-trait
+  matching made those filters load-bearing, so three mutants that used to survive now die;
+- `OP14-084`, `OP14-087`, `OP14-088` each gained a `delete condition:leaderTrait` site from the
+  trait-closure corrections (their sources grew, which is also why their other labels shifted line);
+- `EB04-058` records `ok`, 5/5.
+
+So #31 and #34 caused no regression, consistent with the standing note that no encoded
+`setBasePower` target uses a power/basePower filter.
+
+### Ten more sets were stale, and a guard found them
+
+`runs/merge_results.py` compares each set's recorded mutant total against what the current
+`tools/mutation_check.py` produces for that set's encodings. Ten pre-OP15 sets disagreed — their
+records predated `main`'s trait-closure corrections and new encodings, which **added** mutation
+sites. All ten were re-swept: `EB01`, `EB02`, `OP02`, `OP03`, `OP04`, `OP08`, `OP10`, `OP12`,
+`OP13`, `PRB02`. This is why the corpus total below is not the 08-21 figure plus OP15/OP16.
+
+### The whole corpus, one instrument, one tree
+
+| corpus | cards | mutants | killed | kill rate |
+|---|---:|---:|---:|---:|
+| pre-OP15, five operators (2026-08-19) | 1,419 | 4,307 | 2,685 | 62.3 % |
+| pre-OP15, eleven operators (2026-08-21) | 1,750 | 9,237 | 6,862 | 74.3 % |
+| **everything, eleven operators (2026-08-22)** | **1,961** | **10,548** | **8,106** | **76.8 %** |
+
+Every one of the 22 sets reports 100 % coverage — every encoded card that produces a mutant has a
+record. `runs/status.sh` totals it; `runs/merge_results.py` writes `runs/all-results.json` and exits
+0 only when no set is stale.
+
+**Do not read the 76.8 % as the 74.3 % having improved.** They are different corpora on different
+trees: ten pre-OP15 sets were re-swept between them, OP15/OP16/ST12/EB04-058 were added, and the
+trait fix moved individual mutants in both directions. The comparison that *is* meaningful is
+within this row: **the encodings this repo authored kill 99.1 % (1,210/1,221 counting `ST12-010` and
+`EB04-058`) against upstream's 63–84 % per set**, same instrument, same tree, same day. That gap is
+the whole argument for authoring against a mutation harness — and the 11 survivors are the argument
+for widening the harness afterwards.
+
 ### Loose ends
 
-- `runs/all-results.json` is stale — it merges the old-instrument jsonls. Regenerate it only once
-  OP15/OP16 are re-swept with the widened instrument, or regenerate it from the current files with
-  those two sets labelled old-instrument.
+- ~~`runs/all-results.json` is stale~~ — **closed 2026-08-22.** It had no producer at all; there is
+  now `runs/merge_results.py`, which rebuilds it and refuses to write a mixed-instrument aggregate.
 - The 16 fully-vacuous cards (`EB02-037`, `EB03-018`, `OP03-110`, `OP04-102`, `OP04-058`,
   `OP06-002`, `OP06-110`, `OP06-109`, `ST04-005_p1`, `OP09-103`, `OP10-113`, `OP10-043`,
   `OP12-072`, `OP13-106`, `PRB02-006_p2`, `ST04-003`) are the priority adjudication list — down

@@ -400,6 +400,19 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
     committed corpus alone, as this one did, and let it be triaged with the widening that caused
     it. `zones drop "leader"` surviving twice is the C1/C2 Leader-exclusion shape this file already
     tracks, so at least two of the eight look like real test gaps rather than equivalent mutants.
+    **RESOLVED 2026-08-22 by the re-sweep that widening called for, and this note turned out to be
+    an exact pre-registration of it: all EIGHT cards reproduced card-for-card and label-for-label**
+    (`OP15-021` 8/11, `OP15-024` 4/5, `OP15-054` 8/9, `OP15-056` 6/9, `OP15-095` 12/13,
+    `OP15-112` 5/6, `OP16-048` 7/8, `OP16-076` 9/10), measured independently on a different tree by
+    a different session. Treat that as the strongest corroboration either measurement has.
+    **But its diagnosis was right for seven of the eight and WRONG for `OP15-112`, and the
+    exception is the more useful finding.** That card's survivor is `delete filter:cardCategory` —
+    one of the ORIGINAL five operators, so staleness cannot explain it: the five-operator record
+    had the same four old-class mutants and killed all four. It is a real regression, caused by a
+    joined-trait FIXTURE that PR #30's whole-trait equality de-fanged, and it is fixed (see the
+    mutation-sweep fact below). The other seven are new-operator gaps exactly as this note said.
+    So the corpus is regenerated, `OP15-112` is back to 6/6, and the gate is red on 7 cards / 11
+    survivors by design — they are genuine test gaps awaiting triage, not staleness.
   - **Blast radius across the 13 sets: ZERO existing tests changed.** Suite **6114 -> 6118 pass /
     0 fail / 2 skipped**, same 3667 files; the +4 are the new tests. The puzzle table is
     unmoved and was measured with a CONTROL rather than carried over: `valueRanked 9/12,
@@ -1050,7 +1063,46 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   authored with `mutation_check.py` in the loop. **Re-measured 2026-08-20 after `setBasePower`:
   542/542 across all 213 encoded cards, still 100%, 0 survivors** — and the honest caveat the tool
   itself prints, which the 523 figure did not carry: **31 of the 213 cards produce ZERO mutants**,
-  so they are unperturbable rather than verified. Records: `runs/OP15.jsonl` / `runs/OP16.jsonl`
+  so they are unperturbable rather than verified.
+  **THE 100% IS AN ARTEFACT OF THE FIVE-OPERATOR INSTRUMENT AND DID NOT SURVIVE WIDENING —
+  re-swept 2026-08-22 under the eleven operators: OP15 602/611 (98.5%), OP16 593/595 (99.7%),
+  1195/1206 = 99.1%, ELEVEN survivors over 7 cards.** Quote 99.1% for the widened instrument and
+  100% only for the five; they are different instruments and the rates are not comparable. Two
+  things about those survivors matter more than the number. **First, all eleven are in operator
+  classes that did not exist on 08-19** — `delete condition:` 3, `player` flip 2, negative-`value`
+  2, `amount N-1` 2, `zones drop "leader"` 2 — so under the original five OP15/OP16 still kill
+  100%, and this is the instrument reaching further, not the encodings regressing. **Second, they
+  are in tests authored WITH the tool in the loop**, which is the strongest available evidence that
+  "authored against a mutation harness" bounds coverage at the harness's own reach and nothing more.
+  Zero-mutant cards also fell from 31 to 4 (1 OP15, 3 OP16), because six of the new operators reach
+  sites the old five could not perturb. Full write-up and the survivor table:
+  `docs/mutation-sweep.md`, *The sets this repo owns*.
+  **One card in that run was a REAL regression and its cause is worth carrying: a joined-trait
+  FIXTURE that the trait fix silently de-fanged.** `OP15-112` Raki's `delete filter:cardCategory`
+  mutant was killed under five operators and survived here — the only killed->survivor move in the
+  whole run, reproduced independently. Not engine drift:
+  `cards/tests/OP15/112-raki.test.ts` built its false-positive Stage as
+  `traits: ["Sky Island Shandian Warrior"]`, one joined string. Under substring matching the trait
+  filter matched it, so the Stage reached the pool and only `cardCategory` excluded it; under
+  whole-trait equality the trait filter rejects it alone, `cardCategory` stops being load-bearing,
+  and the mutant survives with the test still green. **PR #30 fixed 17 upstream fixtures of exactly
+  this shape and missed this one**, because the sweep that would have caught it had not been re-run.
+  Fixed by splitting to `["Sky Island", "Shandian Warrior"]` — test green, card back to 6/6 — and
+  every trait string in `cards/tests/` was then checked against the 160 exact trait tokens in the
+  corrected catalog: **this was the only one**. The lesson is the already-recorded one at one more
+  level of indirection: a data fix has to reach the FIXTURES that encode the old semantics, and a
+  green suite cannot tell you it did.
+  **MEASURE ON A QUIET MACHINE — a load-induced timeout is recorded as a KILLED mutant.**
+  `vite.config.ts` sets no `testTimeout`, so vitest's default is 5s per test, and
+  `mutation_check._run_tests` returns `proc.returncode == 0` — it cannot distinguish "the test
+  detected the mutant" from "the test ran out of time". The bias is one-directional: it INFLATES
+  the kill rate and hides exactly the survivors the sweep exists to find. The per-card baseline
+  catches a persistently slow test, not a sporadic timeout on one of that card's mutant runs. A
+  first attempt at this re-sweep was abandoned at load **67** on this 10-core host (another process
+  was running the engine suite out of the shared `vendor/`) and re-run at load < 15. Consequence:
+  every kill rate in this file is a statement about the machine it was measured on. Not fixed —
+  fixing it (a generous `--testTimeout`) would change the instrument again and break comparability
+  with the recorded rates. Records: `runs/OP15.jsonl` / `runs/OP16.jsonl`
   (which SUPERSEDE the `--vendor-set` sweep's older files of the same name — same corpus, same
   operators, but 105/108 cards against 94/86 because the sweep path skips zero-mutant cards);
   gate: `./runs/mutation_shard.py --aggregate`, which exits 1 on a survivor OR a missing card.
@@ -1093,6 +1145,23 @@ not been run. Keep the two bodies of evidence clearly separated when writing any
   widening the instrument changes what the kill rate means, the five-operator pre-OP15 results moved
   to `runs/v2/` — the 62.3% baseline stands as measured there, and any new sweep's rate is not
   comparable to it.
+  **THE CORPUS IS SINGLE-INSTRUMENT AS OF 2026-08-22 and `runs/v2/` now archives all 21 sets that
+  had a five-operator run.** Until then it was MIXED — 19 sets at eleven operators, OP15/OP16 at
+  five — so a naive aggregate over `runs/*.jsonl` described neither instrument. Do not reintroduce
+  that: `runs/merge_results.py` now refuses to write `runs/all-results.json` when any set's recorded
+  mutant total disagrees with what the current `tools/mutation_check.py` produces for it.
+  **That guard found TEN stale pre-OP15 sets on its first run** — `EB01`, `EB02`, `OP02`, `OP03`,
+  `OP04`, `OP08`, `OP10`, `OP12`, `OP13`, `PRB02` — whose records predated `main`'s trait-closure
+  corrections and new encodings and were therefore short of mutants (e.g. OP03 recorded 458 where
+  the tools now produce 488). All ten were re-swept. **The lesson is that a sweep record goes stale
+  from a DATA change, not only from an operator change**, and nothing before this checked for it;
+  `runs/all-results.json` had no producer at all, so it could only ever be current by hand.
+  **Drift from the engine changes themselves was measured, not assumed, and is nil in the direction
+  that matters.** `OP14EB04` — 13 of the 50 `basePower` filter sites, the densest pre-OP15 set — was
+  re-swept fresh across #31 (ruling #762) and #34: 919→930 mutants, 659→670 killed, and **not one
+  mutant moved killed→survivor**. Three `delete filter:trait` mutants moved survivor→KILLED, because
+  whole-trait matching made those filters load-bearing; three cards gained a
+  `delete condition:leaderTrait` site from corrected sources. So #31/#34 caused no regression.
 
 - **The OP01–OP14 data defects are FIXED — 48 corrections, 2026-08-19. Do not re-find them.**
   `data/card-corrections.json` is the table; `tools/correct_cards.py` applies it to the disposable
@@ -1416,6 +1485,7 @@ tools/mutation_sweep.py         the same verdicts in disjoint batches, ~17x fast
 tools/card_deps.py              which test files can exercise which card (shared attribution)
 runs/                           mutation sweep results, one jsonl per set
 runs/mutation_shard.py          run mutation_check over OP15/OP16 in parallel clones, and GATE on it
+runs/merge_results.py           build runs/all-results.json; REFUSES a mixed-instrument aggregate
 docs/mutation-sweep.md          the sweep's findings
 docs/mutation-operators.md      what the operators cannot see, and what to add next
 tools/verify_limitless.py       fetch/parse Limitless card pages; the adjudicator, automated
@@ -1455,6 +1525,7 @@ python3 tools/audit_encodings.py --json data/encoding-audit.json  # is the encod
 python3 tools/correct_cards.py --check            # are the 48 corrections still applied (exit 1 if not)
 ./runs/sweep_all.sh                               # mutation-sweep every pre-OP15 encoding (~35 min)
 ./runs/status.sh                                  # aggregate the sweep
+./runs/merge_results.py --check                    # is every set's record current? exit 1 if not
 
 # OP15/OP16 are the sets this repo OWNS. mutation_sweep.py DOES cover them (sweep_all.sh launches
 # both), but only via --vendor-set, which mutates the grafted copy and attributes tests by imported
