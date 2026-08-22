@@ -1623,6 +1623,62 @@ that branch independently measured **112.3 / 140.8**, matching to the decimal ac
 Phase 2 re-measured the ladder and the play/draw split but not the bench, so this is the first
 sighting. The engine-audit's assumed 2–5x realism multiplier is now further out than ever.
 
+## Now #1 — Ace vs Enel only (2026-08-21)
+
+First cross-deck calibration game, **Ace-vs-Enel only**. Not Nami, not Teach, not G/B Luffy, not
+ST01, not `mihawk-green-proxy`, not a Limitless Ace list, and not `--compare`. There is **no Ace
+row** in `data/op16-matchup-matrix.json` (Ace is only in `unmodelled_field`); this number is
+sim-only and is not a ladder cell.
+
+```bash
+./scripts/simulate.sh --games 400 --seed 424242 --a sim/decks/ace-op16.json --b sim/decks/enel-op16.json --strategy valueRanked --out sim/results/now1-ace-vs-enel.json
+```
+
+`valueRanked` both seats. Seed `424242`. Seats alternated by index (`north` on even `i`, `south` on
+odd); north leads, so that is 200 play / 200 draw for Ace. Raw per-game rows:
+`sim/results/now1-ace-vs-enel.json`.
+
+**How the drop is computed.** `sim/matchup.sim.test.ts` records four outcomes. `timeout` is
+`turns > turnBudget` (default 40) — the round-clock proxy. `unfinished` is `winner === null` and
+not a timeout — command ceiling or engine give-up. The harness `summarize()` already drops
+`unfinished` from the win rate, but it **folds timeouts in as losses** (`wins / (games −
+unfinished)`). Now #1 does not: blended WR and both play/draw seats are
+`wins / (wins + losses)` over games whose `outcome` is `win` or `loss` only. Both `timeout` and
+`unfinished` are dropped. The figures below were recomputed from `baselineGames`, not taken from
+the harness `baseline.winRate`.
+
+This run produced `rules-win=400`. Finished = 400/400 (396 Ace wins, 4 Ace losses). Nothing was
+dropped.
+
+| seat | Ace WR | 95% CI | finished |
+|---|---|---|---|
+| blended | **99.00%** | [97.46%, 99.61%] | 400 |
+| on the play | 99.50% | [97.22%, 99.91%] | 200 |
+| on the draw | 98.50% | [95.68%, 99.49%] | 200 |
+
+Play/draw gap **+1.00 pts**. Median 11 turns (range 8–18), mean 153.4 commands.
+
+**The number is weird, and the mechanism is Enel's leader.** `OP15-058` has printed text and no
+`effects:` block. Two parked clauses, both allowed on this run:
+
+1. **DON!! deck still 10.** Printed: "your DON!! deck consists of 6 cards." The harness hard-codes
+   `donDeckCount: 10`. That fiction *helps* Enel relative to the card.
+2. **Turn-number `[Activate: Main]` unencoded.** Printed: on the second turn or later, take 1
+   active + 4 rested DON!! from the DON!! deck, then attach up to 4 rested DON!! to a Character.
+   Parked on `turnNumberCondition`. That is the deck's plan, and it never fires.
+
+`OP16-118`'s parked `setCounterLiteral` ("Character cards with 8000 power in your hand" become
+counter +2000; `[On Play]`/`[On K.O.]` search *is* encoded) cuts Ace's defence, which would lower
+Ace WR if it moved anything. It cannot explain 396–4.
+
+So the 10-DON overcount and the missing Ace counter both lean *against* a 99% Ace number. What
+remains is Enel as a 5000/5 purple Leader with no ability, playing a list built around an activate
+that does not exist. That is encoding fiction, not a field result. The standing instrument biases
+(no character attack targets, no blocks, always-on Triggers) apply to both seats and do not
+produce a 99–1 split by themselves.
+
+Do not write these figures into `docs/research-findings.md`. Nami / Teach / G/B Luffy were not run.
+
 ## What is not done
 
 - ~~**The Phase 2 re-measure.**~~ **DONE** — see "Phase 2 — the baseline re-measured, once". The
@@ -1649,12 +1705,9 @@ sighting. The engine-audit's assumed 2–5x realism multiplier is now further ou
 - **Attack target selection** is still unreachable, so a body saved by a counter is purely
   offensive. This is the honest cost of Phase 1's scope, and it will bias Phase 3's weight on any
   "keep a body" feature toward zero.
-- **No *meta* matchup yet — but the blocker is gone.** This used to read "every deck in the current
-  field is OP15/OP16 and those cards are still shells". **That is no longer true:** OP15/OP16
-  encoding completed and was verified 2026-08-19 (119 imported = 119 definitions per set, 0 cards
-  unencoded-and-unparked). The Mihawk proxy deck is still OP09–OP14 only because it predates that.
-  Real deck-vs-deck calibration against the EN ladder matrix is now *available* and simply has not
-  been run — that is step 3 of the policy-quality plan.
+- **Now #1 Ace-vs-Enel has been run** — see above. Ace 99.00% blended on 400 finished games. That
+  is a measurement of Enel without its Leader, not a field result, and it is **not** an Ace ladder
+  cell. Nami / Teach / G/B Luffy have not been run.
 - The `orderCards` fix uses identity order, which is legal but not a policy. Ordering
   top-of-deck cards deliberately is real strategy and is unimplemented.
 - Policy quality has a **floor** but no **ceiling**, and Phase 2 lowered the floor. The ladder no
