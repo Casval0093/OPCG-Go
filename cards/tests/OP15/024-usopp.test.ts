@@ -9,6 +9,7 @@ import {
   op15Usopp024,
 } from "@tcg/op-cards";
 
+import { getKeywords } from "../../../src/shared.ts";
 import { OnePieceTestEngine } from "../../../src/index.ts";
 
 const NORTH_ACTS = { firstPlayer: "south", activeSeat: "north" } as const;
@@ -16,14 +17,8 @@ const NORTH_ACTS = { firstPlayer: "south", activeSeat: "north" } as const;
 describe("OP15-024 Usopp", () => {
   test("[Opponent's Turn] the granted [Blocker] is real, and a vanilla body next to it is not", () => {
     // Granted keywords have no projected field (ProjectedCard carries power/cost/rested and no
-    // keyword list), so the grant is proved functionally: Usopp appears among the blocker
-    // candidates on the opponent's turn and op03Namule007, an identically-active vanilla body on
-    // the same board, does not.
-    //
-    // NOTE the `[Opponent's Turn]` condition itself is not falsifiable in this engine, and no test
-    // here claims to cover it: a blocker step only ever opens for the seat being attacked, which
-    // is by construction the seat whose opponent's turn it is. Both readings of the condition are
-    // therefore green on every reachable board.
+    // keyword list), so the grant is proved two ways: Usopp appears among the blocker candidates
+    // on the opponent's turn, and getKeywords reports `blocker` here and not on our own turn.
     const engine = OnePieceTestEngine.create(
       { leaderCardId: op05Enel098, character: [{ card: op15Usopp024 }, { card: op03Namule007 }] },
       {
@@ -47,6 +42,21 @@ describe("OP15-024 Usopp", () => {
       .filter((id) => id !== "skip");
     expect(candidates).toEqual([usoppId]);
     expect(candidates).not.toContain(namuleId);
+    expect(getKeywords(engine.getState(), usoppId).has("blocker")).toBe(true);
+    expect(getKeywords(engine.getState(), namuleId).has("blocker")).toBe(false);
+  });
+
+  test("on YOUR own turn the [Opponent's Turn] [Blocker] is off", () => {
+    // `delete condition:turn` leaves the grant live on both turns. A blocker step cannot show
+    // that -- it only opens for the seat being attacked -- so this reads the keyword directly.
+    const engine = OnePieceTestEngine.create(
+      { leaderCardId: op05Enel098, character: [{ card: op15Usopp024 }, { card: op03Namule007 }] },
+      { leaderCardId: op02Smoker093 },
+      { firstPlayer: "north", activeSeat: "south" },
+    );
+    const usoppId = engine.findCardInZone("south", "character", op15Usopp024);
+
+    expect(getKeywords(engine.getState(), usoppId).has("blocker")).toBe(false);
   });
 
   test("[On K.O.] rests an opponent Leader or Character with a cost of 7 or less", () => {

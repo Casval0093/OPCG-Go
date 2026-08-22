@@ -1,15 +1,31 @@
 import { describe, expect, test } from "vite-plus/test";
+import type { LeaderCard } from "@tcg/op-types";
 import {
   op02Atmos003,
   op02Blugori084,
   op02LittleoarsJr020,
   op02Magellan071,
   op03Namule007,
+  op16Buggy041,
   op16Buggy048,
   op16PrisonerOfImpelDown042,
 } from "@tcg/op-cards";
 
+import { registerCards } from "../../../../cards/src/runtime-catalog.ts";
 import { getLegalCommands, OnePieceTestEngine } from "../../../src/index.ts";
+
+// Rulings #979 / #993: a Leader that carries the name is inside a "[Prisoner of Impel Down]
+// cards" scan. There is no grantName action, so a Leader whose STATIC name is that string
+// stands in -- cardName() reads `i18n.en.name`, so both fields have to be overridden.
+const prisonerNamedLeader: LeaderCard = {
+  ...op16Buggy041,
+  id: "TEST-OP16-048-LEADER-PRISONER",
+  canonicalId: "TEST-OP16-048-LEADER-PRISONER",
+  name: "Prisoner of Impel Down",
+  i18n: { en: { ...op16Buggy041.i18n.en, name: "Prisoner of Impel Down" } },
+};
+
+registerCards([prisonerNamedLeader]);
 
 describe("OP16-048 Buggy", () => {
   test("[On Play] under an [Impel Down] Leader draws 1 and plays a [Prisoner of Impel Down] from hand", () => {
@@ -143,5 +159,30 @@ describe("OP16-048 Buggy", () => {
         (command) => command.type === "resolvePrompt",
       ),
     ).toBe(false);
+  });
+
+  test("rulings #979/#993: a Prisoner-named Leader is in the [Blocker] recipient pool", () => {
+    // The Character-only fixture above stays green if `zones` drops "leader". A Leader that
+    // carries the name is a legal recipient of "your [Prisoner of Impel Down] cards".
+    const engine = OnePieceTestEngine.create(
+      {
+        leaderCardId: prisonerNamedLeader,
+        character: [op16Buggy048, op16PrisonerOfImpelDown042, op02Blugori084],
+      },
+      { character: [{ card: op02LittleoarsJr020, playedOnTurn: 0 }] },
+      { firstPlayer: "south", activeSeat: "north" },
+    );
+    const prisonerId = engine.findCardInZone("south", "character", op16PrisonerOfImpelDown042);
+    const attackerId = engine.findCardInZone("north", "character", op02LittleoarsJr020);
+
+    engine.declareAttack(attackerId, engine.leader("south"), "north");
+    engine.resolveDecision("effectOptional", { optionId: "yes" }, "south");
+
+    const selection = engine.pendingDecision("effectTargetSelection", "south").steps[0];
+    expect(selection?.kind).toBe("selectEntity");
+    if (selection?.kind !== "selectEntity") throw new Error("Expected Buggy's Blocker recipient.");
+    expect(selection.candidates.map((candidate) => candidate.ref.id).sort()).toEqual(
+      [engine.leader("south"), prisonerId].sort(),
+    );
   });
 });
