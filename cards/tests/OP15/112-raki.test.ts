@@ -22,7 +22,12 @@ const shandianStage: StageCard = {
   id: "TEST-OP15-112-SHANDIAN-STAGE",
   canonicalId: "TEST-OP15-112-SHANDIAN-STAGE",
   cost: 1,
-  traits: ["Sky Island Shandian Warrior"],
+  // EXACT trait tokens, never a joined string. Trait matching is whole-trait equality, so
+  // ["Sky Island Shandian Warrior"] matches NEITHER trait -- the trait filter alone would
+  // then reject this Stage and `cardCategory` would stop being load-bearing, which is
+  // exactly how the `delete filter:cardCategory` mutant survived until the 2026-08-22
+  // widened re-sweep found it.
+  traits: ["Sky Island", "Shandian Warrior"],
 };
 
 registerCards([shandianStage]);

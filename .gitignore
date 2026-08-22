@@ -36,3 +36,7 @@ runs/*.out
 # `--fresh` in runs/mutation_shard.py sets the previous per-set results aside here before a re-run.
 # Useful for cross-checking two independent runs record-for-record; not a deliverable.
 runs/*.jsonl.prev
+
+# The mid-card sidecar mutation_sweep.py writes so a budget stop loses at most one card. It holds a
+# partially-measured card's state, so a committed one would read as a record rather than scratch.
+runs/*.jsonl.progress.json

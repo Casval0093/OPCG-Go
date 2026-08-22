@@ -1,0 +1,16 @@
+{"card": "ST04-003", "status": "no-effective-test", "killed": 0, "mutants": 4, "survivors": ["only inert test(s)"]}
+{"card": "ST02-004", "status": "ok", "killed": 1, "mutants": 1, "survivors": []}
+{"card": "ST07-007", "status": "ok", "killed": 1, "mutants": 1, "survivors": []}
+{"card": "ST03-008", "status": "ok", "killed": 1, "mutants": 1, "survivors": []}
+{"card": "ST03-013", "status": "ok", "killed": 1, "mutants": 1, "survivors": []}
+{"card": "P-014", "status": "ok", "killed": 1, "mutants": 1, "survivors": []}
+{"card": "ST06-010", "status": "ok", "killed": 2, "mutants": 2, "survivors": []}
+{"card": "ST12-014", "status": "ok", "killed": 2, "mutants": 2, "survivors": []}
+{"card": "P-055", "status": "ok", "killed": 2, "mutants": 2, "survivors": []}
+{"card": "P-029", "status": "survivors", "killed": 2, "mutants": 3, "survivors": ["delete filter:excludeName @L83"]}
+{"card": "ST04-016", "status": "survivors", "killed": 2, "mutants": 3, "survivors": ["value 4000->3000 @L76"]}
+{"card": "PRB01-001", "status": "survivors", "killed": 4, "mutants": 5, "survivors": ["drop oncePerTurn @L75"]}
+{"card": "ST03-005", "status": "survivors", "killed": 4, "mutants": 5, "survivors": ["delete condition:donAttached @L62"]}
+{"card": "P-053", "status": "ok", "killed": 6, "mutants": 6, "survivors": []}
+{"card": "ST09-014", "status": "survivors", "killed": 6, "mutants": 9, "survivors": ["comparison lte->gte @L63", "delete condition:lifeCount @L60", "zones drop \"leader\" @L72"]}
+{"card": "ST06-014", "status": "survivors", "killed": 6, "mutants": 10, "survivors": ["delete filter:state @L83", "delete filter:cost @L87", "delete filter:cost @L110", "value 4000->3000 @L70"]}

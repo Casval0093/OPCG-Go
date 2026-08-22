@@ -19,7 +19,12 @@ run() {
   local rc=0
   for s in "$@"; do
     # Do not stop at the first bad set: the remaining ones are independent. The worst status wins.
-    python3 "$ROOT/tools/mutation_sweep.py" --vendor-set "$s" \
+    # --cap 16, not the default 120: records are written per COMPLETED batch, and a 120-card
+    # batch costs (1 + max-mutants) full-union vitest runs — over 10 min on this host, longer
+    # than the budget stop, so no batch ever finished and every round restarted it. At 16 a
+    # batch is ~100 s and several complete per round. Disjointness (the correctness property)
+    # is cap-independent.
+    python3 "$ROOT/tools/mutation_sweep.py" --vendor-set "$s" --cap 16 \
       --engine "$engine" --repo "$ROOT" --jsonl "$ROOT/runs/$s.jsonl" --resume || rc=$?
     # 130 means paused by design; stop this worker's remaining sets so a budget stop is prompt.
     if [ "$rc" -eq 130 ]; then return 130; fi

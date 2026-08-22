@@ -1,0 +1,102 @@
+{"card": "OP13-005", "status": "ok", "killed": 1, "mutants": 1, "survivors": []}
+{"card": "OP13-028", "status": "ok", "killed": 1, "mutants": 1, "survivors": []}
+{"card": "OP13-030", "status": "ok", "killed": 1, "mutants": 1, "survivors": []}
+{"card": "OP13-035", "status": "ok", "killed": 1, "mutants": 1, "survivors": []}
+{"card": "OP13-105", "status": "ok", "killed": 1, "mutants": 1, "survivors": []}
+{"card": "OP13-106", "status": "survivors", "killed": 0, "mutants": 1, "survivors": ["delete condition:turn @L36"]}
+{"card": "OP13-008", "status": "survivors", "killed": 1, "mutants": 2, "survivors": ["delete filter:trait @L41"]}
+{"card": "OP13-026", "status": "survivors", "killed": 1, "mutants": 2, "survivors": ["drop oncePerTurn @L56"]}
+{"card": "OP13-041", "status": "ok", "killed": 2, "mutants": 2, "survivors": []}
+{"card": "OP13-047", "status": "ok", "killed": 2, "mutants": 2, "survivors": []}
+{"card": "OP13-053", "status": "ok", "killed": 2, "mutants": 2, "survivors": []}
+{"card": "OP13-060", "status": "ok", "killed": 2, "mutants": 2, "survivors": []}
+{"card": "OP13-059", "status": "survivors", "killed": 1, "mutants": 2, "survivors": ["delete filter:cost @L43"]}
+{"card": "OP13-006", "status": "ok", "killed": 3, "mutants": 3, "survivors": []}
+{"card": "OP13-007", "status": "ok", "killed": 3, "mutants": 3, "survivors": []}
+{"card": "OP13-032", "status": "ok", "killed": 3, "mutants": 3, "survivors": []}
+{"card": "OP13-033", "status": "ok", "killed": 2, "mutants": 2, "survivors": []}
+{"card": "OP13-087", "status": "ok", "killed": 2, "mutants": 2, "survivors": []}
+{"card": "OP13-013", "status": "ok", "killed": 3, "mutants": 3, "survivors": []}
+{"card": "OP13-063", "status": "ok", "killed": 3, "mutants": 3, "survivors": []}
+{"card": "OP13-065", "status": "survivors", "killed": 2, "mutants": 3, "survivors": ["delete filter:excludeName @L62"]}
+{"card": "OP13-104", "status": "ok", "killed": 3, "mutants": 3, "survivors": []}
+{"card": "OP13-112", "status": "ok", "killed": 3, "mutants": 3, "survivors": []}
+{"card": "OP13-113", "status": "ok", "killed": 3, "mutants": 3, "survivors": []}
+{"card": "OP13-020", "status": "ok", "killed": 3, "mutants": 3, "survivors": []}
+{"card": "OP13-096", "status": "survivors", "killed": 2, "mutants": 3, "survivors": ["delete filter:trait @L49"]}
+{"card": "OP13-116", "status": "survivors", "killed": 1, "mutants": 3, "survivors": ["delete filter:trait @L45", "delete filter:cardCategory @L50"]}
+{"card": "OP13-100", "status": "survivors", "killed": 2, "mutants": 4, "survivors": ["drop oncePerTurn @L71", "delete condition:turn @L49"]}
+{"card": "OP13-017", "status": "survivors", "killed": 3, "mutants": 4, "survivors": ["delete filter:trait @L41"]}
+{"card": "OP13-024", "status": "ok", "killed": 4, "mutants": 4, "survivors": []}
+{"card": "OP13-034", "status": "ok", "killed": 4, "mutants": 4, "survivors": []}
+{"card": "OP13-044", "status": "ok", "killed": 4, "mutants": 4, "survivors": []}
+{"card": "OP13-094", "status": "ok", "killed": 3, "mutants": 3, "survivors": []}
+{"card": "OP13-078", "status": "ok", "killed": 3, "mutants": 3, "survivors": []}
+{"card": "OP13-009", "status": "survivors", "killed": 3, "mutants": 4, "survivors": ["delete filter:trait @L39"]}
+{"card": "OP13-014", "status": "survivors", "killed": 2, "mutants": 4, "survivors": ["delete filter:name @L45", "zones drop \"leader\" @L39"]}
+{"card": "OP13-037", "status": "ok", "killed": 4, "mutants": 4, "survivors": []}
+{"card": "OP13-045", "status": "ok", "killed": 4, "mutants": 4, "survivors": []}
+{"card": "OP13-069", "status": "ok", "killed": 4, "mutants": 4, "survivors": []}
+{"card": "OP13-081", "status": "ok", "killed": 4, "mutants": 4, "survivors": []}
+{"card": "OP13-086", "status": "ok", "killed": 4, "mutants": 4, "survivors": []}
+{"card": "OP13-089", "status": "survivors", "killed": 2, "mutants": 4, "survivors": ["comparison gte->lte @L78", "delete condition:zoneCount @L74"]}
+{"card": "OP13-109", "status": "ok", "killed": 4, "mutants": 4, "survivors": []}
+{"card": "OP13-120", "status": "ok", "killed": 4, "mutants": 4, "survivors": []}
+{"card": "OP13-039", "status": "survivors", "killed": 2, "mutants": 4, "survivors": ["delete filter:state @L42", "delete filter:cost @L46"]}
+{"card": "OP13-117", "status": "survivors", "killed": 3, "mutants": 4, "survivors": ["delete filter:baseCost @L49"]}
+{"card": "OP13-027", "status": "ok", "killed": 5, "mutants": 5, "survivors": []}
+{"card": "OP13-050", "status": "ok", "killed": 5, "mutants": 5, "survivors": []}
+{"card": "OP13-015", "status": "survivors", "killed": 2, "mutants": 4, "survivors": ["delete filter:name @L50", "zones drop \"leader\" @L44"]}
+{"card": "OP13-025", "status": "ok", "killed": 5, "mutants": 5, "survivors": []}
+{"card": "OP13-051", "status": "ok", "killed": 5, "mutants": 5, "survivors": []}
+{"card": "OP13-056", "status": "survivors", "killed": 3, "mutants": 5, "survivors": ["delete condition:leaderTrait @L39", "delete condition:leaderTrait @L40"]}
+{"card": "OP13-061", "status": "ok", "killed": 5, "mutants": 5, "survivors": []}
+{"card": "OP13-083", "status": "survivors", "killed": 3, "mutants": 5, "survivors": ["comparison gte->lte @L94", "delete condition:zoneCount @L90"]}
+{"card": "OP13-093", "status": "ok", "killed": 5, "mutants": 5, "survivors": []}
+{"card": "OP13-022", "status": "ok", "killed": 5, "mutants": 5, "survivors": []}
+{"card": "OP13-012", "status": "survivors", "killed": 4, "mutants": 6, "survivors": ["delete filter:cost @L47", "delete filter:anyOf @L52"]}
+{"card": "OP13-042", "status": "ok", "killed": 6, "mutants": 6, "survivors": []}
+{"card": "OP13-054", "status": "ok", "killed": 6, "mutants": 6, "survivors": []}
+{"card": "OP13-062", "status": "ok", "killed": 6, "mutants": 6, "survivors": []}
+{"card": "OP13-066", "status": "survivors", "killed": 4, "mutants": 6, "survivors": ["delete filter:cost @L66", "comparison lte->gte @L68"]}
+{"card": "OP13-067", "status": "survivors", "killed": 5, "mutants": 6, "survivors": ["delete condition:leaderTrait @L39"]}
+{"card": "OP13-074", "status": "survivors", "killed": 5, "mutants": 6, "survivors": ["delete filter:cardCategory @L56"]}
+{"card": "OP13-091", "status": "survivors", "killed": 4, "mutants": 6, "survivors": ["comparison gte->lte @L98", "delete condition:zoneCount @L94"]}
+{"card": "OP13-084", "status": "survivors", "killed": 2, "mutants": 5, "survivors": ["delete filter:trait @L67", "comparison gte->lte @L86", "delete condition:zoneCount @L82"]}
+{"card": "OP13-043", "status": "ok", "killed": 6, "mutants": 6, "survivors": []}
+{"card": "OP13-052", "status": "survivors", "killed": 5, "mutants": 6, "survivors": ["delete condition:leaderName @L36"]}
+{"card": "OP13-055", "status": "ok", "killed": 6, "mutants": 6, "survivors": []}
+{"card": "OP13-072", "status": "survivors", "killed": 5, "mutants": 6, "survivors": ["delete condition:leaderTrait @L43"]}
+{"card": "OP13-114", "status": "ok", "killed": 6, "mutants": 6, "survivors": []}
+{"card": "OP13-118", "status": "survivors", "killed": 5, "mutants": 6, "survivors": ["delete filter:cardCategory @L109"]}
+{"card": "OP13-057", "status": "survivors", "killed": 4, "mutants": 6, "survivors": ["comparison lte->gte @L47", "delete condition:lifeCount @L44"]}
+{"card": "OP13-075", "status": "survivors", "killed": 3, "mutants": 6, "survivors": ["delete condition:compound @L40", "delete condition:leaderName @L44", "delete condition:donGiven @L48"]}
+{"card": "OP13-016", "status": "ok", "killed": 7, "mutants": 7, "survivors": []}
+{"card": "OP13-031", "status": "survivors", "killed": 6, "mutants": 7, "survivors": ["delete filter:cardCategory @L51"]}
+{"card": "OP13-046", "status": "survivors", "killed": 5, "mutants": 7, "survivors": ["delete filter:trait @L63", "drop oncePerTurn @L49"]}
+{"card": "OP13-068", "status": "survivors", "killed": 6, "mutants": 7, "survivors": ["delete condition:leaderTrait @L40"]}
+{"card": "OP13-095", "status": "ok", "killed": 7, "mutants": 7, "survivors": []}
+{"card": "OP13-110", "status": "survivors", "killed": 6, "mutants": 7, "survivors": ["delete filter:cardCategory @L77"]}
+{"card": "OP13-040", "status": "survivors", "killed": 5, "mutants": 7, "survivors": ["delete filter:state @L43", "delete filter:cost @L47"]}
+{"card": "OP13-058", "status": "survivors", "killed": 4, "mutants": 6, "survivors": ["delete filter:power @L43", "comparison lte->gte @L45"]}
+{"card": "OP13-071", "status": "ok", "killed": 7, "mutants": 7, "survivors": []}
+{"card": "OP13-003", "status": "survivors", "killed": 5, "mutants": 8, "survivors": ["comparison gte->lte @L52", "player self->opponent @L50", "delete condition:zoneCount @L48"]}
+{"card": "OP13-023", "status": "survivors", "killed": 6, "mutants": 8, "survivors": ["delete filter:cardCategory @L65", "delete filter:cardCategory @L98"]}
+{"card": "OP13-092", "status": "survivors", "killed": 7, "mutants": 8, "survivors": ["delete filter:cardCategory @L64"]}
+{"card": "OP13-108", "status": "ok", "killed": 8, "mutants": 8, "survivors": []}
+{"card": "OP13-098", "status": "survivors", "killed": 5, "mutants": 8, "survivors": ["delete filter:cost @L49", "comparison eq->gte @L51", "value 4000->3000 @L79"]}
+{"card": "OP13-064", "status": "survivors", "killed": 8, "mutants": 9, "survivors": ["player self->opponent @L89"]}
+{"card": "OP13-080", "status": "ok", "killed": 9, "mutants": 9, "survivors": []}
+{"card": "OP13-102", "status": "survivors", "killed": 8, "mutants": 9, "survivors": ["delete filter:cost @L91"]}
+{"card": "OP13-021", "status": "ok", "killed": 9, "mutants": 9, "survivors": []}
+{"card": "OP13-076", "status": "survivors", "killed": 8, "mutants": 9, "survivors": ["delete condition:donGiven @L60"]}
+{"card": "OP13-019", "status": "survivors", "killed": 8, "mutants": 10, "survivors": ["delete filter:power @L56", "comparison lte->gte @L58"]}
+{"card": "OP13-115", "status": "survivors", "killed": 7, "mutants": 10, "survivors": ["comparison lte->gte @L61", "delete condition:lifeCount @L58", "zones drop \"leader\" @L50"]}
+{"card": "OP13-077", "status": "survivors", "killed": 9, "mutants": 15, "survivors": ["delete filter:basePower @L43", "delete filter:basePower @L65", "comparison lte->gte @L45", "comparison lte->gte @L67", "delete condition:donGiven @L50", "delete condition:donGiven @L72"]}
+{"card": "OP13-038", "status": "survivors", "killed": 3, "mutants": 7, "survivors": ["delete filter:cost @L43", "delete filter:cost @L82", "comparison lte->gte @L45", "comparison lte->gte @L84"]}
+{"card": "OP13-001", "status": "survivors", "killed": 3, "mutants": 9, "survivors": ["delete filter:anyOf @L60", "delete filter:cardCategory @L63", "delete filter:cardCategory @L65", "delete filter:trait @L66", "delete condition:activeDonCount @L50", "zones drop \"leader\" @L57"]}
+{"card": "OP13-097", "status": "survivors", "killed": 7, "mutants": 10, "survivors": ["delete filter:baseCost @L60", "comparison eq->gte @L37", "delete condition:zoneCount @L33"]}
+{"card": "OP13-119", "status": "survivors", "killed": 9, "mutants": 11, "survivors": ["delete filter:cost @L113", "delete filter:cardCategory @L127"]}
+{"card": "OP13-004", "status": "survivors", "killed": 8, "mutants": 13, "survivors": ["delete filter:cost @L68", "comparison gte->lte @L70", "player self->opponent @L65", "delete condition:donAttached @L59", "delete condition:hasCard @L63"]}
+{"card": "OP13-099", "status": "survivors", "killed": 8, "mutants": 13, "survivors": ["delete filter:color @L57", "delete filter:trait @L61", "delete filter:cardCategory @L66", "comparison gte->lte @L87", "delete condition:zoneCount @L83"]}
+{"card": "OP13-002", "status": "survivors", "killed": 7, "mutants": 16, "survivors": ["delete filter:cardCategory @L96", "delete filter:basePower @L97", "value 6000->5000 @L97", "drop oncePerTurn @L70", "drop oncePerTurn @L88", "drop oncePerTurn @L102", "delete condition:donAttached @L76", "delete condition:donAttached @L100", "zones drop \"leader\" @L59"]}

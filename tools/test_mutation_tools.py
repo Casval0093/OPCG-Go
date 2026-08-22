@@ -14,8 +14,10 @@ error — the class of defect this repo keeps getting burned by. In particular:
 
 from __future__ import annotations
 
+import json
 import os
 import re
+import signal
 import sys
 import tempfile
 import unittest
@@ -402,6 +404,101 @@ class TestWidenedOperators(unittest.TestCase):
         self.assertEqual(len(muts), 2, [m.label for m in muts])
         self.assertIn('keywords: ["blocker"]', muts[0].source if '"rush"' in muts[0].label
                       else muts[1].source)
+
+
+class TestSweepRecordsTerminalCards(unittest.TestCase):
+    """A pause can land in the window between `save_progress()` persisting the LAST mutant's index
+    and `record_card` writing the row. The sidecar then says `k == depth` while the jsonl says
+    nothing, so the card is in NEITHER `done` (it has no row) nor `active` (`k` is not `< depth`) —
+    and without an explicit finalize pass every later `--resume` drops it again while the sweep
+    still exits 0. That is the false-green shape this file exists for: a missing measurement
+    reported as a successful run."""
+
+    FIXTURE = ("OP05-098", "op05Enel098")
+
+    @staticmethod
+    def _depth() -> int:
+        cid, sym = TestSweepRecordsTerminalCards.FIXTURE
+        return len(mc._mutants(CARD.format(sym=sym, cid=cid)))
+
+    def _sweep(self, root: str,
+               progress: dict | None) -> tuple[int, list[dict], dict, list[list[str]]]:
+        """Run `ms.main()` over a one-card temp tree with vitest stubbed all-green.
+
+        Returns (exit code, jsonl rows, sidecar contents, one entry per vitest run)."""
+        cid, sym = self.FIXTURE
+        engine, _ = _tree(
+            root, [self.FIXTURE],
+            {"tests/a.test.ts":
+             'import { %s } from "@tcg/op-cards";\n'
+             'test("x", () => { expect(%s).toBeTruthy(); });\n' % (sym, sym)},
+        )
+        jsonl = os.path.join(root, "OP05.jsonl")
+        if progress is not None:
+            with open(jsonl + ".progress.json", "w", encoding="utf-8") as fh:
+                json.dump(progress, fh)
+
+        calls: list[list[str]] = []
+
+        def fake_run(_self, files):
+            calls.append(list(files))
+            return {f: True for f in files}   # everything green: no mutant is ever "killed"
+
+        orig_run, orig_argv = ms.Sweeper.run, sys.argv
+        orig_term = signal.getsignal(signal.SIGTERM)
+        orig_int = signal.getsignal(signal.SIGINT)
+        ms.Sweeper.run = fake_run
+        sys.argv = ["mutation_sweep.py", "--vendor-set", "OP05", "--engine", engine,
+                    "--jsonl", jsonl, "--resume"]
+        try:
+            rc = ms.main()
+        finally:
+            ms.Sweeper.run, sys.argv = orig_run, orig_argv
+            signal.signal(signal.SIGTERM, orig_term)
+            signal.signal(signal.SIGINT, orig_int)
+
+        rows = ([json.loads(l) for l in open(jsonl, encoding="utf-8") if l.strip()]
+                if os.path.exists(jsonl) else [])
+        side = {}
+        if os.path.exists(jsonl + ".progress.json"):
+            with open(jsonl + ".progress.json", encoding="utf-8") as fh:
+                side = json.load(fh)
+        return rc, rows, side, calls
+
+    def test_a_card_paused_after_its_last_mutant_is_recorded_on_resume(self):
+        cid, _sym = self.FIXTURE
+        depth = self._depth()
+        self.assertGreater(depth, 1, "fixture must have a real decision surface")
+        with tempfile.TemporaryDirectory() as root:
+            rc, rows, side, calls = self._sweep(
+                root, {cid: {"k": depth, "killed": depth - 1, "surv": ["comparison lte->gte"]}})
+        self.assertEqual(rc, 0)
+        self.assertEqual([r["card"] for r in rows], [cid],
+                         "a card whose verdict was already complete must reach the jsonl")
+        self.assertEqual(
+            (rows[0]["killed"], rows[0]["mutants"], rows[0]["survivors"], rows[0]["status"]),
+            (depth - 1, depth, ["comparison lte->gte"], "survivors"),
+            "the recorded verdict must be the one the sidecar carried, not a re-measurement")
+        self.assertNotIn(cid, side, "the sidecar entry must be cleared once the row is written")
+        # Only the batch baseline. Re-running a mutant would mean the persisted verdict was
+        # discarded, which is the other way to lose the measurement.
+        self.assertEqual(calls, [["tests/a.test.ts"]])
+
+    def test_a_fresh_card_is_swept_and_recorded(self):
+        """The discriminating control: the same harness with no sidecar must sweep every mutant
+        and record the card. Without this, a "fix" that records nothing at all would still pass
+        the test above by never being reached."""
+        cid, _sym = self.FIXTURE
+        depth = self._depth()
+        with tempfile.TemporaryDirectory() as root:
+            rc, rows, side, calls = self._sweep(root, None)
+        self.assertEqual(rc, 0)
+        self.assertEqual([r["card"] for r in rows], [cid])
+        self.assertEqual((rows[0]["killed"], rows[0]["mutants"]), (0, depth),
+                         "an all-green suite kills nothing, so every mutant survives")
+        self.assertEqual(len(rows[0]["survivors"]), depth)
+        self.assertNotIn(cid, side)
+        self.assertEqual(len(calls), 1 + depth, "one baseline run plus one run per mutant")
 
 
 if __name__ == "__main__":
