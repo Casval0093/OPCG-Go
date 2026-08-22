@@ -8,7 +8,7 @@ Prepared 2026-08-19.
 |---|---|
 | 1 — search-to-hand slot gate | **SENT.** PR <https://github.com/TheCardGoat/tcg-engines/pull/216> — ready for review, `MERGEABLE`, 2 files, +56/−3 |
 | 2 — 1972 per-card tests never run | **SENT.** Issue <https://github.com/TheCardGoat/tcg-engines/issues/217> |
-| 3 — `getPermanentSetCost` evaluates conditions it discards | **LOCAL ONLY.** Carried as patch 8 in `tools/patch_engine.py`. Not sent, and not to be proposed — see the standing rule below. |
+| 3 — `getPermanentSetCost` evaluates conditions it discards | **LOCAL ONLY.** Carried in `tools/patch_engine.py` as `permanent: getPermanentSetCost evaluates conditions it then discards`. Not sent, and not to be proposed — see the standing rule below. |
 
 Ping authorised sending findings 1 and 2 on 2026-08-19 and delegated the issue/promote calls.
 **That authorisation was specific to those two and does not carry forward.**
@@ -160,7 +160,7 @@ Cheapest change with real yield: add `"src/cards/**/*.test.ts"` to `include`.
 ## Finding 3 — `getPermanentSetCost` evaluates conditions it is about to discard
 
 **File:** `packages/engine/src/effects/permanent.ts`, `getPermanentSetCost`.
-**State: recorded here and carried as patch 8. Not sent. Not to be proposed.**
+**State: recorded here and carried as `permanent: getPermanentSetCost evaluates conditions it then discards`. Not sent. Not to be proposed.**
 
 An upstream inefficiency that is a **correctness-preserving performance bug**, but a severe one: it
 made this project's primary deck ~200x more expensive to simulate than every other deck, with a cost

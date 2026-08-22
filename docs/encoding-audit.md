@@ -24,7 +24,7 @@ automates the per-card check this document previously did by hand.
 | numeric field disagreements | 13 (11 Standard) | **0** |
 | trait value disagreements | 29 (9 Standard) | **0** |
 | trait filter **missed** matches | 21 cards | **0** |
-| trait filter **false** matches | 250 cards (175 Standard) | 246 (170 Standard) |
+| trait filter **false** matches | 250 cards (175 Standard) | **0 — trait matching collapsed to whole-trait equality 2026-08-21 (§2 done: the two `... match whole traits, never substrings` engine patches, joined storage split, "type including" sites enumerated per CR 2-4-3-1; suite 6079 → 6079 pass)** |
 | printed-text agreement, OP01–14 | 1607/1666 | **1609/1666 (96.6%)** |
 | engine test suite | 6078 pass / 0 fail | **6079 pass / 0 fail** |
 
@@ -51,9 +51,18 @@ Two things learned at the official source and worth keeping:
   0 — and ~90 base printings are Characters with `-` power. `CLAUDE.md`'s standing warning holds:
   never give any tool here a blanket `- → 0`, because a Character's counter is genuinely optional.
 
-**Two things deliberately NOT done, each for a reason recorded below:** the trait-matching change in
-§2 (an engine behaviour change that wants its own branch), and the ten missing `[Trigger]`
+**One thing deliberately NOT done, for the reason recorded below:** the ten missing `[Trigger]`
 abilities in §4 (text alone would make them worse, not better — see the code reading there).
+The §2 trait-matching change this line used to defer is DONE (2026-08-21): both halves landed —
+the 838 joined trait strings are split and both substring sites (`targeting.ts` filters and
+`conditions.ts` `leaderTrait`) are collapsed to whole-trait equality. One premise correction
+worth recording: the old note claimed the substring behaviour was "more generous than the card"
+on `OP16-001` Ace per ruling #961 — wrong on two counts. Ruling #961 is about the **power
+threshold** binding both clauses of Ace's text, and Ace's trait reference is the
+including-form ("a type including \"Whitebeard Pirates\""), which Comprehensive Rules 2-4-3-1
+and the GENERAL 包含 ruling make cover Former/Allies *by rule*. The fix therefore *preserves*
+Ace's coverage by enumeration; the real narrowing lands on brace-form references (`{Animal}`,
+`{Navy}`, `{Baroque Works}`, …), which 2-4-3 makes exact.
 
 ### The correction pass found two more defects of its own
 
@@ -103,7 +112,8 @@ and 6 does not, because a one-sided threshold test is what let the defect hide i
 other direction.** `tests/cards/characters/eb03-008-hibari.test.ts` used `OP11-012` Franky as its
 SWORD-trait body across two tests. `OP11-012` is a **Straw Hat Crew** card; the engine had stored
 `["Navy SWORD"]`. The card data and the test shared one wrong trait, so both tests passed while
-asserting something the card cannot do. Correcting the trait turned them red; patch 7 substitutes
+asserting something the card cannot do. Correcting the trait turned them red; the `tests: EB03-008 Hibari used a non-SWORD card as its SWORD body`
+patch substitutes
 `OP11-092` Helmeppo, which is genuinely Navy/SWORD (checked on Limitless) and at 7000 power still
 beats the 3000-power Doma both tests attack. **The lesson generalises past card text: a fixture that
 picks the wrong card is as invisible to a green suite as an encoding that reads the wrong text.**
@@ -154,6 +164,17 @@ the `-`-means-0 defect already documented in `CLAUDE.md` for the importer — he
 it is the engine's own data that dropped the field.
 
 ### 2. Trait matching is structurally unsound — 170 Standard-legal false matches
+
+> **RESOLVED 2026-08-21.** Both halves below landed: the 838 joined strings are split
+> (`tools/split_traits.py` regenerates the 840 generated rows of `data/card-corrections.json`),
+> and the matcher collapsed to whole-trait equality at **both** substring sites —
+> `targeting.ts` trait filters (the `targeting: trait filters match whole traits, never substrings`
+> patch) and `conditions.ts` `leaderTrait`, where substring was the default on all 292 conditions
+> (the `conditions: leaderTrait matches whole traits, never substrings` patch). Printed "type including" sites enumerate their
+> closure per CR 2-4-3-1 (26 CP/GERMA rows + 64 Whitebeard/Baroque/Roger rows + the 5 OP16
+> source cards). Suite 6079 → 6079 pass / 0 fail; false matches 170 → 0. **One claim in the
+> analysis below is corrected: the Ace paragraph overstated the case** — see the note at the
+> end of this section. The rest stands as the diagnostic record.
 
 Upstream sets store a multi-trait card as **one space-joined string**:
 `OP01-003` Luffy has traits *Straw Hat Crew* and *Supernovas* and is stored
@@ -230,8 +251,21 @@ resolved by the pair above: some are joined-store artifacts (`Merfolk` via
 which step 1 fixes; the rest are genuine trait-substring collisions
 (`Whitebeard Pirates`, `Navy`, `Animal`), which need step 2.
 
-This is an engine behaviour change, not a data correction, so it wants its own
-branch and a before/after run of the full 6078-test suite.
+This was an engine behaviour change, not a data correction, so it landed on its own
+footing with a before/after run of the full 6079-test suite: **6079 → 6079 pass / 0 fail**.
+
+> **Correction to the Ace paragraph above (2026-08-21).** Ruling #961 is about the **power
+> threshold** ("8000 power or more") binding both clauses of `OP16-001`'s text — it does not
+> narrow the trait. And Ace's trait reference is the including-form: "a type including
+> \"Whitebeard Pirates\"", which CR 2-4-3-1 plus the GENERAL 包含 ruling ("拥有的特征中包含'○○'"
+> does include 《原○○》/《○○旗下》) make cover `Former Whitebeard Pirates` and
+> `Whitebeard Pirates Allies` *by rule*. So on Ace specifically the old substring behaviour
+> happened to be right, and the fix *preserves* that coverage by enumerating the closure. The
+> genuine over-matching was on the brace-form references — `{Animal}` reaching all 84
+> `Animal Kingdom Pirates`, `{Navy}` reaching `Former Navy`/`Neo Navy`, `{Baroque Works}`
+> reaching `Former Baroque Works`, and the `leaderTrait` conditions reaching Former/Neo
+> leaders — which CR 2-4-3 makes exact. `projection.ts`'s `operator: "includes"` remains
+> display metadata, as noted above.
 
 ### 3. Wrong or missing trait values — 29 cards, 9 Standard-legal — **FIXED**
 
@@ -325,9 +359,14 @@ cards" to "Look at 5 cards from the top" is churn that changes nothing and burie
 **One Standard-legal text defect is knowingly left open: `OP13-084`.** Limitless prints
 *"[Your Turn] If you have 10 or more cards in your trash, set the base power of all of your
 {Five Elders} type Characters to 7000"*; the engine encodes a completely different `[On Play]` deck
-search. That is not a text fix — it needs the `setBasePowerLiteral` primitive, which
-`data/parked-clauses.json` already has parked with six OP15/OP16 instances and which `CLAUDE.md`
-lists as blocking the OP17 Ace list. It belongs in that work, not here.
+search. That is not a text fix — it needs a literal base-power setter.
+**That primitive now EXISTS — `setBasePower`, built 2026-08-20 (the `setBasePower` patches in
+`tools/patch_engine.py`), so this card is UNBLOCKED and still unfixed.** It is a bigger job than
+the 48 corrections were, because both halves are wrong: the printed `effect` string has to be
+corrected via `data/card-corrections.json` *and* the fabricated `[On Play]` encoding replaced, in
+the vendored tree, together — per §4's rule, landing one without the other is a regression rather
+than a partial fix. It also wants its own tests, since `docs/mutation-triage.md` records it as the
+one card where fixing the existing test would be wasted work.
 
 ### 6. Untested encodings — **the "70 Standard-legal" figure was wrong; the real number is 0**
 
@@ -338,13 +377,21 @@ whether there is anything a test could asserted:
 
 | | count | Standard | is it a finding? |
 |---|---|---|---|
-| vanilla — no printed effect text *and* no `effects:` block | 63 | 59 | **no.** Nothing to assert |
-| printed text but **no encoding** | 11 | 11 | an *encoding* gap, not a test gap — and all 11 are already in `data/parked-clauses.json` |
+| vanilla — no printed effect text *and* no `effects:` block | 62 | 58 | **no.** Nothing to assert |
+| printed text but **no encoding** | 9 | 9 | an *encoding* gap, not a test gap — and all are already in `data/parked-clauses.json` |
 | **has an `effects:` encoding and no test** | **0** | **0** | this was the claim, and it is empty |
 
-So **every card in the engine that carries an encoding is referenced by at least one test.** The 11
-are `OP15-010/015/018/027/028/031/058/059` and `OP16-015/060/079` — exactly the 8 OP15 + 3 OP16 split
-`CLAUDE.md` already banks as fully parked, so the old "explains only some of them" is withdrawn too.
+So **every card in the engine that carries an encoding is referenced by at least one test.** The 9
+are `OP15-010/015/018/027/028/031/058/059` and `OP16-079`, all of them in
+`data/parked-clauses.json`, so the old "explains only some of them" is withdrawn too.
+
+**Re-measured 2026-08-20** — the table above was 63 / 11 / 0 with `OP16-015/060/079` in the list.
+Two things moved. `OP16-015` gained an `effects:` block and a test when the `setBasePower` primitive
+was built, so it leaves this section entirely. And `OP16-060` is now *mentioned* by a test while
+still having no encoding, which is why this bucket reads **9** where
+`tools/coverage_report.py --exclude-promos` reports **10** encoding gaps: the two count different
+things, and both are right. This section counts ids **no test mentions**; the coverage report counts
+cards **with no encoding**. `OP16-060` is the one card in the difference.
 
 `section_tests` in `audit_encodings.py` now reports the three buckets separately so the aggregate
 cannot be quoted as a coverage gap again. This also drops the audit's Standard-legal finding count
@@ -454,8 +501,9 @@ ordinary red Event, `OP08-119` an ordinary Character (albeit with the dual
    defect.
 5. **`EB04`'s 31 missing cards** are the largest single competitive gap, and `EB04-028`'s Trigger is
    already on the list above.
-6. **`OP13-084`'s wrong ability**, once `setBasePowerLiteral` exists — see §5. Do not attempt it as a
-   text fix.
+6. **`OP13-084`'s wrong ability** — no longer blocked. The `setBasePower` primitive landed
+   2026-08-20, so §5's precondition is met; the work itself (correction + encoding + tests, in one
+   batch) has not been done. Do not attempt it as a text fix.
 
 `ST10`–`ST36` matter far less than their count suggests: starter-deck cards are
 mostly reprints or off-meta, and no current sim deck draws on them.

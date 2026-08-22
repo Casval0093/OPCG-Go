@@ -40,17 +40,18 @@ export const op16Mr2BonKureiBentham055: CharacterCard = {
             // `copyPower`, not `setBasePowerFrom`. The two differ in exactly one place and
             // the printed text picks between them: copyPower reads getCardPower(source) --
             // the source's CURRENT power including modifiers -- while setBasePowerFrom
-            // reads basePower(source), the printed number. This card says "your opponent's
-            // Leader's POWER", the same "the power of X" phrasing OP04-069 (an earlier
+            // reads getEffectiveBasePower(source), the source's base after any "base power
+            // becomes" effect. This card says "your opponent's Leader's POWER", the same
+            // "the power of X" phrasing OP04-069 (an earlier
             // printing of this very character) and OP16-104 Catarina Devon both encode with
             // copyPower; OP06-009 Shuraiya's "the same as your opponent's Leader" and
             // OP14-053 Vista's "your Leader's BASE power" are the setBasePowerFrom wording.
             // So an opponent Leader carrying +1000 from an attached DON!! is copied at the
             // boosted value.
             //
-            // copyPower always applies to the card bearing the effect and adds
-            // `copiedPower - basePower(self)`, i.e. it *replaces* the base power and leaves
-            // this card's own modifiers (the attached DON!!'s +1000) stacked on top. Its
+            // copyPower always applies to the card bearing the effect and stores a
+            // `type: "setBasePower"` replacement of `getCardPower(source)`, so this card's
+            // own modifiers (the attached DON!!'s +1000) still stack on top. Its
             // `target` is therefore the card being COPIED FROM, not the card being changed.
             action: "copyPower",
             target: { player: "opponent", zones: ["leader"], count: { amount: 1 } },

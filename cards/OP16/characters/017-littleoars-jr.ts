@@ -39,7 +39,7 @@ export const op16LittleoarsJr017: CharacterCard = {
             player: "self",
             zone: "character",
             filters: [
-              { filter: "trait", value: "Whitebeard Pirates", match: "includes" },
+              { filter: "trait", value: ["Whitebeard Pirates", "Former Whitebeard Pirates", "Whitebeard Pirates Allies"], match: "includes" },
               { filter: "cost", comparison: "gte", value: 8 },
             ],
           },
