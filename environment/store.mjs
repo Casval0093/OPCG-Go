@@ -49,6 +49,33 @@ function ioWithDefaults(io) {
   return { ...realIo, ...(io ?? {}) };
 }
 
+// Task 6: a top-level artifact that is NOT a common snapshot (the Environment
+// Manifest) must reuse this module's proven atomic no-clobber protocol rather
+// than duplicating it or being disguised as a snapshot. The only thing that
+// varies is HOW an artifact is authenticated and WHICH field carries its
+// immutable identity, so both are injectable. Snapshot callers pass nothing and
+// keep `verifySnapshot`/`snapshotId` with unchanged behaviour.
+export const SNAPSHOT_ARTIFACT_CONTRACT = Object.freeze({
+  verify: verifySnapshot,
+  idKey: "snapshotId",
+});
+
+function artifactContract(options) {
+  if (options === undefined || options === null) return SNAPSHOT_ARTIFACT_CONTRACT;
+  if (typeof options !== "object" || Array.isArray(options)) {
+    fail("artifact_contract_invalid", "artifact contract must be an object");
+  }
+  const verify = options.verify ?? SNAPSHOT_ARTIFACT_CONTRACT.verify;
+  const idKey = options.idKey ?? SNAPSHOT_ARTIFACT_CONTRACT.idKey;
+  if (typeof verify !== "function") {
+    fail("artifact_contract_invalid", "artifact contract verify must be a function");
+  }
+  if (typeof idKey !== "string" || idKey.length === 0) {
+    fail("artifact_contract_invalid", "artifact contract idKey must be a non-empty string");
+  }
+  return { verify, idKey };
+}
+
 function fail(code, message = code, details = {}) {
   const rendered = message.startsWith(`${code}:`) ? message : `${code}: ${message}`;
   throw new EnvironmentError(code, rendered, details);
@@ -141,11 +168,11 @@ function samePublishedHash(existing, artifact) {
   return existing.contentHash === artifact.contentHash;
 }
 
-function readExistingEnvelopeHash(io, target) {
+function readExistingEnvelopeHash(io, target, idKey) {
   try {
     const value = JSON.parse(io.readFile(target, "utf8"));
     if (value && typeof value === "object" && !Array.isArray(value)) {
-      return { snapshotId: value.snapshotId, contentHash: value.contentHash };
+      return { artifactId: value[idKey], contentHash: value.contentHash };
     }
   } catch {
     // The verified-read error below remains authoritative for malformed targets.
@@ -153,10 +180,10 @@ function readExistingEnvelopeHash(io, target) {
   return null;
 }
 
-function collisionFromUnverifiedTarget(io, target, artifact) {
-  const existing = readExistingEnvelopeHash(io, target);
+function collisionFromUnverifiedTarget(io, target, artifact, contract) {
+  const existing = readExistingEnvelopeHash(io, target, contract.idKey);
   if (
-    existing?.snapshotId === artifact.snapshotId
+    existing?.artifactId === artifact[contract.idKey]
     && FULL_HASH_PATTERN.test(existing.contentHash ?? "")
     && existing.contentHash !== artifact.contentHash
   ) {
@@ -165,7 +192,7 @@ function collisionFromUnverifiedTarget(io, target, artifact) {
       "snapshot_id_collision: target already contains a different immutable snapshot",
       {
         target,
-        snapshotId: artifact.snapshotId,
+        snapshotId: artifact[contract.idKey],
         existingContentHash: existing.contentHash,
         contentHash: artifact.contentHash,
       },
@@ -174,7 +201,7 @@ function collisionFromUnverifiedTarget(io, target, artifact) {
   return null;
 }
 
-function publishImmutableAfterTemp({ io, temp, target, artifact }) {
+function publishImmutableAfterTemp({ io, temp, target, artifact, contract }) {
   try {
     io.link(temp, target);
   } catch (error) {
@@ -182,9 +209,9 @@ function publishImmutableAfterTemp({ io, temp, target, artifact }) {
 
     let existing;
     try {
-      existing = readVerifiedArtifact(target, io);
+      existing = readVerifiedArtifact(target, io, contract);
     } catch (readError) {
-      const collision = collisionFromUnverifiedTarget(io, target, artifact);
+      const collision = collisionFromUnverifiedTarget(io, target, artifact, contract);
       cleanupOwnedTemp(io, temp);
       if (collision) {
         syncDirectory(io, dirname(target));
@@ -197,7 +224,7 @@ function publishImmutableAfterTemp({ io, temp, target, artifact }) {
     if (samePublishedHash(existing, artifact)) return existing;
     fail("snapshot_id_collision", "target already contains a different immutable snapshot", {
       target,
-      snapshotId: artifact.snapshotId,
+      snapshotId: artifact[contract.idKey],
       existingContentHash: existing.contentHash,
       contentHash: artifact.contentHash,
     });
@@ -219,7 +246,8 @@ function publishImmutableAfterTemp({ io, temp, target, artifact }) {
   }
 }
 
-export function readVerifiedArtifact(path, io = realIo) {
+export function readVerifiedArtifact(path, io = realIo, options) {
+  const contract = artifactContract(options);
   const resolvedIo = ioWithDefaults(io);
   let stats;
   try {
@@ -239,17 +267,18 @@ export function readVerifiedArtifact(path, io = realIo) {
       cause: error?.code ?? error?.message,
     });
   }
-  return verifySnapshot(parsed);
+  return contract.verify(parsed);
 }
 
-export function publishImmutableArtifact(target, artifact, io = realIo) {
+export function publishImmutableArtifact(target, artifact, io = realIo, options) {
+  const contract = artifactContract(options);
   if (isAliasPath(target)) {
     fail("alias_publication_forbidden", "immutable artifacts cannot be written under data/environment-aliases", {
       target,
     });
   }
   const resolvedIo = ioWithDefaults(io);
-  const validatedArtifact = verifySnapshot(artifact);
+  const validatedArtifact = contract.verify(artifact);
   const directory = dirname(target);
   const temp = tempPathFor(target);
   resolvedIo.mkdir(directory, { recursive: true, mode: 0o755 });
@@ -262,6 +291,7 @@ export function publishImmutableArtifact(target, artifact, io = realIo) {
       temp,
       target,
       artifact: validatedArtifact,
+      contract,
     });
   } catch (error) {
     if (tempOwned || error?.tempOwned) {

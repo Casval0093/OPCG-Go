@@ -20,6 +20,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
+import { hashProjection } from "./hash.mjs";
 import { finalizeSnapshot } from "./snapshot.mjs";
 import {
   publishImmutableArtifact,
@@ -360,6 +361,125 @@ test("immutable publication rejects the alias namespace while mutable publicatio
     publishMutableRecord(aliasPath, first);
     publishMutableRecord(aliasPath, second);
     assert.deepEqual(JSON.parse(readFileSync(aliasPath, "utf8")), second);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+/* ------------------------------------------------------------------ *
+ * Injected-verifier artifacts (Task 6). A top-level artifact that is
+ * NOT a common snapshot must reuse this same atomic no-clobber
+ * protocol, without weakening the snapshot envelope for anyone else.
+ * ------------------------------------------------------------------ */
+
+const RECORD_CONTRACT = { verify: verifyRecord, idKey: "recordId" };
+
+function makeRecord(label = "example") {
+  const draft = { schemaVersion: 1, kind: "environment-manifest", label };
+  const contentHash = hashProjection(draft, []);
+  return { ...draft, recordId: `record-${contentHash.slice(7, 23)}`, contentHash };
+}
+
+function verifyRecord(record) {
+  if (!record || typeof record !== "object" || Array.isArray(record)) {
+    throw new Error("record_invalid: not an object");
+  }
+  if (typeof record.recordId !== "string" || !/^[A-Za-z0-9][A-Za-z0-9._-]*-[0-9a-f]{16}$/.test(record.recordId)) {
+    throw new Error("record_invalid: unsafe recordId");
+  }
+  const expected = hashProjection(record, ["recordId", "contentHash"]);
+  if (record.contentHash !== expected) throw new Error("record_hash_mismatch");
+  if (!record.recordId.endsWith(record.contentHash.slice(7, 23))) throw new Error("record_hash_mismatch");
+  return record;
+}
+
+test("an injected verifier publishes and reads a non-snapshot artifact through the same protocol", () => {
+  const root = makeTempRoot();
+  try {
+    const target = join(root, "data", "environments", "record.json");
+    const record = makeRecord();
+
+    const first = publishImmutableArtifact(target, record, realIo, RECORD_CONTRACT);
+    const second = publishImmutableArtifact(target, record, realIo, RECORD_CONTRACT);
+
+    assert.deepEqual(first, record);
+    assert.deepEqual(second, record);
+    assert.deepEqual(readVerifiedArtifact(target, realIo, RECORD_CONTRACT), record);
+    assert.match(readFileSync(target, "utf8"), /\n$/);
+    assert.equal(readdirSync(join(root, "data", "environments")).some((entry) => entry.endsWith(".tmp")), false);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("the default artifact contract is still the snapshot envelope", () => {
+  const root = makeTempRoot();
+  try {
+    const target = join(root, "record.json");
+    const record = makeRecord();
+
+    assert.throws(() => publishImmutableArtifact(target, record), /snapshot_/);
+    assert.equal(existsSync(target), false);
+
+    // A real snapshot still round-trips with no options at all.
+    const snapshot = makeSnapshot("default-contract");
+    const snapshotTarget = join(root, "snapshot.json");
+    publishImmutableArtifact(snapshotTarget, snapshot);
+    assert.deepEqual(readVerifiedArtifact(snapshotTarget), snapshot);
+    assert.throws(() => readVerifiedArtifact(snapshotTarget, realIo, RECORD_CONTRACT), /record_invalid/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("an injected verifier that rejects an artifact publishes nothing", () => {
+  const root = makeTempRoot();
+  try {
+    const target = join(root, "record.json");
+    const record = { ...makeRecord(), label: "tampered-after-signing" };
+
+    assert.throws(
+      () => publishImmutableArtifact(target, record, realIo, RECORD_CONTRACT),
+      /record_hash_mismatch/,
+    );
+    assert.equal(existsSync(target), false);
+    assert.equal(readdirSync(root).some((entry) => entry.endsWith(".tmp")), false);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("collision detection follows the injected identity key, not snapshotId", () => {
+  const root = makeTempRoot();
+  try {
+    const target = join(root, "record.json");
+    const record = makeRecord();
+    const squatter = {
+      ...record,
+      contentHash: "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    };
+    writeFileSync(target, `${JSON.stringify(squatter)}\n`);
+
+    assert.throws(
+      () => publishImmutableArtifact(target, record, realIo, RECORD_CONTRACT),
+      /snapshot_id_collision/,
+    );
+    assert.deepEqual(JSON.parse(readFileSync(target, "utf8")), squatter);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("an injected artifact contract must be well formed", () => {
+  const root = makeTempRoot();
+  try {
+    const target = join(root, "record.json");
+    const record = makeRecord();
+
+    assert.throws(() => publishImmutableArtifact(target, record, realIo, { verify: "nope" }), /artifact_contract_invalid/);
+    assert.throws(() => publishImmutableArtifact(target, record, realIo, { verify: verifyRecord, idKey: "" }), /artifact_contract_invalid/);
+    assert.throws(() => readVerifiedArtifact(target, realIo, { verify: 1 }), /artifact_contract_invalid/);
+    assert.equal(existsSync(target), false);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
