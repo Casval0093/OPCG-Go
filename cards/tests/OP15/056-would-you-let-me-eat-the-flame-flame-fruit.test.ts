@@ -60,7 +60,7 @@ describe("OP15-056 Would You Let Me Eat the Flame-Flame Fruit?", () => {
     expect(engine.getView("north").players.north.lifeCount).toBe(lifeBefore - 2);
   });
 
-  test("ruling #899: a non-Lucy Leader still draws 2, but the attack takes only 1 Life", () => {
+  test("ruling #899: a non-Lucy Leader's connecting attack takes only 1 Life", () => {
     // The power assertion on the existing non-Lucy case cannot see `delete condition:leaderName`
     // on `grantKeyword` -- that mutant still leaves the Leader at 5000. Without [Double Attack]
     // a connecting 5000-vs-5000 Leader attack is 1 Life.
@@ -80,8 +80,9 @@ describe("OP15-056 Would You Let Me Eat the Flame-Flame Fruit?", () => {
 
   test("[Trigger] draws 2 cards to self", () => {
     // No prior test reached the Trigger block, so `amount 2->1` and `player self->opponent`
-    // there were free. Activating consumes the card (GENERAL #21); the two cards in hand are
-    // the draw, and the opponent's hand stays empty.
+    // there were free. Activating sends the card to the trash rather than the hand (GENERAL
+    // #21 is the other fork: decline and add to hand). The two cards in hand are the draw,
+    // and the opponent's hand stays empty.
     const engine = OnePieceTestEngine.create(
       {
         leaderCardId: op15Lucy002,

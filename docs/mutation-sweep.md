@@ -424,20 +424,23 @@ not passing.
 Print plus `parse_rulings.py --card` on each of the 7 cards agrees with the existing encodings.
 No card is B, C, or D; no DSL change. The 08-22 sweep row above is the measurement; this is
 the adjudication. Pinning tests landed on the same tree and
-`python3 tools/mutation_check.py --card` now reports, card for card:
+`python3 tools/mutation_check.py --card` now reports, verbatim:
 
-| card | before (08-22 sweep) | after pinning tests |
-|---|---|---|
-| `OP15-021` | 8/11 | **11/11** |
-| `OP15-024` | 4/5 | **5/5** |
-| `OP15-054` | 8/9 | **9/9** |
-| `OP15-056` | 6/9 | **9/9** |
-| `OP15-095` | 12/13 | **13/13** |
-| `OP16-048` | 7/8 | **8/8** |
-| `OP16-076` | 9/10 | **10/10** |
+```
+ok OP15-021: 11/11 mutants killed
+ok OP15-024: 5/5 mutants killed
+ok OP15-054: 9/9 mutants killed
+ok OP15-056: 9/9 mutants killed
+ok OP15-095: 13/13 mutants killed
+ok OP16-048: 8/8 mutants killed
+ok OP16-076: 10/10 mutants killed
+```
 
-The 11 labels that died are exactly the 11 in the table. `runs/OP15.jsonl` and `runs/OP16.jsonl`
-are left as the 08-22 sweep record. `OP15-112` was already 6/6 and was not re-opened.
+Those are the same seven cards as the 08-22 survivor table (the 08-21 replica
+figures were 8/11, 4/5, 8/9, 6/9, 12/13, 7/8, 9/10). The tool prints survivors
+only; each run printed none, so the 11 listed labels died with the rest of that
+card. `runs/OP15.jsonl` and `runs/OP16.jsonl` are left as the 08-22 sweep record.
+`OP15-112` was already 6/6 and was not re-opened.
 
 **Independently replicated.** A different session, on a different tree, ran
 `mutation_shard.py --fresh` over OP15+OP16 on 2026-08-21 after the operator widening merged and
